@@ -109,3 +109,19 @@ Fix:
 - `test/print-check.test.mjs`: positive end-to-end helper regression for the matched purpose, plus wrong purpose, altered ciphertext, invalid text, and expiry rejections. Do not append arbitrary Base64URL chars for tampering tests because non-canonical input may decode unchanged.
 
 Verified: GitHub Action run 37785305718 passed for commit `90a3727926568cbd4644488445c94607555f922d`. Confirm the latest Netlify deploy after this documentation commit. The actual Canva PNG export, token refresh and download are still not live-tested; do not claim success yet. Neither Etsy nor PrintShrimp is enabled.
+
+## 2026-10-08 — Persist Canva export jobs and status checks
+
+The live user test displayed 'Canva export is still processing; retry later' after the previous ~12-second wait. The old implementation discarded the Canva job identifier, meaning retrying could start another export.
+
+Fixed on branch feature/canva-oauth-callback:
+- New /canva/print-status route, using stored Canva export job ID in site-wide private Netlify Blobs and encrypted one-hour browser session.
+- First authenticated submission sends one Canva POST export request. Repeated submissions of the same form are idempotent using a hash of the random form token and an onlyIfNew private store write.
+- Status checks use Canva GET on the same job; pending jobs are kept. Completed jobs download their PNG, measure actual dimensions, and store the private file for a session-gated /canva/print-file link.
+- The earlier export attempt cannot be resumed because its ID was not persisted by old code. Run one new export and thereafter use Check existing export status.
+- One-hour session protects access. Expired private Blob files still require an explicit cleanup mechanism before production-scale commercial operation.
+- No Etsy listing, PrintShrimp order, or original Canva design was modified.
+
+Verified: GitHub Actions run 37787208461 passed for c707324c4f989fb6b1f121b8404928daf95f948c. Netlify deployed that exact commit in Ready state with zero secret-scanner matches and print-status path registered. Real export completion, actual PNG download, and token refresh remain untested.
+
+Deployment preference: GitHub-linked Netlify does not require continuous deployment. Netlify Stopped builds disables automatic builds AND UI Trigger deploy; manual Git-backed release requires temporarily enabling builds, triggering the build, then stopping again. Stop auto publishing alone does NOT stop build consumption. No build-setting change was made in this chat.
