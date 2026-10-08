@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { inspectPNG, printReadiness, safeCanvaDownloadUrl, TEST_DESIGN } from "../lib/print-check.mjs";
+import { inspectPNG, printReadiness, safeCanvaDownloadUrl, TEST_DESIGN, selectExportScale, requestedExportDimensions, exportedSizeMatchesSource } from "../lib/print-check.mjs";
 
 function pngHeader(width,height) {
   const b=Buffer.alloc(33);
@@ -50,4 +50,27 @@ test("export workflow is read only to Canva and not connected to Etsy or PrintSh
   assert.doesNotMatch(code,/https:\/\/api\.etsy\.com/);
   assert.doesNotMatch(code,/api\.printshrimp/);
   assert.equal(TEST_DESIGN.id,"DAHXUnmHofY");
+});
+
+test("API export width scales the Canva canvas without assuming output is source-size",()=>{
+  for(const [s,w,h] of [[1,1024,1536],[2,2048,3072],[3,3072,4608],[3.125,3200,4800],[4,4096,6144]]) {
+    assert.equal(selectExportScale(String(s)),s);
+    assert.deepEqual(requestedExportDimensions(1024,1536,s),{width:w,height:h});
+    assert.equal(exportedSizeMatchesSource(1024,1536,w,h),true);
+    assert.equal(printReadiness(w,h).a_series_ratio_matches,false);
+  }
+  assert.equal(exportedSizeMatchesSource(1024,1536,3072,4609),true);
+  assert.equal(exportedSizeMatchesSource(1024,1536,3072,4096),false);
+  assert.throws(()=>selectExportScale("5"));
+  assert.throws(()=>selectExportScale("0"));
+  assert.throws(()=>selectExportScale("3e0junk"));
+  assert.throws(()=>requestedExportDimensions(1024,1536,20));
+});
+test("print-check service asks Canva for a width-based PNG export and measures returned pixels",async()=>{
+  const code=await readFile(new URL("../netlify/functions/canva-print-check.mjs",import.meta.url),"utf8");
+  assert.match(code,/width:requested\.width/);
+  assert.match(code,/exportedSizeMatchesSource\(dims\.width,dims\.height,image\.width,image\.height\)/);
+  assert.match(code,/requested_met/);
+  assert.match(code,/name=\\"scale\\"/);
+  assert.doesNotMatch(code,/if\(image\.width!==TEST_DESIGN\.width/);
 });
