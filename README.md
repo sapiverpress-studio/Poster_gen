@@ -18,8 +18,8 @@ Dedicated Canva-to-print artwork workflow for Sapiver Prints, isolated from othe
 - A3 working copy: `DAHXb1PdJlM` (3508 × 4961 px).
 - Canva OAuth works; asynchronous PNG export to private Netlify storage works.
 - User's live A3 export report showed correct dimensions, paper ratio, 300 PPI at A3, 424 PPI at A4 and 600 PPI at A5, under the reported PrintShrimp upload limit.
-- **Pending:** approve/save background-edge adjustment (an unsaved Canva draft), inspect final full-resolution artwork, verify print margins/colour, and obtain a PrintShrimp proof.
-- **Not yet integrated:** automatic arbitrary Canva link processing, Etsy draft creation, PrintShrimp product/variation mapping or automated fulfilment.
+- **Done:** owner-approved A3 background correction saved directly in Canva. **Pending:** automatic updated PNG export, inspect full-size artwork, verify print margins/colour, obtain PrintShrimp proof.
+- **Staged, not deployed:** scheduled export for exact owner-approved Canva revision and private owner report; no repeated manual export/password form needed once released. **Not yet integrated:** arbitrary Canva link processing, Etsy drafts, PrintShrimp variation mapping or automated fulfilment.
 
 ## Code locations
 
