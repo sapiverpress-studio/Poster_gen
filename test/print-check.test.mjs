@@ -83,7 +83,9 @@ test("real print-check form proof is verified with its own encryption purpose", 
   assert.equal(verifiedFormProof(challenge.token, encrypted, secret, Date.now(), "print-form"), true);
   assert.equal(verifiedFormProof(challenge.token, encrypted, secret), false, "OAuth setup form cannot validate print form");
   assert.equal(verifiedFormProof("wrong", encrypted, secret, Date.now(), "print-form"), false);
-  assert.equal(verifiedFormProof(challenge.token, encrypted + "x", secret, Date.now(), "print-form"), false);
+  const altered = encrypted.split(".");
+  altered[3] = (altered[3][0] === "A" ? "B" : "A") + altered[3].slice(1);
+  assert.equal(verifiedFormProof(challenge.token, altered.join("."), secret, Date.now(), "print-form"), false);
   assert.equal(verifiedFormProof(challenge.token, encrypted, secret, Date.now() + 600001, "print-form"), false);
   const code = await readFile(new URL("../netlify/functions/canva-print-check.mjs", import.meta.url), "utf8");
   assert.match(code, /seal\(challenge,cfg\.clientSecret,"print-form"\)/);
