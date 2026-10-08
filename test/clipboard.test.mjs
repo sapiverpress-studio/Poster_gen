@@ -80,3 +80,10 @@ test("CSP permits only same-origin scripts while password input stays masked", a
   assert.match(code, /id=\\\"setup-password\\\" type=\\\"password\\\"/);
   assert.match(code, /canva-clipboard\.mjs/);
 });
+
+test("form submission CSP allows redirects to the exact Canva OAuth host only", async () => {
+  const code = await readFile(new URL("../netlify/functions/canva-oauth.mjs", import.meta.url), "utf8");
+  assert.match(code, /form-action 'self' https:\/\/www\.canva\.com;/);
+  assert.doesNotMatch(code, /form-action 'self' https:;/);
+  assert.doesNotMatch(code, /form-action \*/);
+});
