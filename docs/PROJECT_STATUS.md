@@ -16,11 +16,11 @@
 | Canva authorisation | **VERIFIED:** OAuth connected via Netlify; successful connection shown to owner. Encrypted token storage reported by app. Live automatic token refresh/expiry cycle **not independently tested**. |
 | A3 export | **VERIFIED by owner-provided live report screenshots:** requested and actual **3508 × 4961 PNG**, file **35,014 KB** as reported, A-series ratio **1.4142**, PrintShrimp 50 MB check **passed**. File itself not independently downloaded and inspected in this handover. |
 | Print resolutions | **VERIFIED by owner's validator screenshot:** A5 **600 PPI**, A4 **424 PPI**, A3 **300 PPI**. PPI alone does not approve actual image detail or printing. |
-| Print layout | **PENDING:** A3 Canva copy's background/scenery initially left about 11 mm white side borders. A background-only adjustment was prepared in an **unsaved Canva editing transaction**; a preview was shown. **Owner has not yet approved saving the draft.** Draft may expire; reopen and verify before any future save. Need all dinosaur heads/tails and labels inside trim safe area. |
+| Print layout | **OWNER-APPROVED AND SAVED:** Background-only correction on A3 Canva copy `DAHXb1PdJlM` was committed after the original editing session expired. Verified by reopening Canva and reading the persisted scenic element at left 0, top -150, size 3508 × 5262 (38 text elements and 52 image layers still present). **Remaining:** visual print proof for heads/tails, text, edges and 2–3 mm safe areas; saving is NOT a full print approval. |
 | Print approval | **NOT APPROVED:** inspect the actual master at print size for legibility/soft assets, correct dinosaurs/labels, colour and 2–3 mm safety, and obtain PrintShrimp compatibility/proof before selling. |
 | Etsy + PrintShrimp | **NOT IMPLEMENTED / NOT AUTHORISED FOR LIVE ACTIONS:** no listing publication, manufacturing order or automatic product sync. Existing secrets alone do not prove API integration is working. PrintShrimp SKU-to-size mapping/one-file suitability must be verified with its real workflow, not assumed. |
 | Credit safeguard | Netlify team usage screenshot (Oct 8): **182 production deploys / 2,730 credits** and **2,873.9 total credits in the billing period**. This is team-wide; do not claim Poster_gen caused all 182. GitHub showed 48 Poster_gen commits in a single afternoon. **No production deploy merely for documentation; batch changes, require owner release approval.** |
-| Immediate stage | **A3 export succeeded; artwork visual approval and PrintShrimp proof pending.** Preserve working functionality and budget; do not restart OAuth or rewrite exporter without a demonstrated issue. |
+| Immediate stage | **A3 export succeeded; approved background correction SAVED; updated A3 output and physical print proof pending.** Preserve working functionality and budget; do not restart OAuth or rewrite exporter without a demonstrated issue. |
 
 ### What is done and verified
 
@@ -32,7 +32,7 @@
 
 ### What needs doing — in order
 
-1. **Owner approval:** confirm whether the separately shown background-only A3 adjustment is acceptable. Reopen the editing transaction/draft; never assume it's still active or saved. Only save after explicit approval.
+1. **Approved Canva draft completed:** background-only adjustment approved, committed and reopened to verify persistence. No owner-side Canva save or download is required for this step.
 2. **Print-quality audit:** download/inspect full-size 3508 × 4961 PNG; check every dinosaur and title, pronunciation labels, edge safety, background joins, raster sharpness, sRGB / printer requirements. Mark any failures precisely.
 3. **Production print proof:** confirm PrintShrimp accepts one A3 file for A3/A4/A5, with SKU/variation mapping and pricing, then order/inspect a sample only with owner's explicit permission.
 4. **Exporter generalisation:** after master proves good, accept arbitrary Canva designs rather than a hardcoded design ID, and retain the pass/fail gate and private original-safe workflow.
@@ -207,3 +207,15 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - **Cost evidence:** Netlify team billing screenshot reports 182 production deployments (2,730 credits), 2,873.9 credits total in current billing period. Scope team-wide; causality and purchase-hour balance unknown. Avoid any unnecessary build/deployment.
 - **Documentation action:** Created off-deploy branch `docs/handover-and-change-policy-20261008`, added root `AGENTS.md` and rewrote the top of this status record as a current snapshot while retaining previous chronological notes. README refreshed separately on this branch. **Documentation branch is not merged/deployed**; no production release approved.
 - **Next authorised action:** owner reviews and approves or rejects the A3 background adjustment. Then verify detailed full-resolution print master and printer proof, before writing Etsy/fulfilment integrations.
+
+### 2026-10-08 19:33 BST — Owner approval applied directly through Canva
+
+- **Stage / purpose:** complete previously approved background-only change without requiring user to manually save/download/reupload the Canva artwork. User rightly challenged the manual handoff.
+- **Owner approval:** user explicitly stated "I approve the image" after the A3 background-adjustment preview. This approval was for the separate working copy, not the original.
+- **Canva design:** `DAHXb1PdJlM`; original remains `DAHXUnmHofY`.
+- **First commit attempt:** earlier transaction `7420198734226177565` returned transaction-not-found because the draft expired. **Not saved** by that attempt.
+- **Actual change:** opened new editing transaction `4634722376481478741` and repeated the exact approved adjustment on background layer `PBgT94CnWTqP1kvr-LB0bQp1w5Y5bqn75`: width 3508 preserving aspect ratio; position left 0, top -150; resulting background 3508 × 5262.
+- **Verified:** Canva returned committed status for transaction `4634722376481478741`. A new read-only transaction `2524785952840439391` confirmed persisted background position and dimensions; it was cancelled with no changes. The design retained 38 text elements and 52 image layers.
+- **Cost / deployment impact:** no GitHub code changes and no Netlify production deployment for the Canva save. This documentation entry lives only on the isolated documentation branch until owner-approved merge.
+- **Unverified:** final post-adjustment PNG export, actual image sharpness, edge clipping, pronunciation legibility, colour correctness, PrintShrimp upload and physical proof. Prior A3 export predates the saved adjustment.
+- **Next development direction:** stop asking owner to manually save, download and reupload. Canva remains editable master; connected workflow should select design, export server-side, validate and store privately, then request approval only for decisions. Etsy publishing and PrintShrimp ordering require separate explicit authorisation. Keep all changes off live deploy branch until one approved, batched release.
