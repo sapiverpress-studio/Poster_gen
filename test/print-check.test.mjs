@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { newFormChallenge, seal, verifiedFormProof } from "../lib/oauth.mjs";
-import { inspectPNG, printReadiness, safeCanvaDownloadUrl, TEST_DESIGN, selectExportScale, requestedExportDimensions, exportedSizeMatchesSource } from "../lib/print-check.mjs";
+import { inspectPNG, printReadiness, safeCanvaDownloadUrl, TEST_DESIGN, selectExportScale, requestedExportDimensions, exportedSizeMatchesSource, exportJobState, validExportSession } from "../lib/print-check.mjs";
 
 function pngHeader(width,height) {
   const b=Buffer.alloc(33);
@@ -70,7 +70,7 @@ test("API export width scales the Canva canvas without assuming output is source
 test("print-check service asks Canva for a width-based PNG export and measures returned pixels",async()=>{
   const code=await readFile(new URL("../netlify/functions/canva-print-check.mjs",import.meta.url),"utf8");
   assert.match(code,/width:requested\.width/);
-  assert.match(code,/exportedSizeMatchesSource\(dims\.width,dims\.height,image\.width,image\.height\)/);
+  assert.match(code,/exportedSizeMatchesSource\(record\.width,record\.height,image\.width,image\.height\)/);
   assert.match(code,/requested_met/);
   assert.match(code,/name=\\"scale\\"/);
   assert.doesNotMatch(code,/if\(image\.width!==TEST_DESIGN\.width/);
@@ -90,4 +90,30 @@ test("real print-check form proof is verified with its own encryption purpose", 
   const code = await readFile(new URL("../netlify/functions/canva-print-check.mjs", import.meta.url), "utf8");
   assert.match(code, /seal\(challenge,cfg\.clientSecret,"print-form"\)/);
   assert.match(code, /verifiedFormProof\(fields\.get\("form_token"\),readCookie\(req,FORM_COOKIE\),cfg\.clientSecret,Date\.now\(\),"print-form"\)/);
+});
+
+test("Canva job states and session checks are strict",()=>{
+  assert.equal(exportJobState({status:"in_progress"}),"pending");
+  assert.equal(exportJobState({status:"failed"}),"failed");
+  assert.equal(exportJobState({status:"success",urls:["https://download.canva.com/result"]}),"ready");
+  assert.equal(exportJobState({status:"success",urls:[]}),"invalid");
+  assert.equal(exportJobState({status:"success",urls:["one","two"]}),"invalid");
+  assert.equal(exportJobState({status:"unknown"}),"invalid");
+  const session={purpose:"print-job",id:"a".repeat(32),expires:100000};
+  assert.equal(validExportSession(session,99999),true);
+  assert.equal(validExportSession(session,100001),false);
+  assert.equal(validExportSession({...session,id:"../secret"},99999),false);
+  assert.equal(validExportSession({...session,purpose:"wrong"},99999),false);
+});
+test("pending status is recoverable and never resubmits the export",async()=>{
+  const code=await readFile(new URL("../netlify/functions/canva-print-check.mjs",import.meta.url),"utf8");
+  const segment=code.slice(code.indexOf("async function status(req,cfg) {"),code.indexOf("async function doExport(req,cfg) {"));
+  assert.match(segment,/CANVA_BASE\+"\/exports\/"\+encodeURIComponent\(record.canvaJobId\)/);
+  assert.doesNotMatch(segment,/CANVA_BASE\+"\/exports",token/);
+  assert.match(segment,/if\(state==="pending"\)return pendingPage/);
+  assert.match(code,/onlyIfNew:true/);
+  assert.match(code,/if\(!inserted.modified\) return id/);
+  assert.match(code,/path:\["\/canva\/print-check","\/canva\/print-status","\/canva\/print-file"\]/);
+  assert.match(code,/SESSION_COOKIE/);
+  assert.match(code,/validExportSession\(session\)/);
 });
