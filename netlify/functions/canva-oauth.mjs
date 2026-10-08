@@ -3,12 +3,26 @@ import { newFlow, authUrl, equal, seal, unseal, cookieValue, COOKIE } from "../.
 
 const HEADERS = {"Cache-Control":"no-store","Referrer-Policy":"no-referrer","X-Content-Type-Options":"nosniff"};
 const CLEAR = COOKIE+"=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax";
-function env(name){return typeof Netlify==="undefined"?process.env[name]:Netlify.env.get(name);}
+function env(name){
+  // Netlify serverless functions expose project environment variables through process.env.
+  // A fallback supports runtimes exposing Netlify.env as well.
+  const fromProcess = process.env[name];
+  if (typeof fromProcess === "string" && fromProcess.length > 0) return fromProcess;
+  try {
+    return typeof Netlify !== "undefined" && typeof Netlify.env?.get === "function"
+      ? Netlify.env.get(name)
+      : undefined;
+  } catch { return undefined; }
+}
 function setup(){
   const clientId=env("CANVA_CLIENT_ID"), secret=env("CANVA_CLIENT_SECRET"), password=env("CANVA_SETUP_PASSWORD"), origin=env("CANVA_SITE_ORIGIN");
-  if(!clientId || !secret || !password || password.length<20 || !origin) throw Error("Missing settings");
-  const u=new URL(origin);
-  if(u.protocol!=="https:" || u.origin!==origin) throw Error("Invalid site origin");
+  if(!clientId || !secret || !password || !origin) {
+    throw Error("config_missing");
+  }
+  if(password.length < 20) throw Error("password_too_short");
+  let u;
+  try { u = new URL(origin); } catch { throw Error("origin_invalid"); }
+  if(u.protocol !== "https:" || u.origin !== origin) throw Error("origin_invalid");
   return {clientId,secret,password,origin,redirect:origin+"/canva/callback"};
 }
 function page(title,message,status=200,headers={}){
@@ -59,6 +73,12 @@ export default async function handler(req){
     if(route==="/canva/start") return await start(req,cfg);
     if(route==="/canva/callback") return await callback(req,cfg);
     return rejected(404,"Not found");
-  }catch{return rejected(503,"Integration not configured or server unavailable");}
+  }catch(error){
+    // Only publish a fixed diagnostic code. Never expose environment variable values,
+    // token payloads, password contents, or stack traces to visitors.
+    const known = new Set(["config_missing", "password_too_short", "origin_invalid"]);
+    const code = known.has(error?.message) ? error.message : "server_unavailable";
+    return rejected(503, "Setup check: " + code + ". No credentials were exposed.");
+  }
 }
 export const config={path:["/canva/start","/canva/callback"]};
