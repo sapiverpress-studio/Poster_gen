@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
-import {newFlow,authUrl,equal,seal,unseal,cookieValue,SCOPES,validSetupPassword} from "../lib/oauth.mjs";
+import {newFlow,authUrl,equal,seal,unseal,cookieValue,SCOPES,validSetupPassword,newFormChallenge,verifiedFormProof,acceptedRequestContext} from "../lib/oauth.mjs";
 const secret="a-test-password-longer-than-twenty-characters";
 test("PKCE state and challenge are unique and verifier matches challenge",()=>{
   const a=newFlow(),b=newFlow();
@@ -35,4 +35,26 @@ test("setup password accepts shorter unique passwords but rejects empty and very
   assert.equal(validSetupPassword("Abc!123"), false);
   assert.equal(validSetupPassword(""), false);
   assert.equal(validSetupPassword(undefined), false);
+});
+
+test("setup form challenge succeeds only with a matching, unexpired encrypted cookie",()=>{
+  const now=100000;
+  const form=newFormChallenge(now);
+  const cookie=seal(form,secret,"setup-form");
+  assert.equal(verifiedFormProof(form.token,cookie,secret,now+300000),true);
+  assert.equal(verifiedFormProof("invalid",cookie,secret,now),false);
+  assert.equal(verifiedFormProof(form.token,cookie,secret,now+600001),false);
+  assert.equal(verifiedFormProof(form.token,cookie+"t",secret,now),false);
+  assert.equal(verifiedFormProof(form.token,null,secret,now),false);
+  assert.equal(verifiedFormProof(form.token,seal(form,secret,"browser-flow"),secret,now),false);
+});
+
+test("absent or null Origin requires separate CSRF proof, explicit cross-origin is denied",()=>{
+  const good="https://sapiver-poster-gen-auth.netlify.app";
+  assert.equal(acceptedRequestContext(good,good,"same-origin"),true);
+  assert.equal(acceptedRequestContext(null,good,"same-origin"),true);
+  assert.equal(acceptedRequestContext("null",good,"none"),true);
+  assert.equal(acceptedRequestContext("https://evil.example",good,"cross-site"),false);
+  assert.equal(acceptedRequestContext(null,good,"cross-site"),false);
+  assert.equal(acceptedRequestContext("https://evil.example",good,null),false);
 });
