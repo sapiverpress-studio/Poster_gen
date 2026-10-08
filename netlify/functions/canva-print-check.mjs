@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { getStore } from "@netlify/blobs";
 import { newFormChallenge, seal, unseal, equal, acceptedRequestContext, verifiedFormProof, validSetupPassword } from "../../lib/oauth.mjs";
 import { TEST_DESIGN, inspectPNG, printReadiness, safeCanvaDownloadUrl, selectExportScale, requestedExportDimensions, exportedSizeMatchesSource, exportJobState, validExportSession } from "../../lib/print-check.mjs";
@@ -161,12 +161,15 @@ function reportPage(report,cookieHeader) {
     "<p><a href=\"/canva/print-file\">Download PNG (private one-hour session)</a></p>",
     200,cookieHeader?[cookieHeader]:[]);
 }
-async function beginExport(cfg,scale,tokenOfForm) {
+async function beginExport(cfg,scale,tokenOfForm,context) {
   const id=createHash("sha256").update(tokenOfForm).digest("hex").slice(0,32);
   const store=exportStore(), key=jobKey(id);
   const placeholder={status:"starting",createdAt:Date.now(),expires:Date.now()+JOB_LIFETIME_MS};
   const inserted=await store.setJSON(key,placeholder,{onlyIfNew:true});
   if(!inserted.modified) return id; // A double-submit must never start another Canva export.
+  // The API calls can take longer than a browser navigation. Respond immediately,
+  // and let Netlify finish creation after the response using waitUntil.
+  const startJob = async () => {
   try {
     const token=await accessToken(cfg);
     const metadata=await api(CANVA_BASE+"/designs/"+TEST_DESIGN.id,token);
@@ -190,8 +193,12 @@ async function beginExport(cfg,scale,tokenOfForm) {
     return id;
   } catch (error) {
     await store.setJSON(key,{...placeholder,status:"failed",error:"Could not start the Canva export. Open a new print-check form."});
-    throw error;
+    // Background promises should resolve after recording a safe error.
   }
+  };
+  if (typeof context?.waitUntil === "function") context.waitUntil(startJob());
+  else await startJob();
+  return id;
 }
 async function readJob(store,id) {
   return await store.get(jobKey(id),{type:"json",consistency:"strong"});
@@ -243,7 +250,7 @@ async function status(req,cfg) {
   await store.setJSON(jobKey(session.id),{...record,status:"complete",report});
   return reportPage(report);
 }
-async function doExport(req,cfg) {
+async function doExport(req,cfg,context) {
   if(!acceptedRequestContext(req.headers.get("origin"),cfg.origin,req.headers.get("sec-fetch-site")))
     return errorPage("Form request was rejected.",403);
   if(!(req.headers.get("content-type")||"").startsWith("application/x-www-form-urlencoded"))return errorPage("Invalid form data.",415);
@@ -255,7 +262,7 @@ async function doExport(req,cfg) {
   if(!equal(fields.get("password")||"",cfg.password))return errorPage("Incorrect setup password.",403);
   let scale;
   try{scale=selectExportScale(fields.get("scale")||"3");}catch{return errorPage("Choose a valid export scale.",400);}
-  const id=await beginExport(cfg,scale,formToken);
+  const id=await beginExport(cfg,scale,formToken,context);
   return pendingPage("Your export request was sent to Canva.",makeSession(id,cfg));
 }
 async function download(req,cfg) {
@@ -271,14 +278,14 @@ async function download(req,cfg) {
     "Content-Disposition":'attachment; filename="dinosaurs-across-time-export.png"'
   }});
 }
-export default async function handler(req) {
+export default async function handler(req,context) {
   try{
     const config=cfg(),path=new URL(req.url).pathname;
     if(path==="/canva/print-file")return req.method==="GET"?await download(req,config):errorPage("Method not allowed.",405);
     if(path==="/canva/print-status")return req.method==="GET"?await status(req,config):errorPage("Method not allowed.",405);
     if(path!=="/canva/print-check")return errorPage("Not found.",404);
     if(req.method==="GET")return getForm(config);
-    if(req.method==="POST")return await doExport(req,config);
+    if(req.method==="POST")return await doExport(req,config,context);
     return errorPage("Method not allowed.",405);
   } catch(error) {
     const msg=error?.message;
