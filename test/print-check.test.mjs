@@ -117,3 +117,13 @@ test("pending status is recoverable and never resubmits the export",async()=>{
   assert.match(code,/SESSION_COOKIE/);
   assert.match(code,/validExportSession\(session\)/);
 });
+
+test("POST responds while Netlify completes Canva job creation in the background",async()=>{
+  const code=await readFile(new URL("../netlify/functions/canva-print-check.mjs",import.meta.url),"utf8");
+  assert.match(code,/import \{ createHash, randomBytes \} from "node:crypto"/);
+  assert.match(code,/const startJob = async \(\) => \{/);
+  assert.match(code,/context\.waitUntil\(startJob\(\)\)/);
+  assert.match(code,/const id=await beginExport\(cfg,scale,formToken,context\)/);
+  assert.match(code,/return pendingPage\("Your export request was sent to Canva\.",makeSession\(id,cfg\)\)/);
+  assert.match(code,/if\(!inserted\.modified\) return id/);
+});
