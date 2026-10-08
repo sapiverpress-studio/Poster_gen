@@ -43,7 +43,7 @@ function setup(){
 }
 function page(title,message,status=200,headers={}){
   const html="<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"font:16px system-ui;max-width:40rem;margin:8vh auto;padding:2rem;line-height:1.5\"><h1>"+title+"</h1>"+message+"</body></html>";
-  return new Response(html,{status,headers:{...HEADERS,...headers,"Content-Type":"text/html; charset=utf-8","Content-Security-Policy":"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}});
+  return new Response(html,{status,headers:{...HEADERS,...headers,"Content-Type":"text/html; charset=utf-8","Content-Security-Policy":"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; form-action 'self' https://www.canva.com; frame-ancestors 'none'; base-uri 'none'"}});
 }
 function rejected(status,message,headers={}){return page("Canva not connected","<p>"+message+"</p><a href=\"/canva/start\">Try again</a>",status,headers);}
 async function start(req,cfg){
