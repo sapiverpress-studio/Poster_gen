@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { getStore } from "@netlify/blobs";
 import { newFormChallenge, seal, unseal, equal, acceptedRequestContext, verifiedFormProof, validSetupPassword } from "../../lib/oauth.mjs";
-import { TEST_DESIGN, inspectPNG, printReadiness, safeCanvaDownloadUrl, selectExportScale, requestedExportDimensions, exportedSizeMatchesSource, exportJobState, validExportSession } from "../../lib/print-check.mjs";
+import { TEST_DESIGN, SOURCE_DESIGN, inspectPNG, printReadiness, safeCanvaDownloadUrl, selectExportScale, requestedExportDimensions, exportedSizeMatchesSource, exportJobState, validExportSession } from "../../lib/print-check.mjs";
 
 const FORM_COOKIE = "__Host-sapiver_export_form";
 const SESSION_COOKIE = "__Host-sapiver_export_session";
@@ -46,8 +46,8 @@ function getForm(cfg){
   const challenge=newFormChallenge();
   const proof=seal(challenge,cfg.clientSecret,"print-form");
   return page("Check Canva print export",
-    "<p>This read-only test exports the original Canva design <strong>Dinosaurs across time</strong> without changing it, posting Etsy listings, or ordering prints.</p>"+
-    "<p>Canvas: 1024 × 1536 pixels. Export dimensions can be higher, but the design remains 2:3 rather than A-series.</p>"+
+    "<p>This test exports the separate <strong>A3 working copy of Dinosaurs Across Time</strong>. The original Canva poster remains untouched. No Etsy listing or PrintShrimp order will be created.</p>"+
+    "<p>Canva working copy: 3508 × 4961 pixels (A3 aspect ratio). The export must be visually checked for layout, bleed and image clarity.</p>"+
     "<form action=\"/canva/print-check\" method=\"post\">"+
     "<input type=\"hidden\" name=\"form_token\" value=\""+challenge.token+"\">"+
     "<label for=\"setup-password\">Setup password</label><p><input type=\"password\" id=\"setup-password\" name=\"password\" required autocomplete=\"off\" style=\"font-size:16px;width:100%;max-width:25rem\"></p>"+
@@ -56,12 +56,12 @@ function getForm(cfg){
     "<p><input type=\"text\" id=\"clipboard-entry\" autocomplete=\"off\" style=\"font-size:16px;width:100%;max-width:25rem\"></p></section>"+
     "<p id=\"clipboard-status\" aria-live=\"polite\"></p>"+
     "<p><label for=\"export-scale\">Export size</label> <select id=\"export-scale\" name=\"scale\">"+
-    "<option value=\"1\">1× — 1024 × 1536 px</option>"+
-    "<option value=\"2\">2× — 2048 × 3072 px</option>"+
-    "<option value=\"3\" selected>3× — 3072 × 4608 px</option>"+
-    "<option value=\"3.125\">3.125× — 3200 × 4800 px</option>"+
-    "<option value=\"4\">4× — 4096 × 6144 px</option></select></p>"+
-    "<p><small>Canva Free may reject upscaling above 1.125×. Actual exported pixels are measured.</small></p>"+
+    "<option value=\"1\" selected>1× — 3508 × 4961 px (A3 master)</option>"+
+    "<option value=\"1.125\">1.125× — 3947 × 5581 px (extra detail if available)</option>"+
+    "<option value=\"2\">2× — 7016 × 9922 px (larger, optional)</option>"+
+    ""+
+    "</select></p>"+
+    "<p><small>1× should be sufficient for A3 at 300 PPI. Extra export pixels do not restore detail missing from raster illustrations.</small></p>"+
     "<button type=\"submit\">Export PNG and measure pixels</button></form>"+
     "<p><small>Files are stored in private Netlify storage; download requires an authenticated browser session.</small></p>"+
     "<script type=\"module\" src=\"/canva-clipboard.mjs\"></script>",200,[cookie(FORM_COOKIE,proof,600)]);
@@ -157,7 +157,7 @@ function reportPage(report,cookieHeader) {
     "<strong>Ratio:</strong> "+report.readiness.ratio+"<br>"+
     "<strong>A-series ratio match:</strong> "+(report.readiness.a_series_ratio_matches?"Yes":"No")+"</p>"+
     "<h2>Effective print resolution</h2><table cellpadding=\"6\"><tr><th>Size</th><th>Resolution</th><th>Result</th></tr>"+sizes+"</table>"+
-    "<p><strong>Print approval: NOT APPROVED YET.</strong> Higher pixel count must not be confused with source image detail. This 2:3 design also needs an A-series layout or a deliberate crop/border decision.</p>"+
+    "<p><strong>Print approval: PENDING VISUAL PROOF.</strong> The A-series ratio and pixel density are measured above. Check legibility, artwork placement, any clipping and PrintShrimp safe margins before approving.</p>"+
     "<p><a href=\"/canva/print-file\">Download PNG (private one-hour session)</a></p>",
     200,cookieHeader?[cookieHeader]:[]);
 }
@@ -186,7 +186,7 @@ async function beginExport(cfg,scale,tokenOfForm,context) {
     const job=created?.job;
     if(!job?.id || typeof job.id!=="string")throw Error("Canva did not return a job identifier.");
     await store.setJSON(key,{
-      status:"in_progress",canvaJobId:job.id,createdAt:placeholder.createdAt,
+      status:"in_progress",design_id:TEST_DESIGN.id,canvaJobId:job.id,createdAt:placeholder.createdAt,
       expires:placeholder.expires,requested,selected_scale:scale,
       width:dims.width,height:dims.height,title:metadata.design.title||TEST_DESIGN.title
     });
@@ -238,11 +238,11 @@ async function status(req,cfg) {
     return errorPage("Canva returned a different aspect ratio. This export cannot be approved.",502);
   const readiness=printReadiness(image.width,image.height);
   const report={
-    design_id:TEST_DESIGN.id,title:record.title,exported_at:new Date().toISOString(),
+    design_id:record.design_id||SOURCE_DESIGN.id,title:record.title,exported_at:new Date().toISOString(),
     image,requested:record.requested,selected_scale:record.selected_scale,
     requested_met:Math.abs(image.width-record.requested.width)<=1,
     readiness,approved_for_print:false,
-    reason:"2:3 layout differs from A-series; a physical proof and source-detail check are required."
+    reason:"A-series dimensions and PPI must be verified; typography, illustration clarity, safety margins and PrintShrimp specifications still require review."
   };
   await store.set(fileKey(session.id),new Blob([bytes],{type:"image/png"}),{
     metadata:{design_id:TEST_DESIGN.id,created_at:report.exported_at,content_type:"image/png"}
@@ -261,7 +261,7 @@ async function doExport(req,cfg,context) {
     return errorPage("Form expired. Open a new print-check page.",403);
   if(!equal(fields.get("password")||"",cfg.password))return errorPage("Incorrect setup password.",403);
   let scale;
-  try{scale=selectExportScale(fields.get("scale")||"3");}catch{return errorPage("Choose a valid export scale.",400);}
+  try{scale=selectExportScale(fields.get("scale")||"1");}catch{return errorPage("Choose a valid export scale.",400);}
   const id=await beginExport(cfg,scale,formToken,context);
   return pendingPage("Your export request was sent to Canva.",makeSession(id,cfg));
 }
@@ -275,7 +275,7 @@ async function download(req,cfg) {
   if(!bytes)return errorPage("Export file not found. Check its status again.",404);
   return new Response(bytes,{status:200,headers:{
     ...HEADERS,"Content-Type":"image/png",
-    "Content-Disposition":'attachment; filename="dinosaurs-across-time-export.png"'
+    "Content-Disposition":'attachment; filename="dinosaurs-across-time-A3-master.png"'
   }});
 }
 export default async function handler(req,context) {
