@@ -14,5 +14,5 @@ test("owner report uses CSRF proof, an HttpOnly cookie and the exact approved re
  assert.ok(src.includes('No new export has been started'));
  assert.ok(src.includes('getCookie(req,FORM_COOKIE)'));
  assert.ok(!src.includes('/exports",token'));
- assert.equal(APPROVED_MASTER.approvedUpdatedAt,1791484484);
+ assert.equal(APPROVED_MASTER.approvedUpdatedAt,1791485393);
 });

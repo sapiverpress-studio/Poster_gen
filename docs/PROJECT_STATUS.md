@@ -261,3 +261,8 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - **Release scope:** `AGENTS.md`, handover documentation, read-only export report, scheduled approved-master worker, tests and a named export of existing token helper. **No Etsy integration, PrintShrimp orders, automatic listing, manufacturing or payment actions**.
 - **Control:** One production deployment authorised (not repeat deployments); on isolated branch run syntax and unit tests before publishing to `feature/canva-oauth-callback`. Production Netlify site `sapiver-poster-gen-auth`, site ID `d1753fca-2098-4b96-a684-75921df7c3da`. The scheduled worker's first actual run cannot be claimed as passed without a real deployed execution and stored report.
 - **Next:** after green isolated-branch tests, one production branch fast-forward and verify Netlify deploy commit/state and owner report route. Then poll for the scheduled run; report actual results or explain any manual Netlify build trigger if Git-backed auto deploy is stopped.
+
+### 2026-10-08 20:00 BST — First repin CI failure; test assertion updated
+
+- Initial CI run `37828003038` for repinned release candidate `8fe696c636cd0ba42790a6ec6ab7c9c20fff4264` failed **one stale test assertion** in `test/approved-report.test.mjs` which still expected old timestamp `1791484484`; other 38 tests passed and function syntax checks passed.
+- Corrected the owner-report test to expect newly approved Canva revision `1791485393`. No release or deployment was attempted. A fresh full CI run is required before production release.
