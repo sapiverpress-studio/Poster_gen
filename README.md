@@ -1,32 +1,42 @@
 # Sapiver Poster Gen
 
-Dedicated integration project for Sapiver Prints, isolated from existing Sapiver Press sites.
+Dedicated Canva-to-print artwork workflow for Sapiver Prints, isolated from other Sapiver Press projects.
 
-## Current scope
+## START HERE — mandatory
 
-Only a Canva OAuth callback is prepared on branch feature/canva-oauth-callback. No Etsy publishing, PrintShrimp manufacturing, website deployments, or automatic Canva artwork export are implemented.
+1. **Read [AGENTS.md](AGENTS.md)** before doing any work. It requires every development, design, deployment and significant investigation to be documented in the same work item.
+2. **Read [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md)**, starting with its **CURRENT PROJECT SNAPSHOT** and latest dated history.
+3. Inspect the active GitHub branch, Netlify costs/deployment status and actual code. Do not assume a prior chat's statements are still current.
 
-## Netlify configuration
+**The status document is the authoritative living handover**: current stage, verified results, pending work, blockers, risks, detailed change history, next action and release restrictions.
 
-Connect this repository to a **new dedicated Netlify project**, using branch feature/canva-oauth-callback. Publish directory: public. Functions directory: netlify/functions.
+## Current product and progress
 
-Set these Netlify environment variables with Functions scope:
-- CANVA_CLIENT_ID — Canva app's Client ID.
-- CANVA_CLIENT_SECRET — Canva app's Client Secret.
-- CANVA_SETUP_PASSWORD — separate randomly generated password of 8+ characters.
-- CANVA_SITE_ORIGIN — exact Netlify site HTTPS origin, with no trailing slash.
+**Dinosaurs Across Time** is a separate Canva product from `Dinosaurs of the World`. The user sells only **A5, A4 and A3** posters.
 
-The GitHub Actions secrets are NOT automatically visible to Netlify Functions. Configure these values in Netlify too, without pasting them into the repository or chat.
+- Original Canva design: `DAHXUnmHofY` (do not change).
+- A3 working copy: `DAHXb1PdJlM` (3508 × 4961 px).
+- Canva OAuth works; asynchronous PNG export to private Netlify storage works.
+- User's live A3 export report showed correct dimensions, paper ratio, 300 PPI at A3, 424 PPI at A4 and 600 PPI at A5, under the reported PrintShrimp upload limit.
+- **Pending:** approve/save background-edge adjustment (an unsaved Canva draft), inspect final full-resolution artwork, verify print margins/colour, and obtain a PrintShrimp proof.
+- **Not yet integrated:** automatic arbitrary Canva link processing, Etsy draft creation, PrintShrimp product/variation mapping or automated fulfilment.
 
-Register this exact Canva Redirect URL once the Netlify site is deployed:
-CANVA_SITE_ORIGIN/canva/callback
+## Code locations
 
-Use the Canva permissions design:content:read, design:meta:read, folder:read only.
+- `netlify/functions/canva-oauth.mjs` — password-protected Canva OAuth flow.
+- `netlify/functions/canva-print-check.mjs` — private PNG export, job-status and download routes.
+- `lib/oauth.mjs` and `lib/print-check.mjs` — shared security/export and image/PPI checks.
+- `test/*.test.mjs` — regression tests (run `npm test`; Node 20+).
+- `netlify.toml` — publishes `public` and `netlify/functions`.
 
-To connect: visit CANVA_SITE_ORIGIN/canva/start, supply the separate setup password, and approve Canva access. After the token exchange succeeds, tokens are encrypted and saved to a site-wide Netlify Blobs store. They never appear in the browser.
+## Release, costs and secrets
 
-The application client secret derives the encryption key: rotating it makes previously saved tokens unreadable and requires reconnecting. Canva refresh tokens rotate and can only be used once, so implement a concurrency-controlled refresh workflow before automatic exports.
+The last verified **live** Netlify deployment branch is `feature/canva-oauth-callback`; this `docs/handover-and-change-policy-20261008` branch **only contains documentation updates** and is **not a production release**.
 
-Run npm test to verify the core helpers. See docs/PROJECT_STATUS.md for full handover and unverified steps.
+The team's October billing screen showed substantial production deployment credit usage. **Never push changes to a production-deployed branch, trigger a deployment, change automatic builds, merge or spend deployment credits without the owner's explicit release approval.** Group tested changes into one controlled release.
 
-Setup password: 8+ characters, unique and never reused from a screenshot or another service. Netlify function rate limiting is configured to 6 requests per IP per 180 seconds, including callback visits; check Netlify deploy post-processing logs to verify the rule was applied.
+Never commit Canva client credentials, passwords, tokens, private PNGs, signed export links, customer data or stored cookies. Configuration is kept privately in Netlify environment variables and Blobs.
+
+No automatic Etsy publication or PrintShrimp manufacturing order without the owner's explicit approval.
+
+**Future chats:** open the repository at the branch containing the latest handover and read `AGENTS.md` and `docs/PROJECT_STATUS.md` before attempting edits. The repository files do not automatically appear in every ChatGPT conversation; you must explicitly inspect them.
