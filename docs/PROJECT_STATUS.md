@@ -8,8 +8,8 @@
 | --- | --- |
 | Project | Sapiver Prints Canva → private print-master validation → eventually Etsy drafts and PrintShrimp fulfilment |
 | Repo | `sapiverpress-studio/Poster_gen` |
-| Live Netlify application | Origin is the runtime `CANVA_SITE_ORIGIN`; Netlify-linked branch is `feature/canva-oauth-callback`. A deployment of commit `692ed142` failed secret validation, so the prior Ready deployment remains live. Do not publish any more than the one corrected build. |
-| Development branch | `docs/handover-and-change-policy-20261008` is the isolated staging branch for this secret-scan correction, regression testing and handover. The automation code has been pushed to the production GitHub branch, but its first build failed; automation is NOT yet live. |
+| Live Netlify application | Runtime origin remains `CANVA_SITE_ORIGIN`; production branch `feature/canva-oauth-callback` published commit `fe2c12860bca005070be54ed115b86e19010549f` on successful Netlify deploy `6ac7ea449b8dde00092c0cf4` (Ready). Mandatory secret scan returned ZERO matches. |
+| Development branch | `docs/handover-and-change-policy-20261008` remains the **off-production handover branch** used for documenting completed release checks without another Netlify production build. Source for the live build is commit `fe2c128` on `feature/canva-oauth-callback`. |
 | Product | **Hen & Bea: Dinosaurs Across Time** poster, **A5 / A4 / A3 only** (not A2/A1). Different from the user's approved `Dinosaurs of the World` map poster. |
 | Original Canva source | `DAHXUnmHofY` — 1024 × 1536, 2:3. **Do not overwrite or restyle.** Original share link: https://canva.link/jyolzhklfl2tpph |
 | A3 Canva working copy | `DAHXb1PdJlM` — 3508 × 4961, A-series ratio. Edit link: https://www.canva.com/d/x6_QPM4gnK8kZkR |
@@ -20,7 +20,7 @@
 | Print approval | **NOT APPROVED:** inspect the actual master at print size for legibility/soft assets, correct dinosaurs/labels, colour and 2–3 mm safety, and obtain PrintShrimp compatibility/proof before selling. |
 | Etsy + PrintShrimp | **NOT IMPLEMENTED / NOT AUTHORISED FOR LIVE ACTIONS:** no listing publication, manufacturing order or automatic product sync. Existing secrets alone do not prove API integration is working. PrintShrimp SKU-to-size mapping/one-file suitability must be verified with its real workflow, not assumed. |
 | Credit safeguard | Netlify team usage screenshot (Oct 8): **182 production deploys / 2,730 credits** and **2,873.9 total credits in the billing period**. This is team-wide; do not claim Poster_gen caused all 182. GitHub showed 48 Poster_gen commits in a single afternoon. **No production deploy merely for documentation; batch changes, require owner release approval.** |
-| Immediate stage | **Production release failed Netlify's mandatory secret scan:** attempted deploy `6ac7e903a6cc07aea81edf3b` on branch `feature/canva-oauth-callback` at `692ed142`; live site remains prior Ready deploy `6ac7b317c5c28a00089bf6df`. Scanner found a configured origin value in `docs/PROJECT_STATUS.md`; all literal occurrences are removed for a single corrective deployment. Canva export is not yet running live; Etsy and PrintShrimp remain disabled. |
+| Immediate stage | **LIVE RELEASE VERIFIED (code and schedule only):** Netlify Ready at commit `fe2c128`, all four functions registered, scheduled `canva-auto-approved` at `0 */4 * * *` UTC; 40/40 GitHub tests passed and secret scan reports 0 matches. **ACTUAL NEW PNG EXPORT NOT YET VERIFIED**; worker first run, Blobs result, image review and physical print proof still pending. Etsy and PrintShrimp remain disabled. |
 
 ### What is done and verified
 
@@ -284,3 +284,14 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - **Correction:** Replaced every absolute reference to the configured site origin with `CANVA_SITE_ORIGIN` and relative route paths; removed the bare hostname from snapshot. A regression test ensures project status never contains a literal *.netlify.app origin URL. Secret scanning was NOT disabled or weakened.
 - **Scope:** Documentation and test-only correction. Canva code, OAuth, credentials, Etsy, PrintShrimp, product assets and Netlify build settings were not changed. All other tracked text files were reviewed for the exact original site origin and did not contain it.
 - **Next:** stage the correction and run full GitHub CI; on success, fast-forward the Netlify-linked branch ONCE. Observe the resulting automatic production deploy, its secret-scanner results and scheduled worker. Do not trigger a second manual deploy unless the automatic build is conclusively absent.
+
+### 2026-10-08 20:10 BST — Corrected Netlify release LIVE; first scheduled Canva export pending
+
+- **Deployment result:** production Netlify deploy `6ac7ea449b8dde00092c0cf4` is Ready, published `2026-10-08T19:09:06.643Z`, built exactly GitHub commit `fe2c12860bca005070be54ed115b86e19010549f` from branch `feature/canva-oauth-callback`.
+- **Secret scanner:** Netlify deploy metadata reports 0 ordinary and 0 enhanced secret matches. Original failing deploy `6ac7e903a6cc07aea81edf3b` remains a historical failed attempt; secret scanning remains enabled.
+- **Functions deployed:** `canva-approved-report` at `/canva/approved-report` (authenticated), `canva-auto-approved` (private scheduled worker), `canva-oauth` and `canva-print-check`.
+- **Scheduled export:** Netlify metadata confirms schedule `0 */4 * * *` UTC for `canva-auto-approved` (00, 04, 08, 12, 16 and 20 UTC). Next post-release run expected **20:00 UTC / 21:00 BST on October 8**, subject to Netlify scheduling. Note schedule registration does **NOT** verify that Canva export ran or private Blobs were populated.
+- **CI:** production GitHub Actions run `37829741866` completed successfully for exactly `fe2c128`; previous staging run `37829617651` passed all **40 tests**.
+- **Live-route limitations:** Netlify deploy metadata confirms registration of the status route, but the unauthenticated HTTP response and password-protected report were not independently fetched; tools in this environment could not resolve the Netlify host for a direct HTTP check. Never claim PNG export was actually tested on production until owner or an accessible Netlify function log/private status confirms it.
+- **Cost:** one corrected production build succeeded after an earlier secret-scan failure; no more production deploys were triggered. Continue batching all future modifications; do not push this documentation-only checkpoint to production just to update the status.
+- **Next:** after first scheduled run, owner can view `CANVA_SITE_ORIGIN/canva/approved-report` in their authenticated browser and report its state; check for `pending`, `ready_for_review` or blocked state, then independently inspect file detail and PrintShrimp requirements. Etsy and PrintShrimp live actions remain disabled.
