@@ -125,3 +125,17 @@ Fixed on branch feature/canva-oauth-callback:
 Verified: GitHub Actions run 37787208461 passed for c707324c4f989fb6b1f121b8404928daf95f948c. Netlify deployed that exact commit in Ready state with zero secret-scanner matches and print-status path registered. Real export completion, actual PNG download, and token refresh remain untested.
 
 Deployment preference: GitHub-linked Netlify does not require continuous deployment. Netlify Stopped builds disables automatic builds AND UI Trigger deploy; manual Git-backed release requires temporarily enabling builds, triggering the build, then stopping again. Stop auto publishing alone does NOT stop build consumption. No build-setting change was made in this chat.
+
+## 2026-10-08 — A3/A4/A5 product master implementation
+
+User clarified sell sizes: **A3, A4 and A5 only** (no A2/A1). They explicitly requested completing production using their existing Canva link.
+
+Canva source design DAHXUnmHofY (Dinosaurs across time) was retained unchanged. Canva resize_design created a **separate A3 working copy** design **DAHXb1PdJlM**, 3508 × 4961 px, Canva edit link https://www.canva.com/d/x6_QPM4gnK8kZkR ; view https://www.canva.com/d/STkqZTBlJZ6sk0O. Rich-text inspection confirms original dinosaur label text remains in the A3 copy; visual margin/crop approval remains PENDING.
+
+Poster_gen print checker now targets DAHXb1PdJlM, defaults to **1× = 3508 × 4961 px** (A3 at approximately 300 PPI); other available scales include 1.125× and 2×. The source original design reference remains in SOURCE_DESIGN to correctly label older pending jobs. A3 proportion matches all three A-series sizes.
+
+PrintShrimp official 2026 artwork guide (https://printshrimp.com/blogs/news/artwork-specifications): PNG or JPEG, sRGB preferred, aim 300 PPI, A3 approximately 3500 × 5000 px, no bleed/crop marks, maintain 2–3 mm trim safety, **50 MB maximum upload**. The print checker reports whether output <=50 MiB and meets A-series geometry/300 PPI at A3/A4/A5; a clear separate manual approval gate remains for image detail, trimming, colour and a print proof.
+
+GitHub Actions run 37798949308 passed at commit 65c0ced0437da7ba9cfd532316b1186d40c029d4. Netlify production deployed the exact commit Ready with zero secret-scan matches. New A3 export has NOT yet been started with owner password. Do not mark as final product before: (1) owner checks Canva A3 working copy visually (no clipping and readable names) (2) owner uses https://sapiver-poster-gen-auth.netlify.app/canva/print-check to export A3 1× (3) status report confirms image dimensions/under-50MB (4) printer proof or detailed PDF review.
+
+No Etsy listing or PrintShrimp order was created. Production deploy settings left unchanged. Existing original poster untouched.
