@@ -41,7 +41,7 @@ function fixture(store,options={}){
 }
 test("approval is bound to one Canva revision and A3 dimensions",()=>{
   assert.equal(APPROVED_MASTER.designId,"DAHXb1PdJlM");
-  assert.equal(APPROVED_MASTER.approvedUpdatedAt,1791484484);
+  assert.equal(APPROVED_MASTER.approvedUpdatedAt,1791485393);
   assert.equal(isApprovedRevision(goodMeta),true);
   assert.equal(isApprovedRevision({...goodMeta,updated_at:1791484485}),false);
   assert.equal(validApprovedPage(page),true);
