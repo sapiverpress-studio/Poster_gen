@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { newFormChallenge, seal, verifiedFormProof } from "../lib/oauth.mjs";
-import { inspectPNG, printReadiness, safeCanvaDownloadUrl, TEST_DESIGN, selectExportScale, requestedExportDimensions, exportedSizeMatchesSource, exportJobState, validExportSession } from "../lib/print-check.mjs";
+import { inspectPNG, printReadiness, safeCanvaDownloadUrl, TEST_DESIGN, SOURCE_DESIGN, selectExportScale, requestedExportDimensions, exportedSizeMatchesSource, exportJobState, validExportSession } from "../lib/print-check.mjs";
 
 function pngHeader(width,height) {
   const b=Buffer.alloc(33);
@@ -50,7 +50,8 @@ test("export workflow is read only to Canva and not connected to Etsy or PrintSh
   assert.match(code,/private/);
   assert.doesNotMatch(code,/https:\/\/api\.etsy\.com/);
   assert.doesNotMatch(code,/api\.printshrimp/);
-  assert.equal(TEST_DESIGN.id,"DAHXUnmHofY");
+  assert.equal(TEST_DESIGN.id,"DAHXb1PdJlM");
+  assert.equal(SOURCE_DESIGN.id,"DAHXUnmHofY");
 });
 
 test("API export width scales the Canva canvas without assuming output is source-size",()=>{
@@ -126,4 +127,22 @@ test("POST responds while Netlify completes Canva job creation in the background
   assert.match(code,/const id=await beginExport\(cfg,scale,formToken,context\)/);
   assert.match(code,/return pendingPage\("Your export request was sent to Canva\.",makeSession\(id,cfg\)\)/);
   assert.match(code,/if\(!inserted\.modified\) return id/);
+});
+
+test("A3 working copy supports A3, A4 and A5 at 300 PPI",()=>{
+  const a3=printReadiness(TEST_DESIGN.width,TEST_DESIGN.height);
+  assert.equal(a3.a_series_ratio_matches,true);
+  for (const paper of ["A3","A4","A5"]) {
+    assert.equal(a3.print_sizes[paper].passes_300ppi,true);
+  }
+  assert.deepEqual(requestedExportDimensions(TEST_DESIGN.width,TEST_DESIGN.height,1),{width:3508,height:4961});
+  assert.deepEqual(requestedExportDimensions(TEST_DESIGN.width,TEST_DESIGN.height,1.125),{width:3947,height:5581});
+});
+test("service creates a job specifically for the A3 working copy and retains original IDs for prior sessions",async()=>{
+  const code=await readFile(new URL("../netlify/functions/canva-print-check.mjs",import.meta.url),"utf8");
+  assert.match(code,/design_id:TEST_DESIGN\.id,canvaJobId/);
+  assert.match(code,/design_id:record\.design_id\|\|SOURCE_DESIGN\.id/);
+  assert.match(code,/1× — 3508 × 4961 px/);
+  assert.match(code,/selectExportScale\(fields\.get\("scale"\)\|\|"1"\)/);
+  assert.doesNotMatch(code,/This 2:3 design also needs/);
 });
