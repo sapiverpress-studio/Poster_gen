@@ -43,7 +43,7 @@ function setup(){
 }
 function page(title,message,status=200,headers={}){
   const html="<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"font:16px system-ui;max-width:40rem;margin:8vh auto;padding:2rem;line-height:1.5\"><h1>"+title+"</h1>"+message+"</body></html>";
-  return new Response(html,{status,headers:{...HEADERS,...headers,"Content-Type":"text/html; charset=utf-8","Content-Security-Policy":"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}});
+  return new Response(html,{status,headers:{...HEADERS,...headers,"Content-Type":"text/html; charset=utf-8","Content-Security-Policy":"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}});
 }
 function rejected(status,message,headers={}){return page("Canva not connected","<p>"+message+"</p><a href=\"/canva/start\">Try again</a>",status,headers);}
 async function start(req,cfg){
@@ -54,8 +54,16 @@ async function start(req,cfg){
       "<p>Only the Sapiver Press owner should authorise this application.</p>" +
       "<form method=\"post\" action=\"/canva/start\">" +
       "<input type=\"hidden\" name=\"form_token\" value=\"" + form.token + "\">" +
-      "<label>Setup password <input type=\"password\" name=\"password\" required autocomplete=\"off\"></label>" +
-      "<p><button>Continue to Canva</button></p></form>",
+      "<label for=\"setup-password\">Setup password</label>" +
+      "<p><input id=\"setup-password\" type=\"password\" name=\"password\" required autocomplete=\"off\" autocapitalize=\"off\" spellcheck=\"false\" style=\"font-size:16px;width:100%;max-width:24rem;box-sizing:border-box;min-height:44px\"></p>" +
+      "<p><button type=\"button\" id=\"paste-clipboard\">Paste from clipboard</button> " +
+      "<button type=\"button\" id=\"use-saved-clipboard\">Use saved keyboard clipboard</button></p>" +
+      "<div id=\"saved-clipboard-panel\" hidden><label for=\"clipboard-entry\">Tap below and choose your saved text from the keyboard clipboard</label>" +
+      "<p><input id=\"clipboard-entry\" type=\"text\" autocomplete=\"off\" autocapitalize=\"off\" spellcheck=\"false\" style=\"font-size:16px;width:100%;max-width:24rem;box-sizing:border-box;min-height:44px\"></p>" +
+      "<small>Text is transferred into the masked password field and cleared from this box.</small></div>" +
+      "<p id=\"clipboard-status\" role=\"status\" aria-live=\"polite\"></p>" +
+      "<p><button type=\"submit\">Continue to Canva</button></p></form>" +
+      "<script type=\"module\" src=\"/canva-clipboard.mjs\"></script>",
       200, {"Set-Cookie": secureFormCookie(encrypted)});
   }
   if(req.method!=="POST") return rejected(405,"Method not allowed");
