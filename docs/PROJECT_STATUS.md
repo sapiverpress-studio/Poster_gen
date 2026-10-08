@@ -1,4 +1,61 @@
-# Sapiver Poster Gen — current handover
+# Sapiver Poster Gen — living status, decisions and handover
+
+> **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
+
+## CURRENT PROJECT SNAPSHOT — 2026-10-08 (UK time)
+
+| Area | Current evidence-based state |
+| --- | --- |
+| Project | Sapiver Prints Canva → private print-master validation → eventually Etsy drafts and PrintShrimp fulfilment |
+| Repo | `sapiverpress-studio/Poster_gen` |
+| Live Netlify application | `sapiver-poster-gen-auth.netlify.app`; production code last confirmed on `feature/canva-oauth-callback`, SHA `d7034cfb3e2c007ec467515f05b1811ddd6bcb77`. Latest build-setting status is **not confirmed**; do not change or release without asking. |
+| Documentation work | This record + `AGENTS.md` updated on isolated `docs/handover-and-change-policy-20261008` branch. It is **not merged into the live branch** and must not be represented as released. |
+| Product | **Hen & Bea: Dinosaurs Across Time** poster, **A5 / A4 / A3 only** (not A2/A1). Different from the user's approved `Dinosaurs of the World` map poster. |
+| Original Canva source | `DAHXUnmHofY` — 1024 × 1536, 2:3. **Do not overwrite or restyle.** Original share link: https://canva.link/jyolzhklfl2tpph |
+| A3 Canva working copy | `DAHXb1PdJlM` — 3508 × 4961, A-series ratio. Edit link: https://www.canva.com/d/x6_QPM4gnK8kZkR |
+| Canva authorisation | **VERIFIED:** OAuth connected via Netlify; successful connection shown to owner. Encrypted token storage reported by app. Live automatic token refresh/expiry cycle **not independently tested**. |
+| A3 export | **VERIFIED by owner-provided live report screenshots:** requested and actual **3508 × 4961 PNG**, file **35,014 KB** as reported, A-series ratio **1.4142**, PrintShrimp 50 MB check **passed**. File itself not independently downloaded and inspected in this handover. |
+| Print resolutions | **VERIFIED by owner's validator screenshot:** A5 **600 PPI**, A4 **424 PPI**, A3 **300 PPI**. PPI alone does not approve actual image detail or printing. |
+| Print layout | **PENDING:** A3 Canva copy's background/scenery initially left about 11 mm white side borders. A background-only adjustment was prepared in an **unsaved Canva editing transaction**; a preview was shown. **Owner has not yet approved saving the draft.** Draft may expire; reopen and verify before any future save. Need all dinosaur heads/tails and labels inside trim safe area. |
+| Print approval | **NOT APPROVED:** inspect the actual master at print size for legibility/soft assets, correct dinosaurs/labels, colour and 2–3 mm safety, and obtain PrintShrimp compatibility/proof before selling. |
+| Etsy + PrintShrimp | **NOT IMPLEMENTED / NOT AUTHORISED FOR LIVE ACTIONS:** no listing publication, manufacturing order or automatic product sync. Existing secrets alone do not prove API integration is working. PrintShrimp SKU-to-size mapping/one-file suitability must be verified with its real workflow, not assumed. |
+| Credit safeguard | Netlify team usage screenshot (Oct 8): **182 production deploys / 2,730 credits** and **2,873.9 total credits in the billing period**. This is team-wide; do not claim Poster_gen caused all 182. GitHub showed 48 Poster_gen commits in a single afternoon. **No production deploy merely for documentation; batch changes, require owner release approval.** |
+| Immediate stage | **A3 export succeeded; artwork visual approval and PrintShrimp proof pending.** Preserve working functionality and budget; do not restart OAuth or rewrite exporter without a demonstrated issue. |
+
+### What is done and verified
+
+1. Secure Canva OAuth start/callback flow and browser authorisation; owner saw `Canva connected`.
+2. Private Canva PNG export and asynchronous, session-gated status/download workflow; actual earlier 3× 3072 × 4608 PNG and A3 working-copy 1× 3508 × 4961 PNG completed according to owner screenshots.
+3. PNG dimension and aspect-ratio analysis, effective PPI for paper sizes, limited file-size validation, Netlify Blobs private storage, and automated GitHub tests.
+4. Created independent Canva A3 working copy; its original text and illustrations were present in element inspection. Original design unchanged.
+5. GitHub tests and Netlify deploy were confirmed passing/Ready at prior checkpoint. This **does not** verify PrintShrimp production use or a physical proof.
+
+### What needs doing — in order
+
+1. **Owner approval:** confirm whether the separately shown background-only A3 adjustment is acceptable. Reopen the editing transaction/draft; never assume it's still active or saved. Only save after explicit approval.
+2. **Print-quality audit:** download/inspect full-size 3508 × 4961 PNG; check every dinosaur and title, pronunciation labels, edge safety, background joins, raster sharpness, sRGB / printer requirements. Mark any failures precisely.
+3. **Production print proof:** confirm PrintShrimp accepts one A3 file for A3/A4/A5, with SKU/variation mapping and pricing, then order/inspect a sample only with owner's explicit permission.
+4. **Exporter generalisation:** after master proves good, accept arbitrary Canva designs rather than a hardcoded design ID, and retain the pass/fail gate and private original-safe workflow.
+5. **Etsy draft integration:** create **drafts only** behind explicit approval; map the three variations, photographs, titles and descriptions; no automatic live publishing.
+6. **Controlled release:** one combined, tested release after approval, not a new Netlify production build per small commit. Verify billing/build policy before any GitHub push to the deployed branch.
+
+### Key commands and endpoints
+
+- Tests: `npm test` (Node 20+).
+- App start: `https://sapiver-poster-gen-auth.netlify.app/canva/start`.
+- Print check: `https://sapiver-poster-gen-auth.netlify.app/canva/print-check`.
+- Existing export status: `https://sapiver-poster-gen-auth.netlify.app/canva/print-status`.
+- Private PNG download: `/canva/print-file` (**requires the owner's browser session; never publish or commit the URL, cookie or content**).
+- Canva master working copy: `DAHXb1PdJlM`.
+- Verify source branch and deployment before any changes; don't assume branch deploys are free or disabled.
+
+## Documentation and change-recording rule
+
+See [AGENTS.md](../AGENTS.md). **Before completing any development or project change, update this snapshot if the current state changed and append an accurately dated record below** with affected files/Canva IDs, branch, evidence, test results (including failed ones), credit/deploy impact, remaining issues and next authorised step. Keep secrets out of Markdown.
+
+---
+
+## Development history (chronological records; older status statements are historical)
 
 ## 2026-10-08: Canva OAuth callback scaffold
 
@@ -139,3 +196,14 @@ PrintShrimp official 2026 artwork guide (https://printshrimp.com/blogs/news/artw
 GitHub Actions run 37798949308 passed at commit 65c0ced0437da7ba9cfd532316b1186d40c029d4. Netlify production deployed the exact commit Ready with zero secret-scan matches. New A3 export has NOT yet been started with owner password. Do not mark as final product before: (1) owner checks Canva A3 working copy visually (no clipping and readable names) (2) owner uses https://sapiver-poster-gen-auth.netlify.app/canva/print-check to export A3 1× (3) status report confirms image dimensions/under-50MB (4) printer proof or detailed PDF review.
 
 No Etsy listing or PrintShrimp order was created. Production deploy settings left unchanged. Existing original poster untouched.
+
+
+### 2026-10-08 17:09 BST — A3 export verified, draft background correction pending, credit controls
+
+- **Stage:** A3 / A4 / A5 master validated numerically but **not print-approved**.
+- **Observed:** Owner's Canva print-check report screenshots show A3 working copy export at 3508 × 4961 px, 35,014 KB, ratio 1.4142; A3 300 PPI, A4 424 PPI, A5 600 PPI; measured PrintShrimp upload checks passed.
+- **Design draft:** A3 copy `DAHXb1PdJlM` has a scenic background layer. Canva editing transaction `7420198734226177565` repositioned and proportionally expanded only the scenery background in an **UNSAVED** draft; Canva preview shown to owner. No approval or saved design alteration yet. May need to redo after draft expiry.
+- **Artwork risk:** full-resolution PNG details, physical print suitability, all dinosaurs/labels/margins and actual printer acceptance are unverified. The original Canva source `DAHXUnmHofY` remains the authoritative untouched source.
+- **Cost evidence:** Netlify team billing screenshot reports 182 production deployments (2,730 credits), 2,873.9 credits total in current billing period. Scope team-wide; causality and purchase-hour balance unknown. Avoid any unnecessary build/deployment.
+- **Documentation action:** Created off-deploy branch `docs/handover-and-change-policy-20261008`, added root `AGENTS.md` and rewrote the top of this status record as a current snapshot while retaining previous chronological notes. README refreshed separately on this branch. **Documentation branch is not merged/deployed**; no production release approved.
+- **Next authorised action:** owner reviews and approves or rejects the A3 background adjustment. Then verify detailed full-resolution print master and printer proof, before writing Etsy/fulfilment integrations.
