@@ -98,3 +98,14 @@ Updated the print check to offer selected 1×, 2×, 3×, 3.125× and 4× output 
 Important: enlarging raster output does not guarantee extra detail in low-resolution embedded artwork; text and vector elements may render sharper. The 2:3 artwork remains non-A-series regardless of pixel count, so five-size paper trim/crop needs a deliberate approach. A 3.125× request for this source targets 3200 × 4800 px, but actual Canva entitlement and API output must be live tested.
 
 Verified: GitHub Actions tests passed for commit d276f4154f630089f2406bd734cf75f8ffe23222; Netlify production deploy Ready at the identical commit, both Canva functions registered, zero secret-scan matches. High-resolution Canva export and token refresh are still UNTESTED live.
+
+## 2026-10-08 — Fixed print-check form falsely expiring (user screenshot ~14:29)
+
+The real root cause was confirmed by reading the code: `canva-print-check.mjs` encrypted the form CSRF proof with purpose `"print-form"`, while the common `verifiedFormProof()` always attempted decryption with `"setup-form"`. This meant every otherwise-valid print-check POST failed with "Form expired".
+
+Fix:
+- `lib/oauth.mjs`: allow an explicit purpose parameter for verification while retaining `setup-form` as default for existing Canva OAuth setup.
+- `netlify/functions/canva-print-check.mjs`: supply `"print-form"` to match how the proof is encrypted.
+- `test/print-check.test.mjs`: positive end-to-end helper regression for the matched purpose, plus wrong purpose, altered ciphertext, invalid text, and expiry rejections. Do not append arbitrary Base64URL chars for tampering tests because non-canonical input may decode unchanged.
+
+Verified: GitHub Action run 37785305718 passed for commit `90a3727926568cbd4644488445c94607555f922d`. Confirm the latest Netlify deploy after this documentation commit. The actual Canva PNG export, token refresh and download are still not live-tested; do not claim success yet. Neither Etsy nor PrintShrimp is enabled.
