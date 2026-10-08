@@ -89,7 +89,7 @@ test("real print-check form proof is verified with its own encryption purpose", 
   assert.equal(verifiedFormProof(challenge.token, encrypted, secret, Date.now() + 600001, "print-form"), false);
   const code = await readFile(new URL("../netlify/functions/canva-print-check.mjs", import.meta.url), "utf8");
   assert.match(code, /seal\(challenge,cfg\.clientSecret,"print-form"\)/);
-  assert.match(code, /verifiedFormProof\(fields\.get\("form_token"\),readCookie\(req,FORM_COOKIE\),cfg\.clientSecret,Date\.now\(\),"print-form"\)/);
+  assert.match(code, /verifiedFormProof\(formToken,readCookie\(req,FORM_COOKIE\),cfg\.clientSecret,Date\.now\(\),"print-form"\)/);
 });
 
 test("Canva job states and session checks are strict",()=>{
