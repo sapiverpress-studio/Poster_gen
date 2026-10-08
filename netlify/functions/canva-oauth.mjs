@@ -1,8 +1,16 @@
 import { getStore } from "@netlify/blobs";
-import { newFlow, authUrl, equal, seal, unseal, cookieValue, COOKIE, validSetupPassword } from "../../lib/oauth.mjs";
+import { newFlow, authUrl, equal, seal, unseal, cookieValue, COOKIE, FORM_COOKIE, newFormChallenge, acceptedRequestContext, verifiedFormProof, validSetupPassword } from "../../lib/oauth.mjs";
 
 const HEADERS = {"Cache-Control":"no-store","Referrer-Policy":"no-referrer","X-Content-Type-Options":"nosniff"};
 const CLEAR = COOKIE+"=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax";
+const FORM_CLEAR = FORM_COOKIE+"=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax";
+function secureFormCookie(value) {
+  return FORM_COOKIE + "=" + value + "; Path=/; Max-Age=600; HttpOnly; Secure; SameSite=Lax";
+}
+function formCookie(header) {
+  const item = (header || "").split(";").map(s => s.trim()).find(s => s.startsWith(FORM_COOKIE + "="));
+  return item ? item.slice(FORM_COOKIE.length + 1) : null;
+}
 function env(name){
   // Netlify serverless functions expose project environment variables through process.env.
   // A fallback supports runtimes exposing Netlify.env as well.
@@ -39,18 +47,37 @@ function page(title,message,status=200,headers={}){
 }
 function rejected(status,message,headers={}){return page("Canva not connected","<p>"+message+"</p><a href=\"/canva/start\">Try again</a>",status,headers);}
 async function start(req,cfg){
-  if(req.method==="GET") return page("Connect Canva","<p>Only the Sapiver Press owner should authorise this application.</p><form method=\"post\" action=\"/canva/start\"><label>Setup password <input type=\"password\" name=\"password\" required autocomplete=\"off\"></label><p><button>Continue to Canva</button></p></form>");
+  if(req.method==="GET") {
+    const form = newFormChallenge();
+    const encrypted = seal(form, cfg.secret, "setup-form");
+    return page("Connect Canva",
+      "<p>Only the Sapiver Press owner should authorise this application.</p>" +
+      "<form method=\"post\" action=\"/canva/start\">" +
+      "<input type=\"hidden\" name=\"form_token\" value=\"" + form.token + "\">" +
+      "<label>Setup password <input type=\"password\" name=\"password\" required autocomplete=\"off\"></label>" +
+      "<p><button>Continue to Canva</button></p></form>",
+      200, {"Set-Cookie": secureFormCookie(encrypted)});
+  }
   if(req.method!=="POST") return rejected(405,"Method not allowed");
-  if(req.headers.get("origin")!==cfg.origin) return rejected(403,"Invalid request origin");
+  if(!acceptedRequestContext(req.headers.get("origin"), cfg.origin, req.headers.get("sec-fetch-site"))) {
+    return rejected(403,"Invalid request context");
+  }
   if(!(req.headers.get("content-type")||"").startsWith("application/x-www-form-urlencoded")) return rejected(415,"Invalid form");
   if(Number(req.headers.get("content-length")||"0")>8192) return rejected(413,"Form too large");
   const text=(await req.text()).slice(0,8192);
-  const password=new URLSearchParams(text).get("password")||"";
+  const form = new URLSearchParams(text);
+  if(!verifiedFormProof(form.get("form_token"), formCookie(req.headers.get("cookie")), cfg.secret)) {
+    return rejected(403,"Form session expired or invalid. Open Connect Canva again.");
+  }
+  const password=form.get("password")||"";
   if(!equal(password,cfg.password)) return rejected(403,"Invalid password");
   const flow=newFlow();
   const sealed=seal({state:flow.state,verifier:flow.verifier,expiry:flow.expiry},cfg.secret,"browser-flow");
   const cookie=COOKIE+"="+sealed+"; Path=/; Max-Age=600; HttpOnly; Secure; SameSite=Lax";
-  return new Response(null,{status:303,headers:{...HEADERS,Location:authUrl(cfg.clientId,cfg.redirect,flow),"Set-Cookie":cookie}});
+  const headers = new Headers({...HEADERS, Location: authUrl(cfg.clientId,cfg.redirect,flow)});
+  headers.append("Set-Cookie", cookie);
+  headers.append("Set-Cookie", FORM_CLEAR);
+  return new Response(null, {status: 303, headers});
 }
 async function callback(req,cfg){
   if(req.method!=="GET") return rejected(405,"Method not allowed");
