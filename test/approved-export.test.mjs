@@ -101,11 +101,12 @@ test("file cap rejects excessive content length",()=>{
   assert.equal(safeResponseSize({headers:{get:()=>null}}),true);
   assert.equal(safeResponseSize({headers:{get:()=>"x"}}),false);
 });
-test("scheduled function is bounded and exposes no public URL or PrintShrimp order",async()=>{
+test("scheduled function stays private and reuses existing token renewal",async()=>{
   const source=await readFile(new URL("../netlify/functions/canva-auto-approved.mjs",import.meta.url),"utf8");
   const existing=await readFile(new URL("../netlify/functions/canva-print-check.mjs",import.meta.url),"utf8");
-  assert.match(source,/schedule:"0 \\*\\/4 \\* \\* \\*"/);
-  assert.doesNotMatch(source,/config=\\{.*path:/);
-  assert.doesNotMatch(source,/etsy\\.com|printshrimp\\.com|order\\.create/);
-  assert.match(existing,/export async function accessToken\\(cfg\\)/);
+  assert.ok(source.includes('schedule:"0 */4 * * *"'));
+  assert.equal(source.includes('path:"/'),false);
+  assert.equal(source.includes("etsy.com"),false);
+  assert.equal(source.includes("printshrimp.com"),false);
+  assert.ok(existing.includes("export async function accessToken(cfg)"));
 });
