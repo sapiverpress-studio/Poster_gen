@@ -50,7 +50,8 @@ test("setup form challenge succeeds only with a matching, unexpired encrypted co
 });
 
 test("absent or null Origin requires separate CSRF proof, explicit cross-origin is denied",()=>{
-  const good="https://sapiver-poster-gen-auth.netlify.app";
+  // Use a non-production fixture: live environment values must never occur in repository files.
+  const good="https://oauth.example.test";
   assert.equal(acceptedRequestContext(good,good,"same-origin"),true);
   assert.equal(acceptedRequestContext(null,good,"same-origin"),true);
   assert.equal(acceptedRequestContext("null",good,"none"),true);
