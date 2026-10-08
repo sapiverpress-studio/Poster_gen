@@ -1,5 +1,5 @@
 import { getStore } from "@netlify/blobs";
-import { newFlow, authUrl, equal, seal, unseal, cookieValue, COOKIE } from "../../lib/oauth.mjs";
+import { newFlow, authUrl, equal, seal, unseal, cookieValue, COOKIE, validSetupPassword } from "../../lib/oauth.mjs";
 
 const HEADERS = {"Cache-Control":"no-store","Referrer-Policy":"no-referrer","X-Content-Type-Options":"nosniff"};
 const CLEAR = COOKIE+"=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax";
@@ -27,7 +27,7 @@ function setup(){
     // Keys are fixed, public configuration identifiers. Never log or display the values.
     throw Error("config_missing:" + missing.join(","));
   }
-  if(password.length < 20) throw Error("password_too_short");
+  if(!validSetupPassword(password)) throw Error("password_too_short");
   let u;
   try { u = new URL(origin); } catch { throw Error("origin_invalid"); }
   if(u.protocol !== "https:" || u.origin !== origin) throw Error("origin_invalid");
@@ -91,4 +91,8 @@ export default async function handler(req){
     return rejected(503, "Setup check: " + code + ". No credentials were exposed.");
   }
 }
-export const config={path:["/canva/start","/canva/callback"]};
+export const config={
+  path: ["/canva/start", "/canva/callback"],
+  // Bound brute-force attempts at the Netlify edge. Applies to both routes.
+  rateLimit: { action: "rate_limit", aggregateBy: "ip", windowSize: 180, windowLimit: 6 }
+};
