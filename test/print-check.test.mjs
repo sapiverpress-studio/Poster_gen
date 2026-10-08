@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { newFormChallenge, seal, verifiedFormProof } from "../lib/oauth.mjs";
 import { inspectPNG, printReadiness, safeCanvaDownloadUrl, TEST_DESIGN, selectExportScale, requestedExportDimensions, exportedSizeMatchesSource } from "../lib/print-check.mjs";
 
 function pngHeader(width,height) {
@@ -73,4 +74,18 @@ test("print-check service asks Canva for a width-based PNG export and measures r
   assert.match(code,/requested_met/);
   assert.match(code,/name=\\"scale\\"/);
   assert.doesNotMatch(code,/if\(image\.width!==TEST_DESIGN\.width/);
+});
+
+test("real print-check form proof is verified with its own encryption purpose", async () => {
+  const secret = "print-check-test-key-should-be-long-enough";
+  const challenge = newFormChallenge();
+  const encrypted = seal(challenge, secret, "print-form");
+  assert.equal(verifiedFormProof(challenge.token, encrypted, secret, Date.now(), "print-form"), true);
+  assert.equal(verifiedFormProof(challenge.token, encrypted, secret), false, "OAuth setup form cannot validate print form");
+  assert.equal(verifiedFormProof("wrong", encrypted, secret, Date.now(), "print-form"), false);
+  assert.equal(verifiedFormProof(challenge.token, encrypted + "x", secret, Date.now(), "print-form"), false);
+  assert.equal(verifiedFormProof(challenge.token, encrypted, secret, Date.now() + 600001, "print-form"), false);
+  const code = await readFile(new URL("../netlify/functions/canva-print-check.mjs", import.meta.url), "utf8");
+  assert.match(code, /seal\(challenge,cfg\.clientSecret,"print-form"\)/);
+  assert.match(code, /verifiedFormProof\(fields\.get\("form_token"\),readCookie\(req,FORM_COOKIE\),cfg\.clientSecret,Date\.now\(\),"print-form"\)/);
 });
