@@ -20,3 +20,13 @@ Required before authorisation: create/connect a dedicated Netlify project, set i
 Security notes: client-secret rotation requires Canva re-authorisation; GitHub Actions secrets are NOT implicitly available to a Netlify runtime. This public repository must not contain API secrets, customer data or high-resolution master artwork.
 
 Next: verify tests; deploy isolated Netlify callback; authorise once; then build a single-writer refresh mechanism and audited Canva exporter before listing/fulfilment work.
+
+## Netlify project reserved (2026-10-08)
+
+- Project name: sapiver-poster-gen-auth.
+- Netlify project ID: d1753fca-2098-4b96-a684-75921df7c3da.
+- Target origin: https://sapiver-poster-gen-auth.netlify.app.
+- Required Canva redirect: https://sapiver-poster-gen-auth.netlify.app/canva/callback.
+- **The project is newly created and NOT deployed or connected to GitHub yet.** The target redirect is NOT live until a successful deploy.
+- Tests checked using a local Node 22 copy with Git blob hashes verified against GitHub: all 4 OAuth helper tests passed. Server function passes node --check with matching Git blob hash. **Real Netlify build and Canva OAuth exchange remain untested.**
+- Manual steps remaining: Netlify UI link repository and select feature branch; add CANVA_CLIENT_ID, CANVA_CLIENT_SECRET, CANVA_SETUP_PASSWORD (20+ random characters) and CANVA_SITE_ORIGIN in Netlify environment with Functions scope; deploy; add redirect in Canva; authorise once.
