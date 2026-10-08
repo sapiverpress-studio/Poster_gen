@@ -1,7 +1,7 @@
-import { randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 import { getStore } from "@netlify/blobs";
 import { newFormChallenge, seal, unseal, equal, acceptedRequestContext, verifiedFormProof, validSetupPassword } from "../../lib/oauth.mjs";
-import { TEST_DESIGN, inspectPNG, printReadiness, safeCanvaDownloadUrl, selectExportScale, requestedExportDimensions, exportedSizeMatchesSource } from "../../lib/print-check.mjs";
+import { TEST_DESIGN, inspectPNG, printReadiness, safeCanvaDownloadUrl, selectExportScale, requestedExportDimensions, exportedSizeMatchesSource, exportJobState, validExportSession } from "../../lib/print-check.mjs";
 
 const FORM_COOKIE = "__Host-sapiver_export_form";
 const SESSION_COOKIE = "__Host-sapiver_export_session";
@@ -13,10 +13,11 @@ const HEADERS = {
   "Content-Security-Policy":"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
 };
 const CANVA_BASE = "https://api.canva.com/rest/v1";
-const EXPORT_KEY = "first-poster/original.png";
-const REPORT_KEY = "first-poster/report.json";
 const STORE_NAME = "sapiver-print-exports";
-const sleep = ms => new Promise(resolve=>setTimeout(resolve,ms));
+const JOB_LIFETIME_MS = 60 * 60 * 1000;
+const jobKey = id => "first-poster/jobs/" + id + ".json";
+const fileKey = id => "first-poster/files/" + id + ".png";
+const exportStore = () => getStore({name: STORE_NAME, consistency:"strong"});
 
 function env(name) { return process.env[name] || (typeof Netlify !== "undefined" ? Netlify.env?.get?.(name) : undefined); }
 function cfg() {
@@ -121,46 +122,126 @@ async function api(url,token,options={}) {
   if(!response.ok) throw Error("Canva API rejected the export request ("+response.status+").");
   return await response.json();
 }
-async function exportPNG(cfg,scale) {
-  const token=await accessToken(cfg);
-  const metadata=await api(CANVA_BASE+"/designs/"+TEST_DESIGN.id,token);
-  if(metadata?.design?.id!==TEST_DESIGN.id)throw Error("Cannot verify this Canva design.");
-  const pages=await api(CANVA_BASE+"/designs/"+TEST_DESIGN.id+"/pages?limit=1",token);
-  const dims=pages?.items?.[0]?.dimensions;
-  if(!dims || dims.width!==TEST_DESIGN.width || dims.height!==TEST_DESIGN.height)
-    throw Error("Canva design dimensions have changed; review the design before exporting.");
-
-  const requested=requestedExportDimensions(dims.width,dims.height,scale);
-  const created=await api(CANVA_BASE+"/exports",token,{
-    method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({design_id:TEST_DESIGN.id,format:{type:"png",lossless:true,width:requested.width,pages:[1]}})
-  });
-  let job=created?.job;
-  if(!job?.id || typeof job.id!=="string") throw Error("Canva did not return an export job.");
-  for(let i=0; i<12 && job.status==="in_progress"; i++){
-    await sleep(1000);
-    const result=await api(CANVA_BASE+"/exports/"+encodeURIComponent(job.id),token);
-    job=result.job;
+function sessionFromRequest(req,cfg) {
+  const encoded=readCookie(req,SESSION_COOKIE);
+  if(!encoded)return null;
+  try {
+    const session=unseal(encoded,cfg.clientSecret,"print-session");
+    return validExportSession(session) ? session : null;
+  } catch {
+    return null;
   }
-  if(job?.status!=="success" || !Array.isArray(job.urls) || job.urls.length!==1)
-    throw Error(job?.status==="failed" ? "Canva reported that the export failed." : "Canva export is still processing; retry later.");
+}
+function makeSession(id,cfg) {
+  const expires=Date.now()+JOB_LIFETIME_MS;
+  const value=seal({purpose:"print-job",id,expires},cfg.clientSecret,"print-session");
+  return cookie(SESSION_COOKIE,value,3600);
+}
+function pendingPage(description,cookieHeader) {
+  return page("Canva export requested",
+    "<p>"+escape(description)+"</p>"+
+    "<p>Your Canva export job has been saved. You don't need to enter the password or start another export.</p>"+
+    "<p><a href=\"/canva/print-status\">Check existing export status</a></p>"+
+    "<p><small>Keep using this browser. The private session lasts one hour.</small></p>",
+    200,cookieHeader?[FORM_CLEAR,cookieHeader]:[]);
+}
+function reportPage(report,cookieHeader) {
+  const sizes=Object.entries(report.readiness.print_sizes).map(([name,v])=>
+    "<tr><td>"+name+"</td><td>"+v.effective_ppi+" PPI</td><td>"+(v.passes_300ppi?"Meets":"Below")+" 300</td></tr>").join("");
+  return page("Canva PNG exported and measured",
+    "<p>The Canva PNG is saved privately. Your Canva design has not been changed.</p>"+
+    "<p><strong>Requested:</strong> "+report.requested.width+" × "+report.requested.height+" px ("+report.selected_scale+"×)<br>"+
+    "<strong>Actual:</strong> "+report.image.width+" × "+report.image.height+" px<br>"+
+    "<strong>Requested width returned:</strong> "+(report.requested_met?"Yes":"No")+"<br>"+
+    "<strong>File size:</strong> "+Math.round(report.image.bytes/1024)+" KB<br>"+
+    "<strong>Ratio:</strong> "+report.readiness.ratio+"<br>"+
+    "<strong>A-series ratio match:</strong> "+(report.readiness.a_series_ratio_matches?"Yes":"No")+"</p>"+
+    "<h2>Effective print resolution</h2><table cellpadding=\"6\"><tr><th>Size</th><th>Resolution</th><th>Result</th></tr>"+sizes+"</table>"+
+    "<p><strong>Print approval: NOT APPROVED YET.</strong> Higher pixel count must not be confused with source image detail. This 2:3 design also needs an A-series layout or a deliberate crop/border decision.</p>"+
+    "<p><a href=\"/canva/print-file\">Download PNG (private one-hour session)</a></p>",
+    200,cookieHeader?[cookieHeader]:[]);
+}
+async function beginExport(cfg,scale,tokenOfForm) {
+  const id=createHash("sha256").update(tokenOfForm).digest("hex").slice(0,32);
+  const store=exportStore(), key=jobKey(id);
+  const placeholder={status:"starting",createdAt:Date.now(),expires:Date.now()+JOB_LIFETIME_MS};
+  const inserted=await store.setJSON(key,placeholder,{onlyIfNew:true});
+  if(!inserted.modified) return id; // A double-submit must never start another Canva export.
+  try {
+    const token=await accessToken(cfg);
+    const metadata=await api(CANVA_BASE+"/designs/"+TEST_DESIGN.id,token);
+    if(metadata?.design?.id!==TEST_DESIGN.id)throw Error("The Canva design could not be verified.");
+    const pages=await api(CANVA_BASE+"/designs/"+TEST_DESIGN.id+"/pages?limit=1",token);
+    const dims=pages?.items?.[0]?.dimensions;
+    if(!dims || dims.width!==TEST_DESIGN.width || dims.height!==TEST_DESIGN.height)
+      throw Error("Canva design dimensions changed. Review the design before exporting.");
+    const requested=requestedExportDimensions(dims.width,dims.height,scale);
+    const created=await api(CANVA_BASE+"/exports",token,{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({design_id:TEST_DESIGN.id,format:{type:"png",lossless:true,width:requested.width,pages:[1]}})
+    });
+    const job=created?.job;
+    if(!job?.id || typeof job.id!=="string")throw Error("Canva did not return a job identifier.");
+    await store.setJSON(key,{
+      status:"in_progress",canvaJobId:job.id,createdAt:placeholder.createdAt,
+      expires:placeholder.expires,requested,selected_scale:scale,
+      width:dims.width,height:dims.height,title:metadata.design.title||TEST_DESIGN.title
+    });
+    return id;
+  } catch (error) {
+    await store.setJSON(key,{...placeholder,status:"failed",error:"Could not start the Canva export. Open a new print-check form."});
+    throw error;
+  }
+}
+async function readJob(store,id) {
+  return await store.get(jobKey(id),{type:"json",consistency:"strong"});
+}
+async function status(req,cfg) {
+  const session=sessionFromRequest(req,cfg);
+  if(!session)return errorPage("Your private export session has expired. Open a new print-check form.",403);
+  const store=exportStore();
+  const record=await readJob(store,session.id);
+  if(!record)return errorPage("Export job not found. Start a new print check.",404);
+  if(record.status==="complete" && record.report)return reportPage(record.report);
+  if(record.status==="failed")return errorPage(record.error || "Canva export failed. Start a new print check.",502);
+  if(record.expires<Date.now())return errorPage("This export job is over one hour old. Start a new print check.",410);
+  if(record.status==="starting")return pendingPage("The export request is being prepared. Check its status again shortly.");
+  if(record.status!=="in_progress" || !record.canvaJobId)return errorPage("Unexpected export status. No new export was started.",502);
+
+  const token=await accessToken(cfg);
+  const result=await api(CANVA_BASE+"/exports/"+encodeURIComponent(record.canvaJobId),token);
+  const job=result?.job, state=exportJobState(job);
+  if(state==="pending")return pendingPage("Canva is still preparing the high-resolution PNG.");
+  if(state==="failed"){
+    await store.setJSON(jobKey(session.id),{...record,status:"failed",error:"Canva reported the export failed."});
+    return errorPage("Canva reported the export failed. Start a new print-check form.",502);
+  }
+  if(state!=="ready")return errorPage("Canva returned an unrecognised export status. The job is preserved.",502);
 
   const url=job.urls[0];
-  if(!safeCanvaDownloadUrl(url))throw Error("Unexpected Canva download host; export blocked.");
+  if(!safeCanvaDownloadUrl(url))return errorPage("The Canva export link used an unexpected host. Job preserved.",502);
   const response=await fetch(url,{signal:AbortSignal.timeout(20000),redirect:"error"});
-  if(!response.ok)throw Error("Could not download original export from Canva.");
-  if(Number(response.headers.get("content-length")||"0")>80*1024*1024)throw Error("Export exceeds 80 MB safety limit.");
+  if(!response.ok)return errorPage("Could not download the completed Canva export. Try checking status again.",502);
+  if(Number(response.headers.get("content-length")||0)>80*1024*1024)
+    return errorPage("The Canva export exceeds the 80 MB limit.",413);
   const bytes=Buffer.from(await response.arrayBuffer());
-  if(bytes.length>80*1024*1024)throw Error("Export exceeds 80 MB safety limit.");
+  if(bytes.length>80*1024*1024)return errorPage("The Canva export exceeds the 80 MB limit.",413);
   const image=inspectPNG(bytes);
-  if(!exportedSizeMatchesSource(dims.width,dims.height,image.width,image.height))
-    throw Error("Canva returned a different aspect ratio; export NOT approved.");
+  if(!exportedSizeMatchesSource(record.width,record.height,image.width,image.height))
+    return errorPage("Canva returned a different aspect ratio. This export cannot be approved.",502);
   const readiness=printReadiness(image.width,image.height);
-  const report={design_id:TEST_DESIGN.id,title:metadata.design.title||TEST_DESIGN.title,exported_at:new Date().toISOString(),image,requested,selected_scale:scale,requested_met:Math.abs(image.width-requested.width)<=1,readiness,approved_for_print:false,reason:"2:3 remains different from A-series, regardless of export scale. Artwork detail still requires visual print proofing."};
-  const store=getStore(STORE_NAME);
-  await store.set(EXPORT_KEY,new Blob([bytes],{type:"image/png"}),{metadata:{design_id:TEST_DESIGN.id,content_type:"image/png",created_at:report.exported_at}});
-  await store.setJSON(REPORT_KEY,report);
-  return report;
+  const report={
+    design_id:TEST_DESIGN.id,title:record.title,exported_at:new Date().toISOString(),
+    image,requested:record.requested,selected_scale:record.selected_scale,
+    requested_met:Math.abs(image.width-record.requested.width)<=1,
+    readiness,approved_for_print:false,
+    reason:"2:3 layout differs from A-series; a physical proof and source-detail check are required."
+  };
+  await store.set(fileKey(session.id),new Blob([bytes],{type:"image/png"}),{
+    metadata:{design_id:TEST_DESIGN.id,created_at:report.exported_at,content_type:"image/png"}
+  });
+  await store.setJSON(jobKey(session.id),{...record,status:"complete",report});
+  return reportPage(report);
 }
 async function doExport(req,cfg) {
   if(!acceptedRequestContext(req.headers.get("origin"),cfg.origin,req.headers.get("sec-fetch-site")))
@@ -168,55 +249,44 @@ async function doExport(req,cfg) {
   if(!(req.headers.get("content-type")||"").startsWith("application/x-www-form-urlencoded"))return errorPage("Invalid form data.",415);
   if(Number(req.headers.get("content-length")||0)>8192)return errorPage("Form too large.",413);
   const fields=new URLSearchParams((await req.text()).slice(0,8192));
-  if(!verifiedFormProof(fields.get("form_token"),readCookie(req,FORM_COOKIE),cfg.clientSecret,Date.now(),"print-form"))return errorPage("Form expired. Open a new print-check page.",403);
+  const formToken=fields.get("form_token");
+  if(!verifiedFormProof(formToken,readCookie(req,FORM_COOKIE),cfg.clientSecret,Date.now(),"print-form"))
+    return errorPage("Form expired. Open a new print-check page.",403);
   if(!equal(fields.get("password")||"",cfg.password))return errorPage("Incorrect setup password.",403);
   let scale;
   try{scale=selectExportScale(fields.get("scale")||"3");}catch{return errorPage("Choose a valid export scale.",400);}
-  let report;
-  try{report=await exportPNG(cfg,scale);}catch(e){
-    return errorPage(e?.message||"Export failed.",502);
-  }
-  const session=seal({purpose:"print-download",expires:Date.now()+900000},cfg.clientSecret,"print-download");
-  const sizes=Object.entries(report.readiness.print_sizes).map(([name,v])=>"<tr><td>"+name+"</td><td>"+v.effective_ppi+" PPI</td><td>"+(v.passes_300ppi?"Meets":"Below")+" 300</td></tr>").join("");
-  return page("Canva PNG exported and measured",
-    "<p>The Canva PNG was downloaded, checked and stored privately. The original design was not changed.</p>"+
-    "<p><strong>Requested export:</strong> "+report.requested.width+" × "+report.requested.height+" pixels ("+report.selected_scale+"×)<br>"+
-    "<strong>Actual PNG:</strong> "+report.image.width+" × "+report.image.height+" pixels<br>"+
-    "<strong>Returned requested width:</strong> "+(report.requested_met?"Yes":"No — export restriction or plan limit may apply")+"<br>"+
-    "<strong>File size:</strong> "+Math.round(report.image.bytes/1024)+" KB<br>"+
-    "<strong>Ratio:</strong> "+report.readiness.ratio+"<br>"+
-    "<strong>A-series ratio match:</strong> "+(report.readiness.a_series_ratio_matches?"Yes":"NO")+"</p>"+
-    "<h2>Effective print resolution</h2><table cellpadding=\"6\"><tr><th>Size</th><th>Resolution</th><th>Result</th></tr>"+sizes+"</table>"+
-    "<p><strong>Print approval: NOT APPROVED YET.</strong> The artwork is 2:3 rather than A-series; decide whether to adapt layout, crop or add borders. Visually inspect detail at print size.</p>"+
-    "<p><a href=\"/canva/print-file\">Download exported lossless PNG (private, 15-minute access)</a></p>"+
-    "<p><a href=\"/canva/print-check\">Start another check</a></p>",
-    200,[FORM_CLEAR,cookie(SESSION_COOKIE,session,900)]);
+  const id=await beginExport(cfg,scale,formToken);
+  return pendingPage("Your export request was sent to Canva.",makeSession(id,cfg));
 }
 async function download(req,cfg) {
-  const encoded=readCookie(req,SESSION_COOKIE);
-  let session;
-  try{session=unseal(encoded,cfg.clientSecret,"print-download");}catch{return errorPage("Download session expired. Run the print check again.",403);}
-  if(session.purpose!=="print-download" || session.expires<Date.now())return errorPage("Download session expired.",403);
-  const store=getStore(STORE_NAME);
-  const bytes=await store.get(EXPORT_KEY,{type:"arrayBuffer",consistency:"strong"});
-  if(!bytes)return errorPage("No exported file is available yet.",404);
+  const session=sessionFromRequest(req,cfg);
+  if(!session)return errorPage("Download session expired. Open the print check again.",403);
+  const store=exportStore();
+  const record=await readJob(store,session.id);
+  if(record?.status!=="complete")return errorPage("Export not yet finished. Check its status first.",409);
+  const bytes=await store.get(fileKey(session.id),{type:"arrayBuffer",consistency:"strong"});
+  if(!bytes)return errorPage("Export file not found. Check its status again.",404);
   return new Response(bytes,{status:200,headers:{
-    ...HEADERS,"Content-Type":"image/png","Content-Disposition":'attachment; filename="dinosaurs-across-time-original.png"'
+    ...HEADERS,"Content-Type":"image/png",
+    "Content-Disposition":'attachment; filename="dinosaurs-across-time-export.png"'
   }});
 }
 export default async function handler(req) {
   try{
     const config=cfg(),path=new URL(req.url).pathname;
     if(path==="/canva/print-file")return req.method==="GET"?await download(req,config):errorPage("Method not allowed.",405);
+    if(path==="/canva/print-status")return req.method==="GET"?await status(req,config):errorPage("Method not allowed.",405);
     if(path!=="/canva/print-check")return errorPage("Not found.",404);
     if(req.method==="GET")return getForm(config);
     if(req.method==="POST")return await doExport(req,config);
     return errorPage("Method not allowed.",405);
-  }catch{
-    return errorPage("Print-check service is unavailable. No Etsy or PrintShrimp action was taken.",503);
+  } catch(error) {
+    const msg=error?.message;
+    const safe=typeof msg==="string" && /^(Canva API rejected the export request \(\d{3}\)\.|Canva is not yet connected\.|Canva token refresh is busy\.|Another refresh is running\.)$/.test(msg);
+    return errorPage(safe?msg:"Print-check service is temporarily unavailable. The existing job has not been restarted.",503);
   }
 }
 export const config={
-  path:["/canva/print-check","/canva/print-file"],
-  rateLimit:{action:"rate_limit",aggregateBy:"ip",windowSize:180,windowLimit:10}
+  path:["/canva/print-check","/canva/print-status","/canva/print-file"],
+  rateLimit:{action:"rate_limit",aggregateBy:"ip",windowSize:180,windowLimit:24}
 };
