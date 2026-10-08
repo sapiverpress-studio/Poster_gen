@@ -66,7 +66,7 @@ function getForm(cfg){
     "<p><small>Files are stored in private Netlify storage; download requires an authenticated browser session.</small></p>"+
     "<script type=\"module\" src=\"/canva-clipboard.mjs\"></script>",200,[cookie(FORM_COOKIE,proof,600)]);
 }
-async function accessToken(cfg) {
+export async function accessToken(cfg) {
   const store=getStore("sapiver-canva-private");
   const entry=await store.getWithMetadata("primary",{consistency:"strong"});
   if(!entry?.data)throw Error("Canva is not yet connected.");
