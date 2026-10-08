@@ -31,7 +31,7 @@ Dedicated Canva-to-print artwork workflow for Sapiver Prints, isolated from othe
 
 ## Release, costs and secrets
 
-The last verified **live** Netlify deployment branch is `feature/canva-oauth-callback`; this `docs/handover-and-change-policy-20261008` branch **only contains documentation updates** and is **not a production release**.
+The Netlify-linked production branch is `feature/canva-oauth-callback`. The first automation release was rejected by Netlify's secret scanner due to literal site-origin URLs in the status document. The correction is tested on isolated `docs/handover-and-change-policy-20261008` before release. No production functionality is live until Netlify publishes successfully.
 
 The team's October billing screen showed substantial production deployment credit usage. **Never push changes to a production-deployed branch, trigger a deployment, change automatic builds, merge or spend deployment credits without the owner's explicit release approval.** Group tested changes into one controlled release.
 

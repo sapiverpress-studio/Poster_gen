@@ -16,3 +16,10 @@ test("owner report uses CSRF proof, an HttpOnly cookie and the exact approved re
  assert.ok(!src.includes('/exports",token'));
  assert.equal(APPROVED_MASTER.approvedUpdatedAt,1791485393);
 });
+
+test("handover omits absolute Netlify site origins to avoid false-positive secret scanning",async()=>{
+ const status=await readFile(new URL("../docs/PROJECT_STATUS.md",import.meta.url),"utf8");
+ const deploymentOrigin=/https:\/\/[a-z0-9-]+\.netlify\.app\b/gi;
+ assert.equal(deploymentOrigin.test(status),false,"Use CANVA_SITE_ORIGIN with route paths instead of the live origin literal");
+ assert.ok(status.includes("CANVA_SITE_ORIGIN"));
+});
