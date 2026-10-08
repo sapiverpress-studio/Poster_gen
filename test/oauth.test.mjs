@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
-import {newFlow,authUrl,equal,seal,unseal,cookieValue,SCOPES} from "../lib/oauth.mjs";
+import {newFlow,authUrl,equal,seal,unseal,cookieValue,SCOPES,validSetupPassword} from "../lib/oauth.mjs";
 const secret="a-test-password-longer-than-twenty-characters";
 test("PKCE state and challenge are unique and verifier matches challenge",()=>{
   const a=newFlow(),b=newFlow();
@@ -28,4 +28,11 @@ test("password comparison and browser cookie parsing",()=>{
   assert.equal(equal("correct","correct"),true);
   assert.equal(equal("correct","wrong"),false);
   assert.equal(cookieValue("a=1; __Host-sapiver_canva_flow=v1.data; b=2"),"v1.data");
+});
+
+test("setup password accepts shorter unique passwords but rejects empty and very short values",()=>{
+  assert.equal(validSetupPassword("A1!x9_kQ"), true);
+  assert.equal(validSetupPassword("Abc!123"), false);
+  assert.equal(validSetupPassword(""), false);
+  assert.equal(validSetupPassword(undefined), false);
 });
