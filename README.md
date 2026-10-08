@@ -13,7 +13,7 @@ Connect this repository to a **new dedicated Netlify project**, using branch fea
 Set these Netlify environment variables with Functions scope:
 - CANVA_CLIENT_ID — Canva app's Client ID.
 - CANVA_CLIENT_SECRET — Canva app's Client Secret.
-- CANVA_SETUP_PASSWORD — separate randomly generated password of 20+ characters.
+- CANVA_SETUP_PASSWORD — separate randomly generated password of 8+ characters.
 - CANVA_SITE_ORIGIN — exact Netlify site HTTPS origin, with no trailing slash.
 
 The GitHub Actions secrets are NOT automatically visible to Netlify Functions. Configure these values in Netlify too, without pasting them into the repository or chat.
@@ -28,3 +28,5 @@ To connect: visit CANVA_SITE_ORIGIN/canva/start, supply the separate setup passw
 The application client secret derives the encryption key: rotating it makes previously saved tokens unreadable and requires reconnecting. Canva refresh tokens rotate and can only be used once, so implement a concurrency-controlled refresh workflow before automatic exports.
 
 Run npm test to verify the core helpers. See docs/PROJECT_STATUS.md for full handover and unverified steps.
+
+Setup password: 8+ characters, unique and never reused from a screenshot or another service. Netlify function rate limiting is configured to 6 requests per IP per 180 seconds, including callback visits; check Netlify deploy post-processing logs to verify the rule was applied.
