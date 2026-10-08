@@ -1,0 +1,19 @@
+name: Verify OAuth scaffold
+on:
+  push:
+    branches: ["feature/canva-oauth-callback"]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: node --check netlify/functions/canva-oauth.mjs
+      - run: node --check lib/oauth.mjs
+      - run: npm ci --ignore-scripts
+      - run: npm test
