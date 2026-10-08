@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { getStore } from "@netlify/blobs";
 import { newFormChallenge, seal, unseal, equal, acceptedRequestContext, verifiedFormProof, validSetupPassword } from "../../lib/oauth.mjs";
-import { TEST_DESIGN, SOURCE_DESIGN, inspectPNG, printReadiness, safeCanvaDownloadUrl, selectExportScale, requestedExportDimensions, exportedSizeMatchesSource, exportJobState, validExportSession } from "../../lib/print-check.mjs";
+import { TEST_DESIGN, SOURCE_DESIGN, inspectPNG, printReadiness, safeCanvaDownloadUrl, selectExportScale, requestedExportDimensions, exportedSizeMatchesSource, exportJobState, validExportSession, checkThreeSizeMaster } from "../../lib/print-check.mjs";
 
 const FORM_COOKIE = "__Host-sapiver_export_form";
 const SESSION_COOKIE = "__Host-sapiver_export_session";
@@ -157,6 +157,8 @@ function reportPage(report,cookieHeader) {
     "<strong>Ratio:</strong> "+report.readiness.ratio+"<br>"+
     "<strong>A-series ratio match:</strong> "+(report.readiness.a_series_ratio_matches?"Yes":"No")+"</p>"+
     "<h2>Effective print resolution</h2><table cellpadding=\"6\"><tr><th>Size</th><th>Resolution</th><th>Result</th></tr>"+sizes+"</table>"+
+    "<p><strong>PrintShrimp 50 MB limit:</strong> "+(report.printshrimp?.within_printshrimp_50mb_upload_limit?"Within limit":"TOO LARGE")+"<br>"+
+    "<strong>Measured checks for A3/A4/A5:</strong> "+(report.printshrimp?.meets_measured_upload_checks?"Pass":"Further adjustments required")+"</p>"+
     "<p><strong>Print approval: PENDING VISUAL PROOF.</strong> The A-series ratio and pixel density are measured above. Check legibility, artwork placement, any clipping and PrintShrimp safe margins before approving.</p>"+
     "<p><a href=\"/canva/print-file\">Download PNG (private one-hour session)</a></p>",
     200,cookieHeader?[cookieHeader]:[]);
@@ -237,11 +239,12 @@ async function status(req,cfg) {
   if(!exportedSizeMatchesSource(record.width,record.height,image.width,image.height))
     return errorPage("Canva returned a different aspect ratio. This export cannot be approved.",502);
   const readiness=printReadiness(image.width,image.height);
+  const printshrimp=checkThreeSizeMaster(image,readiness);
   const report={
     design_id:record.design_id||SOURCE_DESIGN.id,title:record.title,exported_at:new Date().toISOString(),
     image,requested:record.requested,selected_scale:record.selected_scale,
     requested_met:Math.abs(image.width-record.requested.width)<=1,
-    readiness,approved_for_print:false,
+    readiness,printshrimp,approved_for_print:false,
     reason:"A-series dimensions and PPI must be verified; typography, illustration clarity, safety margins and PrintShrimp specifications still require review."
   };
   await store.set(fileKey(session.id),new Blob([bytes],{type:"image/png"}),{
