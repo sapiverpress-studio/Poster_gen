@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { newFormChallenge, seal, verifiedFormProof } from "../lib/oauth.mjs";
-import { inspectPNG, printReadiness, safeCanvaDownloadUrl, TEST_DESIGN, SOURCE_DESIGN, selectExportScale, requestedExportDimensions, exportedSizeMatchesSource, exportJobState, validExportSession } from "../lib/print-check.mjs";
+import { inspectPNG, printReadiness, safeCanvaDownloadUrl, TEST_DESIGN, SOURCE_DESIGN, selectExportScale, requestedExportDimensions, exportedSizeMatchesSource, exportJobState, validExportSession, checkThreeSizeMaster, PRINTSHRIMP_MAX_BYTES } from "../lib/print-check.mjs";
 
 function pngHeader(width,height) {
   const b=Buffer.alloc(33);
@@ -145,4 +145,21 @@ test("service creates a job specifically for the A3 working copy and retains ori
   assert.match(code,/1× — 3508 × 4961 px/);
   assert.match(code,/selectExportScale\(fields\.get\("scale"\)\|\|"1"\)/);
   assert.doesNotMatch(code,/This 2:3 design also needs/);
+});
+
+test("PrintShrimp upload size and physical safe-margin checks remain separate from print approval",()=>{
+  const eligible=checkThreeSizeMaster({width:3508,height:4961,bytes:45*1024*1024},printReadiness(3508,4961));
+  assert.equal(eligible.a_series_ratio_matches,true);
+  assert.equal(eligible.three_sizes_at_300ppi,true);
+  assert.equal(eligible.within_printshrimp_50mb_upload_limit,true);
+  assert.equal(eligible.meets_measured_upload_checks,true);
+  assert.equal(eligible.requires_visual_artwork_review,true);
+  assert.equal(eligible.requires_2_to_3mm_safe_margin_review,true);
+  assert.equal(eligible.approved_for_sale,false);
+  const oversized=checkThreeSizeMaster({width:3508,height:4961,bytes:PRINTSHRIMP_MAX_BYTES+1},printReadiness(3508,4961));
+  assert.equal(oversized.within_printshrimp_50mb_upload_limit,false);
+  assert.equal(oversized.meets_measured_upload_checks,false);
+  const wrong=checkThreeSizeMaster({width:3072,height:4608,bytes:10},printReadiness(3072,4608));
+  assert.equal(wrong.a_series_ratio_matches,false);
+  assert.equal(wrong.three_sizes_at_300ppi,false);
 });
