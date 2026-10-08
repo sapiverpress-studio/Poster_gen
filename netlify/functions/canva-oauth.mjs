@@ -16,8 +16,16 @@ function env(name){
 }
 function setup(){
   const clientId=env("CANVA_CLIENT_ID"), secret=env("CANVA_CLIENT_SECRET"), password=env("CANVA_SETUP_PASSWORD"), origin=env("CANVA_SITE_ORIGIN");
-  if(!clientId || !secret || !password || !origin) {
-    throw Error("config_missing");
+  const variables = {
+    CANVA_CLIENT_ID: clientId,
+    CANVA_CLIENT_SECRET: secret,
+    CANVA_SETUP_PASSWORD: password,
+    CANVA_SITE_ORIGIN: origin,
+  };
+  const missing = Object.entries(variables).filter(([, value]) => !value).map(([name]) => name);
+  if (missing.length) {
+    // Keys are fixed, public configuration identifiers. Never log or display the values.
+    throw Error("config_missing:" + missing.join(","));
   }
   if(password.length < 20) throw Error("password_too_short");
   let u;
@@ -76,8 +84,10 @@ export default async function handler(req){
   }catch(error){
     // Only publish a fixed diagnostic code. Never expose environment variable values,
     // token payloads, password contents, or stack traces to visitors.
-    const known = new Set(["config_missing", "password_too_short", "origin_invalid"]);
-    const code = known.has(error?.message) ? error.message : "server_unavailable";
+    const known = new Set(["password_too_short", "origin_invalid"]);
+    const message = typeof error?.message === "string" ? error.message : "";
+    const isSafeMissing = /^config_missing:(CANVA_CLIENT_ID|CANVA_CLIENT_SECRET|CANVA_SETUP_PASSWORD|CANVA_SITE_ORIGIN)(,(CANVA_CLIENT_ID|CANVA_CLIENT_SECRET|CANVA_SETUP_PASSWORD|CANVA_SITE_ORIGIN))*$/.test(message);
+    const code = isSafeMissing || known.has(message) ? message : "server_unavailable";
     return rejected(503, "Setup check: " + code + ". No credentials were exposed.");
   }
 }
