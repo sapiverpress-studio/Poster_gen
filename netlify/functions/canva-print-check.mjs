@@ -168,7 +168,7 @@ async function doExport(req,cfg) {
   if(!(req.headers.get("content-type")||"").startsWith("application/x-www-form-urlencoded"))return errorPage("Invalid form data.",415);
   if(Number(req.headers.get("content-length")||0)>8192)return errorPage("Form too large.",413);
   const fields=new URLSearchParams((await req.text()).slice(0,8192));
-  if(!verifiedFormProof(fields.get("form_token"),readCookie(req,FORM_COOKIE),cfg.clientSecret))return errorPage("Form expired. Open a new print-check page.",403);
+  if(!verifiedFormProof(fields.get("form_token"),readCookie(req,FORM_COOKIE),cfg.clientSecret,Date.now(),"print-form"))return errorPage("Form expired. Open a new print-check page.",403);
   if(!equal(fields.get("password")||"",cfg.password))return errorPage("Incorrect setup password.",403);
   let scale;
   try{scale=selectExportScale(fields.get("scale")||"3");}catch{return errorPage("Choose a valid export scale.",400);}
