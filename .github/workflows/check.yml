@@ -1,7 +1,7 @@
-name: Verify OAuth scaffold
+name: Verify Poster_gen
 on:
   push:
-    branches: ["feature/canva-oauth-callback"]
+    branches: ["feature/canva-oauth-callback", "docs/handover-and-change-policy-20261008"]
   pull_request:
 jobs:
   test:
