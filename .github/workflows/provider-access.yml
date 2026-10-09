@@ -1,0 +1,25 @@
+name: Read-only provider access
+on:
+  push:
+    branches: [docs/handover-and-change-policy-20261008]
+    paths:
+      - scripts/check-provider-access.mjs
+      - .github/workflows/provider-access.yml
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test test/*.test.mjs
+      - name: Verify saved keys without exposing values or changing accounts
+        env:
+          ETSY_PRINTS_KEYSTRING: ${{ secrets.ETSY_PRINTS_KEYSTRING }}
+          ETSY_PRINTS_SHARED_SECRET: ${{ secrets.ETSY_PRINTS_SHARED_SECRET }}
+          SHRIMP_APIKEY: ${{ secrets.SHRIMP_APIKEY }}
+        run: node scripts/check-provider-access.mjs
