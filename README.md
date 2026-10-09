@@ -48,3 +48,7 @@ See docs/PRINTSHRIMP_HANDOFF.md. **Owner-selected order: prepare an Etsy draft F
 ## Etsy seller authorisation (staged)
 
 `lib/etsy-oauth.mjs` and `netlify/functions/etsy-oauth.mjs` implement `/etsy/start` → Etsy PKCE → `/etsy/callback`, encrypted token storage and exact SapiverPrints seller verification. 71 local tests pass across the full workflow; real seller flow not yet deployed or exercised. See `docs/ETSY_CONNECT.md` for runtime key-pair configuration and exact redirect registration. Existing GitHub keys have already passed live Etsy app authentication (HTTP 200). Draft creation and supplier transfer are now implemented and mocked end to end; publishing and orders remain disabled. See docs/POSTER_WORKFLOW.md for the owner controls and release checklist.
+
+## Owner-upload fixed template (new staged workflow)
+
+Download and check a Canva PNG, upload once at /poster/upload, then review and Approve & Publish. Name/SKU derive from the filename. The supplied template fixes prices, footer/disclosure, tags, UK delivery and A5/A4/A3 × Print Only/Black/White/Oak (12 options). See docs/UPLOAD_WORKFLOW.md and docs/SAPIVER_POSTER_TEMPLATE.md. 86 unique local tests pass. Live publication defaults disabled; existing production is unchanged and real framed fulfilment remains to be verified.

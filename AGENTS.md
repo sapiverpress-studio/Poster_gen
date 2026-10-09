@@ -53,3 +53,7 @@ Append to `docs/PROJECT_STATUS.md`:
 Give the next coding assistant a link to this repository and instruct it to read `AGENTS.md` and `docs/PROJECT_STATUS.md` **from the branch containing the current handover before writing code**. These are repository instructions, **not a guarantee that every new ChatGPT conversation automatically reads them**.
 
 If multiple branches have a copy, use the most recently owner-approved active project branch, and reconcile differing snapshots before writing code.
+
+## Owner-upload approval update — 2026-10-09
+
+Jim authorised implementing the uploaded-file workflow in docs/UPLOAD_WORKFLOW.md. For future products the filename supplies the subject/SKU and docs/SAPIVER_POSTER_TEMPLATE.md fixes three sizes and four finish options (12 combinations). A final authenticated Approve & Publish press approves that exact checked upload plus displayed listing plan for publication; it is not approval for orders or a software deployment. The existing pinned Canva master/export is retained. Release approval, fail-closed live checks and documented supplier frame matching remain required before enabling the new publication gate.

@@ -29,3 +29,7 @@ The supplier master ticket is revoked after success or ambiguity and expires aft
 71 local tests passed, including owner CSRF, signed runner replay protection, actual-byte checksum guards, SKU collision audit, unpublished inventory, token refresh concurrency and simulated draft-to-supplier transfer. Runtime entrypoints import successfully. GitHub CI performs clean dependency installation and runtime imports. Real consent, profile compatibility, provider acceptance, full-size streaming and print proof remain unverified until live testing.
 
 API contract checked against Etsy's current first-party schema at `https://www.etsy.com/openapi/generated/oas/3.0.0.json` and authentication/listing guides on developers.etsy.com. Supplier contract comes from owner-supplied merchant documentation screenshots. No order endpoint or listing-state activation is used.
+
+## Superseded by owner-upload workflow
+
+On 2026-10-09 Jim selected manual Canva download, one website upload and a final Approve & Publish button. See UPLOAD_WORKFLOW.md and SAPIVER_POSTER_TEMPLATE.md. The older pinned-master, three-size draft route remains for compatibility; it is not the new 12-option upload flow.
