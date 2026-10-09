@@ -7,7 +7,7 @@
 | Area | Current evidence-based state |
 | --- | --- |
 | Direction | **Owner-authorised release:** Jim approved one bundled release of candidate 45240c8 and installation of the main GitHub worker on 2026-10-09 at 12:06 BST. Product publication stays disabled; no orders authorised. Deploy remains per-product approval. |
-| Live production | **VERIFIED LIVE:** Ready deploy `6ac8d2cde89cc000087e87c9`, corrective commit `e6e70b0753100008df3cb5a70aedd4fc2e903f8b`, production branch `feature/canva-oauth-callback`; published 2026-10-09 11:41:20 UTC. Zero scanner matches. |
+| Live production | **VERIFIED LIVE:** redesigned owner studio at Ready deploy `6ac8e5d54698390008de1f60`, commit `fdefb3837207d748c7686da2e3d31cdea5ea37ab`. One owner-approved UI release; zero scanner matches. |
 | Live routes | Fresh unauthenticated checks: owner workflow, uploader and dashboard return HTTP 200 (login pages; not authenticated acceptance). Etsy start returns 503 awaiting worker bootstrap. Canva routes preserved. |
 | Development | Local `feature/unified-products`; code/tests/docs saved as `45240c8b6ceb6f34442074e68e304d87cc735210` on established off-production `docs/handover-and-change-policy-20261008`. Supersedes unreleased GitHub-worker candidate `5413ef62acd9552650336a6fed4ffa43dcdc142d`. |
 | Digital | **IMPLEMENTED / FIXTURE-TESTED:** secure ZIP validation/private storage, original-file preservation, Etsy-limit splitting, accurate metadata/previews, digital listing/file attachment/sections and same-ID updates. No PrintShrimp or physical profiles. |
@@ -501,3 +501,9 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Deploy exactly once; verify Netlify Ready commit and live page markup. Browser visual acceptance remains unverified in this runtime.
 
 - Release prepared and production branch advanced once to fdefb3837207d748c7686da2e3d31cdea5ea37ab using expected-SHA protection. New Ready deployment still pending observation; no repeat build triggered.
+
+### 2026-10-09 14:02 BST — Redesigned studio VERIFIED LIVE
+- Ready deploy 6ac8e5d54698390008de1f60 serves exactly fdefb3837207d748c7686da2e3d31cdea5ea37ab. Both secret-scanner match lists are empty.
+- Fresh HTTP GETs for home, owner login, upload and products all return 200 and the new shared presentation markup. Unauthenticated protected routes correctly show the styled setup-password login; this does not prove authenticated upload or dashboard visual acceptance.
+- Functional regression suite: 115 tests pass. No full-browser screenshot/device QA available. Owner should review the live phone layout; do not claim it visually verified.
+- No publication flag, orders, merchant data or archive-import behavior changed. Seller-kit ZIP remains unsupported pending dedicated importer. Handover saved off production without another build.
