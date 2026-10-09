@@ -18,4 +18,6 @@ jobs:
       - run: node --check lib/approved-export.mjs
       - run: node --check netlify/functions/canva-auto-approved.mjs
       - run: node --check netlify/functions/canva-approved-report.mjs
+      - run: node --check lib/etsy-oauth.mjs
+      - run: node --check netlify/functions/etsy-oauth.mjs
       - run: npm test

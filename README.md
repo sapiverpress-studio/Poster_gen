@@ -44,3 +44,7 @@ No automatic Etsy publication or PrintShrimp manufacturing order without the own
 ## PrintShrimp handoff
 
 See docs/PRINTSHRIMP_HANDOFF.md. **Owner-selected order: prepare an Etsy draft FIRST**, using one shared SKU for A5/A4/A3; then upload the **one** existing private A3 master to PrintShrimp under that same SKU, verify fulfilment, and publish only after separate approval. SKU mapping is staged only; no seller listing or supplier upload has occurred.
+
+## Etsy seller authorisation (staged)
+
+`lib/etsy-oauth.mjs` and `netlify/functions/etsy-oauth.mjs` implement `/etsy/start` → Etsy PKCE → `/etsy/callback`, encrypted token storage and exact SapiverPrints seller verification. 50 local tests pass; real seller flow not yet deployed or exercised. See `docs/ETSY_CONNECT.md` for runtime key-pair configuration and exact redirect registration. Existing GitHub keys have already passed live Etsy app authentication (HTTP 200). Draft creation and supplier transfer still pending; publishing and orders disabled.
