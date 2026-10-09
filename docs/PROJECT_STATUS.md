@@ -322,3 +322,11 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Handoff uses the already-stored private Canva-approved A3 Blob, checks revision, hash, dimensions, upload limit and PPI; three Etsy size variations share the one SKU. It never calls provider APIs.
 - Full PrintShrimp upload API spec is accessible after account sign-in and is not available via current connected tools. No Etsy seller write connection is available; Etsy marketplace lookup is not a seller management connection.
 - PENDING: real private PNG transfer API, actual file visual review, supplier proof, prices, postage profile and paper finish. No Etsy listing or order, no Netlify deploy.
+
+### 2026-10-09 — One-master PrintShrimp handoff CI passed; supplier access still required
+
+- GitHub Actions run 37885613924 at commit fe59ff590f8fd212dc98c64caf05851983932341 passed **43/43** tests (zero failures), including 3 new tests for the single A3 master, one shared SKU, A5/A4/A3 variation constraints, and failing closed on wrong artwork or unverified measurements.
+- Connected PrintShrimp merchant tool not available. The authenticated portal is https://app.printshrimp.com/; public docs link redirects there. Supplier FAQ states API docs available only after sign-in, so no real upload endpoint or credentials have been observed. Do not invent one.
+- The A3 PNG remains privately stored under the approved Netlify Blob pointer, not copied into GitHub. SKU in mapping is PROPOSED, not confirmed in PrintShrimp/Etsy account.
+- Netlify current production deploy remains 6ac7ea449b8dde00092c0cf4 Ready, untouched. This verification updates only the off-production handover branch. No Etsy publishing, PrintShrimp upload, order, or additional file created.
+- Next real unblock: obtain authenticated PrintShrimp upload/API details from the account, then implement and test direct secure transfer of that ONE existing Blob to one SKU. Full-resolution QA and actual supplier print proof still pending.
