@@ -518,3 +518,6 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - VERIFIED: 120/120 local tests pass, zero failures; new seller-kit and Netlify entrypoint imports pass. Simulated create/attach/readback/activate tests attach only buyer ZIP with exact bytes, retain listing images, never invoke supplier, and stop changed delivery before merchant writes. No live merchant operation performed.
 - Actual supplied file result: STRUCTURE RECOGNISED, BLOCKED by invalid SVG dimensions; exporter must produce valid SVG width/height before this exact kit is sale-ready. No claim that its quality report proves valid SVG.
 - Deployment/credits: no release, new listing, paid Etsy publication, supplier upload/order or another-repository change. Save isolated branch with skip-netlify marker. Next: review importer and obtain one release approval, verify real worker/OAuth, then owner-approved product publication.
+
+### 2026-10-09 16:19 BST — Seller-kit software release approved
+- Jim explicitly approved the tested seller-kit importer release. Prepare one release of the tested 120-test candidate; verify Netlify Ready and public routes. Actual supplied ZIP remains blocked by invalid SVG dimensions. No product publication, artwork rewrite or supplier orders authorised by this software release.
