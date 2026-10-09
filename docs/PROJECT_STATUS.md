@@ -2,23 +2,23 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
-## CURRENT PROJECT SNAPSHOT — 2026-10-09 11:10 UTC
+## CURRENT PROJECT SNAPSHOT — 2026-10-09 11:42 UTC
 
 | Area | Current evidence-based state |
 | --- | --- |
 | Direction | **Owner-authorised release:** Jim approved one bundled release of candidate 45240c8 and installation of the main GitHub worker on 2026-10-09 at 12:06 BST. Product publication stays disabled; no orders authorised. Deploy remains per-product approval. |
-| Live production | Netlify Ready deploy `6ac88cdf08cadc0008385789`, commit `7d1979660f9d830f950189d16ccb78b886dc3d40`, branch `feature/canva-oauth-callback`. Unchanged during this work. |
-| Live routes | Owner workflow, uploader and Etsy start return setup-incomplete HTTP 503; Canva approved-report responds. Unified routes are **not deployed**. |
+| Live production | **VERIFIED LIVE:** Ready deploy `6ac8d2cde89cc000087e87c9`, corrective commit `e6e70b0753100008df3cb5a70aedd4fc2e903f8b`, production branch `feature/canva-oauth-callback`; published 2026-10-09 11:41:20 UTC. Zero scanner matches. |
+| Live routes | Fresh unauthenticated checks: owner workflow, uploader and dashboard return HTTP 200 (login pages; not authenticated acceptance). Etsy start returns 503 awaiting worker bootstrap. Canva routes preserved. |
 | Development | Local `feature/unified-products`; code/tests/docs saved as `45240c8b6ceb6f34442074e68e304d87cc735210` on established off-production `docs/handover-and-change-policy-20261008`. Supersedes unreleased GitHub-worker candidate `5413ef62acd9552650336a6fed4ffa43dcdc142d`. |
 | Digital | **IMPLEMENTED / FIXTURE-TESTED:** secure ZIP validation/private storage, original-file preservation, Etsy-limit splitting, accurate metadata/previews, digital listing/file attachment/sections and same-ID updates. No PrintShrimp or physical profiles. |
 | Physical | **IMPLEMENTED / FIXTURE-TESTED:** exactly A5/A4/A3 × Black/White/Oak = **nine** framed variants, approved £49.99/£54.99/£64.99 prices, preserved template/settings, one master/shared SKU/supplier mapping. No automatic orders. Older twelve-option notes are superseded for new listings, not a live migration. |
 | Approval / reliability | Hash-bound Deploy, queue/revision/SKU claims, stored IDs and safe stop after partial/uncertain API operations; no automatic repeat creation. Physical previews now hash-bound too. |
 | Dashboard / edits | Type/subject/status filters, files, previews, Etsy URL, supplier ID and attention errors. Digital files and physical metadata update existing IDs. Physical artwork replacement blocked until supplier update schema verified. |
-| Tests | **114 local tests pass** on Node 24, real archive/image/PDF/SVG parsing plus controlled merchant fixtures and browser-script interaction tests. Clean isolated install and Function/digital-module imports passed. Live merchant writes untested. Browser screenshot test unavailable after failed download. |
+| Tests | **115 local tests pass** after public-origin fix, including tracked-file scanner regression. Prior candidate remote CI 114/114 passed. Real Netlify Function/Edge packaging now passed; live merchant writes and device acceptance unverified. |
 | GitHub worker | Staged worker reuses existing GitHub provider secrets. Publication YAML installed on main in c36dd37c8a69b1153493aec16405e28dcef06b76. Schedule is configured; actual execution/OIDC acceptance and seller consent remain unverified. |
 | Etsy access | Existing key pair and supplier key previously returned HTTP 200 in read-only preflight. Seller OAuth NOT established by those keys; updated `shops_w` consent required for section creation. No live sections/listings changed. |
 | Canva | Original `DAHXUnmHofY` preserved. Working A3 `DAHXb1PdJlM`; existing owner report confirmed 3508 × 4961 PNG, 37.4 MiB, A3 300/A4 424/A5 600 PPI. No new export or artwork change. Visual print/sample and framed fulfilment remain unverified. |
-| Release / credits | Owner-approved release attempted; public-origin secret-scanner failure left previous deploy live. Corrective production branch is e6e70b0; main worker installed and corrected. No publication flag change, merchant writes or orders. Await successful corrective deploy. |
+| Release / credits | Owner approved bundled release and worker installation. First attempt failed public-origin scan; corrective release is Ready. Publication flag not changed; no merchant writes/orders. No more release needed for this scanner fix. |
 | Next stage | Release authorisation received; corrective candidate e6e70b0 passes 115 local tests. Verify successful Netlify build, real worker/OAuth/routes/categories/files/supplier frame delivery and owner browser interface before enabling per-product publication. |
 
 ### Current implementation and explicit limits
@@ -479,3 +479,9 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Local verification 115 tests passed, zero failures. Exact worker origin and pinned validation retained; scanner enabled unchanged. Regression scans all tracked files for the problematic literal.
 - Latest Netlify connector check still reports previous published deploy 6ac88cdf08cadc0008385789. Successful corrective deployment has not yet been observed. Connector cannot list pending/failed builds or trigger a build. Owner may need one manual latest-branch build if none is queued/running; do not trigger duplicates.
 - No merchant writes, orders, supplier uploads, new Canva export or publication-gate activation. Next: verify corrective Ready commit, scanner results and worker bootstrap.
+
+### 2026-10-09 12:42 BST — Corrective release VERIFIED LIVE
+- Netlify Ready deploy 6ac8d2cde89cc000087e87c9 published 2026-10-09T11:41:20.351Z, exactly corrective commit e6e70b0753100008df3cb5a70aedd4fc2e903f8b. Both ordinary and enhanced scanner match lists empty; ten Functions and existing Edge bundle packaged successfully.
+- Fresh GET checks: /poster/workflow, /poster/upload and /poster/products return 200; these unauthenticated responses demonstrate login-route availability, not full owner/mobile acceptance. /etsy/start returns 503; cached GitHub bootstrap still unverified. No second manual trigger required.
+- Correction: preceding 12:45 checkpoint used an approximate timestamp; corrective deployment actually completed at 12:41:20 BST and this verification is 12:42 BST.
+- Next: verify first scheduled worker succeeds and unlocks normal Etsy consent; then controlled real merchant tests and frame/size matching. No new approval needed for read-only worker verification. Product publication and orders remain outside this software release.
