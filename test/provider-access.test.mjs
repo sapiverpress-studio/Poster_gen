@@ -5,10 +5,10 @@ const credentials={ETSY_PRINTS_KEYSTRING:'private-key',ETSY_PRINTS_SHARED_SECRET
 test('read-only preflight sends existing Etsy pair only to official endpoint and never leaks secrets',async()=>{
  let calls=0;
  const report=await checkProviderAccess(credentials,async(url,options)=>{
-  calls++;assert.equal(url,'https://api.etsy.com/v3/application/openapi-ping');assert.equal(options.method,'GET');assert.equal(options.redirect,'error');assert.equal(options.headers['x-api-key'],'private-key:private-secret');
+  calls++;if(url.includes('printshrimp.com')) {assert.equal(options.method,'GET');assert.equal(options.headers['x-api-key'],'private-shrimp');assert.equal(options.redirect,'error');return new Response('private-shrimp',{status:200});}assert.equal(url,'https://api.etsy.com/v3/application/openapi-ping');assert.equal(options.method,'GET');assert.equal(options.redirect,'error');assert.equal(options.headers['x-api-key'],'private-key:private-secret');
   return new Response('private-key',{status:200});
  });
- assert.equal(calls,1);assert.equal(report.etsy.appAccess,'VERIFIED');assert.equal(report.etsy.sellerAccess,'NOT_CONFIGURED');assert.equal(report.printshrimp.access,'NOT_TESTED');
+ assert.equal(calls,2);assert.equal(report.etsy.appAccess,'VERIFIED');assert.equal(report.etsy.sellerAccess,'NOT_CONFIGURED');assert.equal(report.printshrimp.access,'VERIFIED');
  assert.equal(report.publicationEnabled,false);assert.equal(report.ordersEnabled,false);assert.doesNotMatch(JSON.stringify(report),/private-/);
 });
 test('missing keys make no requests and provider failures reveal no diagnostics',async()=>{

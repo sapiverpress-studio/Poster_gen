@@ -20,4 +20,7 @@ jobs:
       - run: node --check netlify/functions/canva-approved-report.mjs
       - run: node --check lib/etsy-oauth.mjs
       - run: node --check netlify/functions/etsy-oauth.mjs
+      - run: node --check lib/printshrimp-api.mjs
+      - run: node --check lib/master-stream.mjs
+      - run: node --check netlify/edge-functions/print-master.js
       - run: npm test
