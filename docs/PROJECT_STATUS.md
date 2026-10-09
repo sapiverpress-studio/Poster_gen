@@ -2,7 +2,7 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
-## CURRENT PROJECT SNAPSHOT — 2026-10-08 (UK time)
+## CURRENT PROJECT SNAPSHOT — 2026-10-09 (UK time)
 
 | Area | Current evidence-based state |
 | --- | --- |
@@ -18,9 +18,9 @@
 | Print resolutions | **VERIFIED by owner's validator screenshot:** A5 **600 PPI**, A4 **424 PPI**, A3 **300 PPI**. PPI alone does not approve actual image detail or printing. |
 | Print layout | **OWNER-APPROVED AND SAVED:** Background-only correction on A3 Canva copy `DAHXb1PdJlM` was committed after the original editing session expired. Verified by reopening Canva and reading the persisted scenic element at left 0, top -150, size 3508 × 5262 (38 text elements and 52 image layers still present). **Remaining:** visual print proof for heads/tails, text, edges and 2–3 mm safe areas; saving is NOT a full print approval. |
 | Print approval | **NOT APPROVED:** inspect the actual master at print size for legibility/soft assets, correct dinosaurs/labels, colour and 2–3 mm safety, and obtain PrintShrimp compatibility/proof before selling. |
-| Etsy + PrintShrimp | **ONE-MASTER product mapping STAGED (not deployed):** shared SKU SP-DINOSAURS-ACROSS-TIME, one original private A3 PNG and A5/A4/A3 variations. Supplier API requires signed-in merchant docs; no supplier upload, Etsy draft or order has occurred. |
+| Etsy + PrintShrimp | **DEFINITIVE WORKFLOW (OWNER CONFIRMED): ETSY FIRST.** Prepare one Etsy **draft** for SapiverPrints with proposed SKU `SP-DINOSAURS-ACROSS-TIME` shared by A5/A4/A3, then transfer exactly ONE previously exported private PNG to PrintShrimp using matching artwork filename/SKU, verify matching and fulfilment readiness, and publish only with explicit approval. One-SKU product mapping is staged off production and **43/43 tests passed**. No Etsy listing, PrintShrimp upload or order has yet been made. |
 | Credit safeguard | Netlify team usage screenshot (Oct 8): **182 production deploys / 2,730 credits** and **2,873.9 total credits in the billing period**. This is team-wide; do not claim Poster_gen caused all 182. GitHub showed 48 Poster_gen commits in a single afternoon. **No production deploy merely for documentation; batch changes, require owner release approval.** |
-| Immediate stage | **OVERNIGHT SCHEDULED EXPORT SUCCESSFULLY COMPLETED:** owner screenshot confirms latest approved A3 Canva version exported to private Netlify Blobs and print checker measured 3508 × 4961, 37.4 MiB, A5/A4/A3 PPI 600/424/300. **Still pending:** authenticated full-resolution or safe proof preview access, visual accuracy/trim/sRGB inspection and PrintShrimp proof. Etsy and PrintShrimp automation/orders remain disabled. No further Netlify deployment needed for export. |
+| Immediate stage | **READY FOR ETSY DRAFT PREPARATION:** Canva-approved A3 master exported and privately saved automatically (3508 × 4961, 37.4 MiB, A3 300 PPI); one common SKU/three sizes mapping staged but not deployed. NEXT: visual proof of existing artwork and safe Etsy draft with A5/A4/A3 and shared SKU, using shop-verified pricing/PrintShrimp production and postage settings. Then match/upload one master in PrintShrimp. No production deploy, published Etsy listing or PrintShrimp order authorised yet. |
 
 ### What is done and verified
 
@@ -30,14 +30,22 @@
 4. Created independent Canva A3 working copy; its original text and illustrations were present in element inspection. Original design unchanged.
 5. GitHub tests and Netlify deploy were confirmed passing/Ready at prior checkpoint. This **does not** verify PrintShrimp production use or a physical proof.
 
-### What needs doing — in order
+### What is done and verified
 
-1. **Approved Canva draft completed:** background-only adjustment approved, committed and reopened to verify persistence. No owner-side Canva save or download is required for this step.
-2. **Print-quality audit:** download/inspect full-size 3508 × 4961 PNG; check every dinosaur and title, pronunciation labels, edge safety, background joins, raster sharpness, sRGB / printer requirements. Mark any failures precisely.
-3. **Production print proof:** confirm PrintShrimp accepts one A3 file for A3/A4/A5, with SKU/variation mapping and pricing, then order/inspect a sample only with owner's explicit permission.
-4. **Exporter generalisation:** after master proves good, accept arbitrary Canva designs rather than a hardcoded design ID, and retain the pass/fail gate and private original-safe workflow.
-5. **Etsy draft integration:** create **drafts only** behind explicit approval; map the three variations, photographs, titles and descriptions; no automatic live publishing.
-6. **Controlled release:** one combined, tested release after approval, not a new Netlify production build per small commit. Verify billing/build policy before any GitHub push to the deployed branch.
+1. Canva OAuth connected, original source `DAHXUnmHofY` untouched; separate owner-approved A3 copy `DAHXb1PdJlM` with background correction saved.
+2. Scheduled Netlify worker **successfully exported and stored one private A3 master** unattended: 3508 × 4961 PNG, 37.4 MiB; A5 / A4 / A3 PPI 600 / 424 / 300. Owner's authenticated report showed `ready_for_review`. **No re-export is needed.**
+3. Production deploy `6ac7ea449b8dde00092c0cf4` at SHA `fe2c128` Ready and passed secret scanning, after documented earlier failed build.
+4. Canva structural audit: 38 text elements outside 3 mm border; 6 image layers enter it, including full-bleed background. **Full-resolution visual proof and physical sample remain pending.**
+5. Off-production `lib/printshrimp-product.mjs` and handoff guide implement/test one private PNG, one proposed common SKU, three Etsy size variations; **43/43 tests passed** in GitHub run `37885613924`. No actual Etsy/PrintShrimp integration or side-effect confirmed.
+
+### What needs doing — agreed ETSY-FIRST order
+
+1. **Visual QA of the existing master:** obtain a secure preview/inspection of the private PNG, check spelling/pronunciation, dinosaur heads and tails, small lettering, sharpness, colour and trim. Do not make three artwork files or rerun Canva export.
+2. **Prepare the Etsy listing FIRST (as draft):** in the correct SapiverPrints seller account, one physical Dinosaurs Across Time product, Size variation A5/A4/A3, with **the same SKU across all sizes**, currently proposed `SP-DINOSAURS-ACROSS-TIME`. Verify existing SKU convention, actual prices, unframed/paper settings, mockups and correct existing shipping profile; do not invent values or publish. Secure Etsy seller-write access is not presently available through this chat's Etsy buyer tools.
+3. **Connect/verify PrintShrimp account and artwork match:** confirm Etsy shop integration and authenticated PrintShrimp merchant upload method; transfer the **single existing** private 3508 × 4961 master once using its matched SKU/filename, not three separate uploads. Verify correct size is determined by Etsy order variation. PrintShrimp can match orders lazily; **an already published Etsy listing is not proven necessary for file upload/matching**, so keep the Etsy listing unpublished until fulfilment is ready.
+4. **Check supplier readiness and sample proof:** reconcile Etsy listing SKU against the one PrintShrimp asset, verify 3 size variations, inspect actual full print, and ask before any paid proof order or manufacturing.
+5. **Publish only with separate owner approval** once artwork, supplier mapping, pricing and postage are verified. No automatic PrintShrimp payment, order or listing publication is authorised at present.
+6. **Build and release deliberately:** stage and test full connection away from production, then request approval for **one controlled Netlify deployment**, mindful of team's prior 2,873.9-credit usage. Future backlog: generalise Canva input without compromising approved-revision protections.
 
 ### Key commands and endpoints
 
@@ -330,3 +338,13 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - The A3 PNG remains privately stored under the approved Netlify Blob pointer, not copied into GitHub. SKU in mapping is PROPOSED, not confirmed in PrintShrimp/Etsy account.
 - Netlify current production deploy remains 6ac7ea449b8dde00092c0cf4 Ready, untouched. This verification updates only the off-production handover branch. No Etsy publishing, PrintShrimp upload, order, or additional file created.
 - Next real unblock: obtain authenticated PrintShrimp upload/API details from the account, then implement and test direct secure transfer of that ONE existing Blob to one SKU. Full-resolution QA and actual supplier print proof still pending.
+
+### 2026-10-09 — Owner corrected Etsy/PrintShrimp order; definitive Etsy-first handover
+
+- **User clarification:** "I thought we needed them listed on Etsy first with a SKU that we then hand to shrimp." This workflow decision overrides previous documentation that positioned PrintShrimp supplier upload before creating the Etsy listing.
+- **Confirmed supplier semantics:** PrintShrimp matches Etsy order SKU to the artwork file SKU/filename, while extracting print size from the order variation. Use **one SKU per product, not one per size**. Their current guidance also supports *lazy SKU mapping* so a live Etsy listing does not necessarily need its artwork pre-uploaded; for THIS project prefer a safe Etsy **draft** first and do not publish until supplier matching and print QA have been validated.
+- **Definitive order:** ① Existing Canva PNG and QA (no repeat export) → ② one Etsy **draft** with A5/A4/A3 and common product SKU → ③ connect PrintShrimp and transfer **one** private A3 master under matching SKU → ④ verify match and proof (paid order only after approval) → ⑤ publish after separate approval. This is a business workflow decision, not a claim that Etsy mandates publishing before PrintShrimp upload.
+- **Verified actual code detail (correction to any contrary assessment):** `lib/print-check.mjs` function `inspectPNG` computes a SHA-256 hash of real PNG bytes, and `lib/approved-export.mjs` stores this `image` object in the private report; `lib/printshrimp-product.mjs` requires the same checksum. The checksum is therefore **implemented**. A live supplier handoff using actual Blob/report data is still **untested**.
+- **Current state:** no Etsy draft, shop SKU registration, PrintShrimp artwork upload, payment, sample or sale has been performed. The proposed shared SKU `SP-DINOSAURS-ACROSS-TIME` must be checked against the seller's existing SKUs before adoption. PrintShrimp portal upload/API specs and seller-write Etsy access remain outstanding.
+- **Documentation change:** updated current snapshot, next actions, PrintShrimp handoff guide and README on isolated `docs/handover-and-change-policy-20261008` branch only. **No runtime files, PrintShrimp/Etsy accounts, build settings or production deploy affected.**
+- **Supplier references:** https://printshrimp.com/blogs/news/printshrimp-etsy-integration ; https://printshrimp.com/pages/bulk-edit-skus ; https://printshrimp.com/blogs/news/switch-print-on-demand-supplier-etsy .

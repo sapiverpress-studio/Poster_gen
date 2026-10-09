@@ -18,8 +18,8 @@ Dedicated Canva-to-print artwork workflow for Sapiver Prints, isolated from othe
 - A3 working copy: `DAHXb1PdJlM` (3508 × 4961 px).
 - Canva OAuth works; asynchronous PNG export to private Netlify storage works.
 - User's live A3 export report showed correct dimensions, paper ratio, 300 PPI at A3, 424 PPI at A4 and 600 PPI at A5, under the reported PrintShrimp upload limit.
-- **Done:** owner-approved A3 background correction saved directly in Canva. **Pending:** automatic updated PNG export, inspect full-size artwork, verify print margins/colour, obtain PrintShrimp proof.
-- **Staged, not deployed:** scheduled export for exact owner-approved Canva revision and private owner report; no repeated manual export/password form needed once released. **Not yet integrated:** arbitrary Canva link processing, Etsy drafts, PrintShrimp variation mapping or automated fulfilment.
+- **Done:** owner-approved A3 background correction saved directly in Canva; scheduled PNG export succeeded unattended (3508 × 4961, 37.4 MiB), stored privately. **Pending:** visual/colour/trim QA, Etsy draft and PrintShrimp match, sample proof.
+- **Live:** scheduled export for the approved revision and private owner report. **Staged off production:** one-master shared-SKU A5/A4/A3 mapping (43 passing tests). **Not implemented:** Etsy seller draft creation, PrintShrimp artwork transfer, actual orders or publishing.
 
 ## Code locations
 
@@ -31,7 +31,7 @@ Dedicated Canva-to-print artwork workflow for Sapiver Prints, isolated from othe
 
 ## Release, costs and secrets
 
-The Netlify-linked production branch is `feature/canva-oauth-callback`. The first automation release was rejected by Netlify's secret scanner due to literal site-origin URLs in the status document. The correction is tested on isolated `docs/handover-and-change-policy-20261008` before release. No production functionality is live until Netlify publishes successfully.
+The Netlify-linked production branch is `feature/canva-oauth-callback`, currently deployed successfully at `fe2c128` with scheduled Canva export running. The earlier secret-scanner failure was corrected without disabling security scanning. Subsequent PrintShrimp mapping and this handover remain on isolated branch `docs/handover-and-change-policy-20261008`.
 
 The team's October billing screen showed substantial production deployment credit usage. **Never push changes to a production-deployed branch, trigger a deployment, change automatic builds, merge or spend deployment credits without the owner's explicit release approval.** Group tested changes into one controlled release.
 
@@ -43,4 +43,4 @@ No automatic Etsy publication or PrintShrimp manufacturing order without the own
 
 ## PrintShrimp handoff
 
-See docs/PRINTSHRIMP_HANDOFF.md. One existing approved A3 master maps to one SKU and A5/A4/A3 variations. This is staged only; no supplier upload or Etsy listing has occurred.
+See docs/PRINTSHRIMP_HANDOFF.md. **Owner-selected order: prepare an Etsy draft FIRST**, using one shared SKU for A5/A4/A3; then upload the **one** existing private A3 master to PrintShrimp under that same SKU, verify fulfilment, and publish only after separate approval. SKU mapping is staged only; no seller listing or supplier upload has occurred.
