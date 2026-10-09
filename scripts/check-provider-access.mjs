@@ -6,7 +6,7 @@ export async function checkProviderAccess(env, request=fetch) {
   const report={secrets:present,etsy:{appAccess:'NOT_TESTED',sellerAccess:'NOT_CONFIGURED'},printshrimp:{access:'NOT_TESTED',reason:'Authenticated API specification required; no guessed requests'},publicationEnabled:false,ordersEnabled:false};
   if(present.SHRIMP_APIKEY) {
     try {
-      const response=await request('https://api.printshrimp.com/functions/v1/api-get-product?sku=SP-DINOSAURS-ACROSS-TIME',{method:'GET',redirect:'error',signal:AbortSignal.timeout(15000),headers:{'x-api-key':env.SHRIMP_APIKEY.trim(),Accept:'application/json'}});
+      const response=await request('https://api.printshrimp.com/functions/v1/api-get-product',{method:'GET',redirect:'error',signal:AbortSignal.timeout(15000),headers:{'x-api-key':env.SHRIMP_APIKEY.trim(),Accept:'application/json'}});
       report.printshrimp.httpStatus=response.status;report.printshrimp.access=response.ok?'VERIFIED':([401,403].includes(response.status)?'AUTH_REJECTED':response.status===404?'PRODUCT_NOT_FOUND_AUTH_UNCONFIRMED':'REQUEST_FAILED_AUTH_UNCONFIRMED');delete report.printshrimp.reason;
       if(!response.ok){try {const data=await response.json();const error=typeof data.error==='string'?data.error:'';report.printshrimp.diagnostic=/invalid.*(?:api.?key|key)|(?:api.?key|key).*invalid|unauthori[sz]ed/i.test(error)?'KEY_REJECTED':/not found/i.test(error)?'PRODUCT_NOT_FOUND':'UNCLASSIFIED';}catch {report.printshrimp.diagnostic='NON_JSON_RESPONSE';}}
       if(response.body&&!response.bodyUsed)await response.body.cancel();

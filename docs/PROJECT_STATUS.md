@@ -396,3 +396,8 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Commit bf8c450b705b5b2dc18b9d320691bff0f9bf0e7c: GitHub code CI 37889648117 passed syntax checks and all 55 tests. Read-only provider run 37889648119 failed because supplier pricing GET returned HTTP 400 while Etsy ping remained HTTP 200. All three secrets were present.
 - Correction: initial preflight labeled any non-2xx supplier response REJECTED; HTTP 400 cannot distinguish missing pricing query parameters from authentication problems. Do not ask owner to replace keys on this evidence.
 - Changed supplier preflight to fully documented GET /api-get-product?sku=SP-DINOSAURS-ACROSS-TIME (query shown in supplied screenshot). Returns fixed response classes and allowlisted diagnostic categories, never raw response bodies or keys. Real result pending. No supplier POST or listing publication occurred.
+
+### 2026-10-09 06:41 BST — Supplier SKU lookup reached product API
+- Read-only run 37889760027 at e9308a8 returned HTTP 404 with allowlisted PRODUCT_NOT_FOUND diagnostic for SP-DINOSAURS-ACROSS-TIME; Etsy remained HTTP 200. This is not a rejected-key diagnosis and does not alone prove key validity. No product created.
+- Next focused check uses documented GET /api-get-product without sku (paginated merchant product list), to distinguish an empty/nonexistent proposed SKU from credential access. Response content discarded; only HTTP status logged. No additional endpoint guessing or supplier writes.
+- Existing production Netlify deploy remains 6ac7ea449b8dde00092c0cf4 Ready. All 55 tests also passed in this real preflight job.
