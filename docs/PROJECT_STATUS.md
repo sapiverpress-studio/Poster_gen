@@ -494,3 +494,8 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Digital seller-kit importer remains unimplemented; supplied sapiver-testy-etsy-kit.zip is not accepted by current nested-ZIP validator. This styling task does not fix archive compatibility.
 - Release/credit impact: isolated branch only; save with skip-netlify marker. No production deployment, new seller writes, supplier upload, publication flag change or order. Single cosmetic release requires owner authorisation after review.
 - Next: review redesigned UI and perform actual browser visual acceptance, then one approved bundled release; separately finish seller-kit import and real worker/merchant verification.
+### 2026-10-09 14:01 BST — Owner approves one interface release
+- Jim explicitly approved one deployment of the staged owner-interface redesign 1fb0f28df587af68a8a059b38abb482aa84cf43e.
+- Verified preflight: production branch remains e6e70b0; current Ready deploy 6ac8d5fb0f1f576e0ec9fb4f serves the same e6e70b0 runtime. UI candidate is a fast-forward descendant; local 115-test suite and shared-page/handler imports passed before approval.
+- Prepare a release commit with the same tested interface files plus this approval record. No worker, merchant API, archive validation, authentication/CSRF or publication setting changes. Seller-kit compatibility and real merchant checks remain pending.
+- Deploy exactly once; verify Netlify Ready commit and live page markup. Browser visual acceptance remains unverified in this runtime.
