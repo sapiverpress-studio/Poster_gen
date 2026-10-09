@@ -1,0 +1,16 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createEtsySession} from '../lib/etsy-session.mjs';
+import {seal,unseal} from '../lib/oauth.mjs';
+import {ETSY_SCOPES} from '../lib/etsy-oauth.mjs';
+const secret='test-key-long-enough-to-encrypt-records';
+const config={secret,clientId:'app',sharedSecret:'shared'};
+const now=1000000;
+const record={shop_name:'SapiverPrints',shop_id:456,user_id:'123',access_token:'123.old-token',refresh_token:'123.old-refresh',scope:ETSY_SCOPES,connected_at:10,expires_at:now-1};
+function fixture(request,value=record){let data=seal(value,secret,'etsy-stored-tokens'),etag='1';const map=new Map();return {map,read:()=>unseal(data,secret,'etsy-stored-tokens'),replace:()=>{etag='2';data=seal({...record,access_token:'123.new-owner'},secret,'etsy-stored-tokens');},client:createEtsySession({config,clock:()=>now,request,store:{getWithMetadata:async()=>({data,etag}),setJSON:async(k,v,o)=>{if(o?.onlyIfNew&&map.has(k))return {modified:false};map.set(k,v);return {modified:true};},set:async(k,v,o)=>{if(o.onlyIfMatch!==etag)return {modified:false};data=v;etag='2';return {modified:true};}}})};}
+const refreshed={access_token:'123.new-token',refresh_token:'123.new-refresh',scope:ETSY_SCOPES,token_type:'Bearer',expires_in:3600};
+test('parallel expired sessions exchange refresh exactly once and store encrypted replacement',async()=>{let calls=0;const f=fixture(async(url,o)=>{calls++;assert.equal(new URLSearchParams(o.body).get('grant_type'),'refresh_token');assert.equal(o.redirect,'error');return Response.json(refreshed);});const results=await Promise.allSettled([f.client.session(),f.client.session()]);assert.equal(results.filter(x=>x.status==='fulfilled').length,1);assert.equal(calls,1);assert.equal(f.read().access_token,refreshed.access_token);assert.equal((await f.client.session()).expires_at,now+3600000);assert.equal(calls,1);});
+test('ambiguous refresh stays locked and never leaks provider error or retries',async()=>{let calls=0;const f=fixture(async()=>{calls++;throw Error('123.old-refresh shared');});await assert.rejects(f.client.session(),/investigation/);await assert.rejects(f.client.session(),/claimed/);assert.equal(calls,1);assert.equal(f.read().access_token,record.access_token);});
+test('refresh rejects changed identity or removed scopes without replacing token',async()=>{for(const token of [{...refreshed,access_token:'999.wrong'},{...refreshed,scope:'shops_r'}]){const f=fixture(async()=>Response.json(token));await assert.rejects(f.client.session());assert.equal(f.read().access_token,record.access_token);}});
+test('refresh cannot overwrite a newly connected owner token',async()=>{let f;f=fixture(async()=>{f.replace();return Response.json(refreshed);});await assert.rejects(f.client.session());assert.equal(f.read().access_token,'123.new-owner');});
+test('unexpired authenticated API pins host and credentials and refuses untrusted path',async()=>{let calls=0;const f=fixture(async(url,o)=>{calls++;assert.equal(url,'https://openapi.etsy.com/v3/application/shops/456');assert.equal(o.headers.Authorization,'Bearer 123.old-token');return Response.json({shop_id:456});},{...record,expires_at:now+3600000});await assert.rejects(f.client.api('https://evil.example.test/'));assert.equal(calls,0);assert.deepEqual(await f.client.api('/shops/456'),{shop_id:456});});

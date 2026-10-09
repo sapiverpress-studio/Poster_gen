@@ -23,4 +23,11 @@ jobs:
       - run: node --check lib/printshrimp-api.mjs
       - run: node --check lib/master-stream.mjs
       - run: node --check netlify/edge-functions/print-master.js
+      - run: npm ci --ignore-scripts
+      - run: node --check lib/etsy-session.mjs
+      - run: node --check lib/etsy-draft.mjs
+      - run: node --check lib/poster-workflow.mjs
+      - run: node --check netlify/functions/poster-workflow.mjs
+      - run: node --check netlify/functions/poster-runner.mjs
+      - run: node -e "Promise.all(['./netlify/functions/poster-workflow.mjs','./netlify/functions/poster-runner.mjs','./netlify/edge-functions/print-master.js'].map(p=>import(p)))"
       - run: npm test
