@@ -2,11 +2,11 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
-## CURRENT PROJECT SNAPSHOT — 2026-10-09 10:00 UTC
+## CURRENT PROJECT SNAPSHOT — 2026-10-09 11:10 UTC
 
 | Area | Current evidence-based state |
 | --- | --- |
-| Direction | **Owner-authorised development only:** unified physical PNG and digital ZIP upload/review/Deploy; smallest extension of existing system. Deploy is final per-product approval, not a software release. |
+| Direction | **Owner-authorised release:** Jim approved one bundled release of candidate 45240c8 and installation of the main GitHub worker on 2026-10-09 at 12:06 BST. Product publication stays disabled; no orders authorised. Deploy remains per-product approval. |
 | Live production | Netlify Ready deploy `6ac88cdf08cadc0008385789`, commit `7d1979660f9d830f950189d16ccb78b886dc3d40`, branch `feature/canva-oauth-callback`. Unchanged during this work. |
 | Live routes | Owner workflow, uploader and Etsy start return setup-incomplete HTTP 503; Canva approved-report responds. Unified routes are **not deployed**. |
 | Development | Local `feature/unified-products`; code/tests/docs saved as `45240c8b6ceb6f34442074e68e304d87cc735210` on established off-production `docs/handover-and-change-policy-20261008`. Supersedes unreleased GitHub-worker candidate `5413ef62acd9552650336a6fed4ffa43dcdc142d`. |
@@ -15,7 +15,7 @@
 | Approval / reliability | Hash-bound Deploy, queue/revision/SKU claims, stored IDs and safe stop after partial/uncertain API operations; no automatic repeat creation. Physical previews now hash-bound too. |
 | Dashboard / edits | Type/subject/status filters, files, previews, Etsy URL, supplier ID and attention errors. Digital files and physical metadata update existing IDs. Physical artwork replacement blocked until supplier update schema verified. |
 | Tests | **114 local tests pass** on Node 24, real archive/image/PDF/SVG parsing plus controlled merchant fixtures and browser-script interaction tests. Clean isolated install and Function/digital-module imports passed. Live merchant writes untested. Browser screenshot test unavailable after failed download. |
-| GitHub worker | Staged worker reuses existing GitHub provider secrets. Default main has no worker installed; scheduled collection not active. Real OIDC bridge acceptance and seller consent not demonstrated. |
+| GitHub worker | Staged worker reuses existing GitHub provider secrets. Publication YAML installed on main in c36dd37c8a69b1153493aec16405e28dcef06b76. Schedule is configured; actual execution/OIDC acceptance and seller consent remain unverified. |
 | Etsy access | Existing key pair and supplier key previously returned HTTP 200 in read-only preflight. Seller OAuth NOT established by those keys; updated `shops_w` consent required for section creation. No live sections/listings changed. |
 | Canva | Original `DAHXUnmHofY` preserved. Working A3 `DAHXb1PdJlM`; existing owner report confirmed 3508 × 4961 PNG, 37.4 MiB, A3 300/A4 424/A5 600 PPI. No new export or artwork change. Visual print/sample and framed fulfilment remain unverified. |
 | Release / credits | No production push, main worker activation, publication gate change, Netlify release, merchant upload/listing or order. Existing site-wide Blobs not used for tests. Batch a single reviewed release only after owner authorisation. |
@@ -454,3 +454,11 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - VERIFIED: GitHub Verify Poster_gen run `37915156120`, job `113769417142`, completed SUCCESS. Logs show **114 tests, 114 pass, 0 fail** after clean Node 24 install; all syntax checks, existing Function/Edge imports and new digital module imports succeeded. URL: https://github.com/sapiverpress-studio/Poster_gen/actions/runs/37915156120
 - VERIFIED again after save: Netlify current Ready deploy remains `6ac88cdf08cadc0008385789`. No software release, default-main worker installation, merchant writes, publication or orders performed.
 - This follow-up changes only handover/test evidence. Runtime candidate remains 45240c8; retain it as the reviewed code reference. Owner production authorisation, seller consent, real OIDC/queue/file/frame checks and browser visual acceptance remain outstanding.
+
+### 2026-10-09 12:10 BST — Takeover verification and owner-approved release initiated
+- Owner approval: Jim approved candidate 45240c8 software release and main worker installation, with publication disabled and no orders.
+- Verified: fresh clean npm ci and 114/114 local tests passed; five release modules imported. Before release, current Netlify deploy remained 6ac88cdf08cadc0008385789 at 7d19796. Live unauthenticated routes returned workflow 503, upload 502, products 404, Etsy start 503 and Canva report 200.
+- Release: production feature/canva-oauth-callback fast-forwarded exactly once from 7d19796 to 45240c8b6ceb6f34442074e68e304d87cc735210 using expected-SHA protection. Netlify new Ready deployment not yet observed. No repeat deploy triggered.
+- Worker: installed only .github/workflows/poster-publication.yml on main, preserving README/other existing main content, commit c36dd37c8a69b1153493aec16405e28dcef06b76. Schedule/manual worker uses production branch; real signed bootstrap remains pending.
+- PrintShrimp: physical route only; digital bypasses supplier. Existing credential preflight HTTP 200 is historical verified evidence. Actual master transfer, nine framed Etsy variants/supplier compatibility and physical proof remain unverified. No supplier product/order or listing publication performed in takeover.
+- Next: observe one Ready release; verify owner routes and real worker bootstrap, then normal Etsy seller consent and controlled merchant integration checks. Publication flag not enabled.
