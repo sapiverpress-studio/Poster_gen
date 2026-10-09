@@ -18,8 +18,8 @@
 | GitHub worker | Staged worker reuses existing GitHub provider secrets. Publication YAML installed on main in c36dd37c8a69b1153493aec16405e28dcef06b76. Schedule is configured; actual execution/OIDC acceptance and seller consent remain unverified. |
 | Etsy access | Existing key pair and supplier key previously returned HTTP 200 in read-only preflight. Seller OAuth NOT established by those keys; updated `shops_w` consent required for section creation. No live sections/listings changed. |
 | Canva | Original `DAHXUnmHofY` preserved. Working A3 `DAHXb1PdJlM`; existing owner report confirmed 3508 × 4961 PNG, 37.4 MiB, A3 300/A4 424/A5 600 PPI. No new export or artwork change. Visual print/sample and framed fulfilment remain unverified. |
-| Release / credits | No production push, main worker activation, publication gate change, Netlify release, merchant upload/listing or order. Existing site-wide Blobs not used for tests. Batch a single reviewed release only after owner authorisation. |
-| Next stage | Remote CI passed on candidate 45240c8; obtain release authorisation, verify actual worker/OAuth/routes/categories/files/supplier frame delivery and owner browser interface before enabling per-product publication. |
+| Release / credits | Owner-approved release attempted; public-origin secret-scanner failure left previous deploy live. Corrective production branch is e6e70b0; main worker installed and corrected. No publication flag change, merchant writes or orders. Await successful corrective deploy. |
+| Next stage | Release authorisation received; corrective candidate e6e70b0 passes 115 local tests. Verify successful Netlify build, real worker/OAuth/routes/categories/files/supplier frame delivery and owner browser interface before enabling per-product publication. |
 
 ### Current implementation and explicit limits
 
@@ -473,3 +473,9 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Test correction: initial broad scanner regression also matched an intentionally invalid URL fixture in test/oauth.test.mjs. Narrowed it to the actual public deployment origin; no production change was attempted after the failed local check.
 
 - VERIFIED after correction: 115/115 local tests pass, zero failures; worker script syntax check passes. Real Netlify correction release pending.
+
+### 2026-10-09 12:45 BST — Corrective release saved and production branch advanced
+- Corrective candidate e6e70b0753100008df3cb5a70aedd4fc2e903f8b saved on handover and production branches with expected-SHA checks. Main YAML corrected separately in 943265da6e9f14e74b21f1513fdfca19043e1e3b using skip-netlify commit marker.
+- Local verification 115 tests passed, zero failures. Exact worker origin and pinned validation retained; scanner enabled unchanged. Regression scans all tracked files for the problematic literal.
+- Latest Netlify connector check still reports previous published deploy 6ac88cdf08cadc0008385789. Successful corrective deployment has not yet been observed. Connector cannot list pending/failed builds or trigger a build. Owner may need one manual latest-branch build if none is queued/running; do not trigger duplicates.
+- No merchant writes, orders, supplier uploads, new Canva export or publication-gate activation. Next: verify corrective Ready commit, scanner results and worker bootstrap.
