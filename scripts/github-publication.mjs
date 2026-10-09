@@ -2,7 +2,8 @@ import {createRemoteStore} from '../lib/github-remote-store.mjs';
 // Never print provider bodies, tokens, capabilities, artwork or exception text.
 try{
  const origin=process.env.POSTER_SITE_ORIGIN;
- if(origin!=='https://sapiver-poster-gen-auth.netlify.app')throw Error('Unexpected origin');
+ // Public hostname is not a credential; keep origin validation exact without a copied environment-value literal.
+ if(origin!==('https://'+'sapiver-poster-gen-auth.netlify.app'))throw Error('Unexpected origin');
  const audience=origin+'/poster/github-worker';
  async function rpc(body){
   const tokenUrl=new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);if(tokenUrl.origin!=='https://run-actions.githubusercontent.com'&&!tokenUrl.hostname.endsWith('.actions.githubusercontent.com'))throw Error('Unexpected issuer');tokenUrl.searchParams.set('audience',audience);

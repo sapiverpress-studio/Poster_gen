@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {execFileSync} from "node:child_process";
 import {readFile} from "node:fs/promises";
 import {APPROVED_MASTER} from "../lib/approved-export.mjs";
 test("owner report uses CSRF proof, an HttpOnly cookie and the exact approved revision",async()=>{
@@ -22,4 +23,14 @@ test("handover omits absolute Netlify site origins to avoid false-positive secre
  const deploymentOrigin=/https:\/\/[a-z0-9-]+\.netlify\.app\b/gi;
  assert.equal(deploymentOrigin.test(status),false,"Use CANVA_SITE_ORIGIN with route paths instead of the live origin literal");
  assert.ok(status.includes("CANVA_SITE_ORIGIN"));
+});
+
+test("tracked release files omit literal deployed site origins, including worker YAML and scripts",async()=>{
+ const root=new URL("../",import.meta.url);
+ const paths=execFileSync("git",["ls-files","-z"],{cwd:root,encoding:"utf8"}).split("\0").filter(Boolean);
+ for(const path of paths){
+  const source=await readFile(new URL(path,root),"utf8");
+  const deployedOrigin=["https:","","sapiver-poster-gen-auth.netlify.app"].join("/");
+  assert.equal(source.includes(deployedOrigin),false,"Remove literal deployment origin from "+path);
+ }
 });

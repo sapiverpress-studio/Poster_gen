@@ -462,3 +462,14 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Worker: installed only .github/workflows/poster-publication.yml on main, preserving README/other existing main content, commit c36dd37c8a69b1153493aec16405e28dcef06b76. Schedule/manual worker uses production branch; real signed bootstrap remains pending.
 - PrintShrimp: physical route only; digital bypasses supplier. Existing credential preflight HTTP 200 is historical verified evidence. Actual master transfer, nine framed Etsy variants/supplier compatibility and physical proof remain unverified. No supplier product/order or listing publication performed in takeover.
 - Next: observe one Ready release; verify owner routes and real worker bootstrap, then normal Etsy seller consent and controlled merchant integration checks. Publication flag not enabled.
+
+### 2026-10-09 12:40 BST — Failed unified release: public-origin scanner false positive
+- Owner deploy-log screenshot shows Function/Edge packaging completed; secret scanner rejected the CANVA_SITE_ORIGIN value in worker YAML line 27 and worker script line 5. Previous published site remains live.
+- Cause: public HTTPS origin is classified as secret; the earlier regression covered only the status Markdown, missing these worker references. This was a release-preflight omission. No actual private key/token leak is shown.
+- Fix: retain exact pinned-origin validation and the same generated worker origin while removing copied literal full-origin values from worker YAML/script. Secret scanning remains enabled without omissions. Extend regression over all tracked release files, including YAML and scripts.
+- Release: corrective candidate must pass all tests before one corrective production-branch update; update main YAML with skip-netlify marker. Publication stays disabled; no orders or merchant test writes.
+- Verification pending: full suite and real Netlify successful build; no claim that the release is live.
+
+- Test correction: initial broad scanner regression also matched an intentionally invalid URL fixture in test/oauth.test.mjs. Narrowed it to the actual public deployment origin; no production change was attempted after the failed local check.
+
+- VERIFIED after correction: 115/115 local tests pass, zero failures; worker script syntax check passes. Real Netlify correction release pending.

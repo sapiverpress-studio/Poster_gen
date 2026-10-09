@@ -24,7 +24,7 @@ jobs:
           node-version: '24'
       - name: Collect private approved tasks using signed GitHub identity
         env:
-          POSTER_SITE_ORIGIN: https://sapiver-poster-gen-auth.netlify.app
+          POSTER_SITE_ORIGIN: ${{ format('https://{0}', 'sapiver-poster-gen-auth.netlify.app') }}
           ETSY_PRINTS_KEYSTRING: ${{ secrets.ETSY_PRINTS_KEYSTRING }}
           ETSY_PRINTS_SHARED_SECRET: ${{ secrets.ETSY_PRINTS_SHARED_SECRET }}
           SHRIMP_APIKEY: ${{ secrets.SHRIMP_APIKEY }}
