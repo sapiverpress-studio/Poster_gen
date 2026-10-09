@@ -36,4 +36,6 @@ jobs:
       - run: node --check lib/poster-upload-runner.mjs
       - run: node --check public/poster-upload.mjs
       - run: node -e "Promise.all(['./netlify/functions/poster-upload.mjs','./netlify/functions/poster-upload-runner.mjs','./netlify/edge-functions/uploaded-master.js'].map(p=>import(p)))"
+      - run: node --check scripts/github-publication.mjs
+      - run: node -e "import('./netlify/functions/github-worker.mjs')"
       - run: npm test

@@ -52,3 +52,7 @@ See docs/PRINTSHRIMP_HANDOFF.md. **Owner-selected order: prepare an Etsy draft F
 ## Owner-upload fixed template (new staged workflow)
 
 Download and check a Canva PNG, upload once at /poster/upload, then review and Approve & Publish. Name/SKU derive from the filename. The supplied template fixes prices, footer/disclosure, tags, UK delivery and A5/A4/A3 × Print Only/Black/White/Oak (12 options). See docs/UPLOAD_WORKFLOW.md and docs/SAPIVER_POSTER_TEMPLATE.md. 86 unique local tests pass. Live publication defaults disabled; existing production is unchanged and real framed fulfilment remains to be verified.
+
+## GitHub-backed publication (staged revision)
+
+Owner selected GitHub Actions for seller/supplier operations using existing saved provider secrets. Netlify keeps authenticated upload, review and approval; a strictly verified GitHub OIDC worker collects private queued tasks. No new personal token/provider key recovery. See docs/GITHUB_PUBLICATION.md for tests, trust boundaries, asynchronous collection and controlled release prerequisites. Production remains the prior release until approval.
