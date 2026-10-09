@@ -377,3 +377,7 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Owner provided PrintShrimp developer screenshot: endpoints /api-get-pricing, /api-create-product, /api-update-product, /api-delete-product, /api-get-product, /api-bulk-list, /api-get-templates, /api-create-order and /api-get-order visible. Getting Started/authentication and request/response schemas collapsed, so base URL, auth header and upload fields NOT VERIFIED. No supplier calls made, no credentials read from screenshot.
 - No Etsy draft, publication, PrintShrimp upload/order, Canva edit/export or Netlify release performed. Current deployed Canva worker retained.
 - Next: obtain expanded supplier Getting Started/create-product/get-product schemas; configure normal-browser Etsy authorisation and complete one draft with verified shop settings. Build secure ONE-master supplier transfer, then request one reviewed bundled release. Sale/proof approvals remain separate.
+
+### 2026-10-09 — Etsy Connect GitHub CI passed
+- Commit fb60ce09ef1500cddae450e428d8596cdfd5723e saved on isolated handover branch. GitHub Actions run 37889087019, job 113685689585 completed SUCCESS, including new Etsy syntax checks and full 50-test suite.
+- Etsy connection is staged, NOT LIVE. Real seller consent, runtime key configuration, redirect registration, token refresh, Etsy draft creation and supplier upload remain pending. No deployment or merchant side effect performed.
