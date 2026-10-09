@@ -78,3 +78,8 @@ Outstanding: no live digital publication or real supplier frame test; no recover
 - Etsy shop/section tutorial: https://developers.etsy.com/documentation/tutorials/shop_management/
 - Etsy official OpenAPI (request schemas, shops_w, multipart file rank and DELETE 204): https://www.etsy.com/openapi/generated/oas/3.0.0.json
 - ZIP libraries: https://github.com/thejoshwolfe/yauzl and https://github.com/thejoshwolfe/yazl
+
+## Seller-kit input extension (2026-10-09; staged, not yet live)
+A Pattern Forge seller kit may contain buyer ZIPs under UPLOAD-TO-ETSY, up to three PNG/JPG listing photographs under LISTING-IMAGES and the optional root seller checklist/quality report. A tightly scoped envelope parser permits only this one archive level; all inner buyer archives remain strictly validated. Their exact bytes become customer downloads, images become gallery previews and outer seller notes remain private. The upload form can read LICENSE.txt/LICENCE.txt and README.txt/INSTRUCTIONS.txt instead of requiring retyping. Price, category/group and repeat confirmation remain owner decisions. Licence/instruction edits that disagree with a kit's included documents stop review. Invalid SVG dimensions, unexpected kit contents, oversized packages and unsafe archives stop before any listing write.
+
+The supplied test kit reveals an exporter defect: SVG width/height are undefinedin. It is recognised structurally but deliberately blocked until corrected. Original kit bytes are never silently rewritten. Boundary continuity of its raster tiles is verified but does not establish SVG validity or sale readiness.

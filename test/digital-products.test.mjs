@@ -101,3 +101,40 @@ test('digital update detects marketplace edits since review and does not change 
 test('bundle category must be chosen from actual compatible Etsy leaves rather than inferred from a ZIP name',()=>{
  const m={...metadata(),kind:'bundle'};assert.throws(()=>selectTaxonomy(m,taxonomies),/matches the bundle contents/);assert.equal(selectTaxonomy({...m,taxonomyId:30},taxonomies).id,30);assert.equal(selectTaxonomy({...m,taxonomyId:20},taxonomies).id,20);
 });
+
+// Seller kit fixtures exercise real ZIP/image decoding without storing customer artwork.
+async function sellerKitFixture(){
+ const f=await archiveFixture(),m=metadata();
+ const buyer=await zipFiles([{name:'tile.png',data:f.png},{name:'tile.jpg',data:f.jpg},{name:'README.txt',data:Buffer.from(m.instructions)},{name:'LICENSE.txt',data:Buffer.from(m.licence)}]);
+ const photo=await sharp(f.png).resize(240,180,{fit:'contain',background:'#f7f3ec'}).jpeg().toBuffer();
+ const outer=await zipFiles([{name:'UPLOAD-TO-ETSY/green-leaves-buyer.zip',data:buyer},{name:'LISTING-IMAGES/01-pattern.jpg',data:photo},{name:'LISTING-IMAGES/02-tile.jpg',data:photo},{name:'LISTING-IMAGES/03-detail.jpg',data:photo},{name:'SELLER-CHECKLIST.txt',data:Buffer.from('Seller only: check price and approve.')},{name:'QUALITY-CHECK.txt',data:Buffer.from('Seller report')}]);
+ return {buyer,photo,outer};
+}
+
+test('seller kit separates customer ZIP and three photographs, preserving original buyer bytes',async()=>{
+ const {inspectDigitalUpload,sellerKitDelivery}=await import('../lib/seller-kit.mjs');const f=await sellerKitFixture();
+ const k=await inspectDigitalUpload(f.outer),d=sellerKitDelivery(k);assert.equal(k.kit,true);assert.equal(k.previews.length,3);assert.equal(d.files.length,1);assert.equal(d.files[0].name,'green-leaves-buyer.zip');assert.deepEqual(d.files[0].data,f.buyer);assert.ok(d.contents.every(f=>!f.name.startsWith('LISTING-IMAGES/')&&!f.name.includes('SELLER')));assert.equal(k.sellerFiles.length,2);await assert.rejects(inspectArchive(f.outer),/Unsupported customer file/);
+});
+
+test('seller-kit prepare and publication attach only buyer ZIP, use listing photographs and bypass supplier',async()=>{
+ const f=await publicationFixture(),kit=await sellerKitFixture();const a=await f.uploads.get('uploads/'+id+'/state');
+ await f.uploads.set('uploads/'+id+'/chunks/0',kit.outer);await f.uploads.setJSON('uploads/'+id+'/state',{...a,bytes:kit.outer.length,metadata:productMetadata({kind:'pattern',subject:'Leaves',price:4.99,useEmbeddedText:true,seamlessConfirmed:true},'Green-Leaves.zip','digital')});
+ await prepareDigitalProduct(f);const prepared=await f.uploads.get('uploads/'+id+'/state');assert.equal(prepared.sourceKind,'seller-kit');assert.equal(prepared.metadata.licence,metadata().licence);assert.equal(prepared.metadata.instructions,metadata().instructions);assert.equal(prepared.previewCount,3);assert.deepEqual(Buffer.from(await f.uploads.get(prepared.archiveKey)),kit.outer);
+ assert.equal((await sharp(Buffer.from(await f.uploads.get('uploads/'+id+'/mockups/0.jpg'))).metadata()).width,240);assert.equal(prepared.plan.parts.length,1);
+ const hash=await approve(f);await publishDigitalProduct({...f,approvalHash:hash});assert.equal(f.files().length,1);assert.equal(f.files()[0].filename,'green-leaves-buyer.zip');assert.equal(f.files()[0].size_bytes,kit.buyer.length);const posted=f.calls.filter(([p,o])=>p.endsWith('/files')&&o.method==='POST');assert.deepEqual(Buffer.from(await posted[0][1].body.get('file').arrayBuffer()),kit.buyer);assert.ok(f.calls.every(([p])=>!/printshrimp|shipping|inventory|orders/.test(p)));
+});
+
+test('seller-kit safety rejects arbitrary nesting, seller files in wrong paths, missing artwork and invalid SVG dimensions',async()=>{
+ const {inspectDigitalUpload}=await import('../lib/seller-kit.mjs');const f=await sellerKitFixture();
+ await assert.rejects(inspectDigitalUpload(await zipFiles([{name:'nested.zip',data:f.buyer}])),/Unsupported/);
+ await assert.rejects(inspectDigitalUpload(await zipFiles([{name:'UPLOAD-TO-ETSY/a.zip',data:await zipFiles([{name:'nested.zip',data:f.buyer}])},{name:'LISTING-IMAGES/1.jpg',data:f.photo}])),/failed validation/);
+ await assert.rejects(inspectDigitalUpload(await zipFiles([{name:'UPLOAD-TO-ETSY/a.zip',data:f.buyer},{name:'LISTING-IMAGES/1.jpg',data:f.photo},{name:'unknown.txt',data:Buffer.from('not categorised')}])),/unexpected file/);
+ await assert.rejects(inspectDigitalFile('tile.svg',Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="undefinedin" height="undefinedin" viewBox="0 0 4000 4000"><rect width="4000" height="4000"/></svg>')),/invalid dimensions/);
+ await assert.rejects(inspectDigitalFile('tile.svg',Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 0 4000"/>')),/invalid viewBox/);
+});
+
+test('seller kit cannot contradict its included licence or lose customer data after approval',async()=>{
+ const {inspectDigitalUpload,resolveEmbeddedText}=await import('../lib/seller-kit.mjs');const k=await inspectDigitalUpload((await sellerKitFixture()).outer);
+ assert.throws(()=>resolveEmbeddedText(k,{...metadata(),licence:'Commercial permission invented'}),/differs from/);
+ const f=await publicationFixture(),kit=await sellerKitFixture();const a=await f.uploads.get('uploads/'+id+'/state');await f.uploads.set('uploads/'+id+'/chunks/0',kit.outer);await f.uploads.setJSON('uploads/'+id+'/state',{...a,bytes:kit.outer.length});await prepareDigitalProduct(f);const hash=await approve(f);await f.uploads.set('uploads/'+id+'/delivery/0',Buffer.from('changed'));await assert.rejects(publishDigitalProduct({...f,approvalHash:hash}),/Customer package changed/);assert.equal(f.created(),0);
+});

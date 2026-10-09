@@ -65,3 +65,11 @@ test('ambiguous worker failure retains claim and known listing ID, discards OAut
  const q=memory(),u=memory(),e=memory(),id='d'.repeat(32),key='jobs/'+'e'.repeat(32),data={phase:'queued',action:'prepare',id};await q.setJSON(key,data);await u.setJSON('uploads/'+id+'/state',{phase:'preparing',listingId:123});let attempts=0;
  const args={jobs:[{key,...data}],queue:q,uploads:u,etsyStore:e,env,prepare:async()=>{attempts++;throw Error('secret-provider-message');},clock:()=>now};await runGithubJobs(args);await runGithubJobs(args);assert.equal(attempts,1);assert.equal((await u.get('uploads/'+id+'/state')).listingId,123);assert.equal((await u.get('uploads/'+id+'/state')).phase,'needs_investigation');assert.doesNotMatch(JSON.stringify([...q.map.values()]),/secret-provider-message/);
 });
+
+test('digital seller-kit validation gives the owner a useful safe error without exposing provider failures',async()=>{
+ const q=memory(),u=memory(),e=memory(),id='g'.repeat(32),key='jobs/'+'f'.repeat(32),data={phase:'queued',action:'prepare',id};
+ await q.setJSON(key,data);await u.setJSON('uploads/'+id+'/state',{phase:'preparing',type:'digital'});
+ const reason='Seller kit contains an SVG with invalid width or height. Export it again before listing.';
+ await runGithubJobs({jobs:[{key,...data}],queue:q,uploads:u,etsyStore:e,env,prepareDigital:async()=>{throw Error(reason);},clock:()=>now});
+ const a=await u.get('uploads/'+id+'/state');assert.equal(a.failureCode,reason);assert.equal(a.failureAction,'prepare');assert.equal(a.phase,'needs_investigation');
+});
