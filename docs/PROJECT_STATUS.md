@@ -9,7 +9,7 @@
 | Direction | **Owner-authorised development only:** unified physical PNG and digital ZIP upload/review/Deploy; smallest extension of existing system. Deploy is final per-product approval, not a software release. |
 | Live production | Netlify Ready deploy `6ac88cdf08cadc0008385789`, commit `7d1979660f9d830f950189d16ccb78b886dc3d40`, branch `feature/canva-oauth-callback`. Unchanged during this work. |
 | Live routes | Owner workflow, uploader and Etsy start return setup-incomplete HTTP 503; Canva approved-report responds. Unified routes are **not deployed**. |
-| Development | Local `feature/unified-products`; save code/tests/docs on established off-production `docs/handover-and-change-policy-20261008`. Supersedes unreleased GitHub-worker candidate `5413ef62acd9552650336a6fed4ffa43dcdc142d`. |
+| Development | Local `feature/unified-products`; code/tests/docs saved as `45240c8b6ceb6f34442074e68e304d87cc735210` on established off-production `docs/handover-and-change-policy-20261008`. Supersedes unreleased GitHub-worker candidate `5413ef62acd9552650336a6fed4ffa43dcdc142d`. |
 | Digital | **IMPLEMENTED / FIXTURE-TESTED:** secure ZIP validation/private storage, original-file preservation, Etsy-limit splitting, accurate metadata/previews, digital listing/file attachment/sections and same-ID updates. No PrintShrimp or physical profiles. |
 | Physical | **IMPLEMENTED / FIXTURE-TESTED:** exactly A5/A4/A3 × Black/White/Oak = **nine** framed variants, approved £49.99/£54.99/£64.99 prices, preserved template/settings, one master/shared SKU/supplier mapping. No automatic orders. Older twelve-option notes are superseded for new listings, not a live migration. |
 | Approval / reliability | Hash-bound Deploy, queue/revision/SKU claims, stored IDs and safe stop after partial/uncertain API operations; no automatic repeat creation. Physical previews now hash-bound too. |
@@ -19,7 +19,7 @@
 | Etsy access | Existing key pair and supplier key previously returned HTTP 200 in read-only preflight. Seller OAuth NOT established by those keys; updated `shops_w` consent required for section creation. No live sections/listings changed. |
 | Canva | Original `DAHXUnmHofY` preserved. Working A3 `DAHXb1PdJlM`; existing owner report confirmed 3508 × 4961 PNG, 37.4 MiB, A3 300/A4 424/A5 600 PPI. No new export or artwork change. Visual print/sample and framed fulfilment remain unverified. |
 | Release / credits | No production push, main worker activation, publication gate change, Netlify release, merchant upload/listing or order. Existing site-wide Blobs not used for tests. Batch a single reviewed release only after owner authorisation. |
-| Next stage | Finish remote CI review on saved candidate, obtain release authorisation, verify actual worker/OAuth/routes/categories/files/supplier frame delivery and owner browser interface before enabling per-product publication. |
+| Next stage | Remote CI passed on candidate 45240c8; obtain release authorisation, verify actual worker/OAuth/routes/categories/files/supplier frame delivery and owner browser interface before enabling per-product publication. |
 
 ### Current implementation and explicit limits
 
@@ -447,3 +447,10 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Decisions / limits: five initial flat sections plus optional Printed Artwork; Etsy twenty-section/24-character limits and five-file/20 MB download caps verified against primary docs/OpenAPI. Bundles require matching explicit verified category. Original ZIP retained; split parts lossless, impossible oversized package blocked. Only-if-new claims stop ambiguous replay; records are not a multi-record transaction. Failed update may leave listing inactive; retained files/IDs permit controlled investigation. No automatic merchant-write recovery UI. Physical artwork replacement blocked until verified supplier PUT contract.
 - Safety / credit impact: code saved only off production; production branch, Netlify release/settings, main schedule, Canva source/master, existing merchant listings and supplier orders untouched. No live Blobs test writes, credentials in files/logs, new merchant consent, product publication or manufacturing purchase. Off-production GitHub verification only.
 - Next authorised action: review saved candidate and CI, then seek a single concrete production release/worker-install approval before changing live software. Actual seller consent and controlled live integration/device checks still needed; keep publication gate off until essential checks pass. The eventual website Deploy remains sole per-product final approval.
+
+### 2026-10-09 10:05 UTC — Saved unified candidate and independent GitHub verification
+
+- Code candidate: `45240c8b6ceb6f34442074e68e304d87cc735210`, saved by fast-forward on the established off-production handover branch; 34 changed/new files, excluding dependencies/artwork/secrets. Production branch was not advanced.
+- VERIFIED: GitHub Verify Poster_gen run `37915156120`, job `113769417142`, completed SUCCESS. Logs show **114 tests, 114 pass, 0 fail** after clean Node 24 install; all syntax checks, existing Function/Edge imports and new digital module imports succeeded. URL: https://github.com/sapiverpress-studio/Poster_gen/actions/runs/37915156120
+- VERIFIED again after save: Netlify current Ready deploy remains `6ac88cdf08cadc0008385789`. No software release, default-main worker installation, merchant writes, publication or orders performed.
+- This follow-up changes only handover/test evidence. Runtime candidate remains 45240c8; retain it as the reviewed code reference. Owner production authorisation, seller consent, real OIDC/queue/file/frame checks and browser visual acceptance remain outstanding.
