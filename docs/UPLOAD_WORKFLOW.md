@@ -1,5 +1,8 @@
 # Owner-upload poster workflow — staged, not live
 
+> **Current direction (2026-10-09):** see [UNIFIED_PRODUCTS.md](UNIFIED_PRODUCTS.md). The new staged owner interface uses Deploy as final product approval, digital ZIP products, and **nine framed physical combinations** (A5/A4/A3 × Black/White/Oak). Earlier twelve-option and Approve & Publish descriptions below are historical; no live listing migration is authorised.
+
+
 Jim's latest instruction replaces automated Canva fetching for future products: he downloads and checks a high-resolution PNG, uploads it once, reviews the listing preview and presses **Approve & Publish**. That press authorises the displayed artwork and listing for publication. It does not authorise production orders or a Netlify software deployment.
 
 The owner-provided source of truth is SAPIVER_POSTER_TEMPLATE.md. It describes prior shop configuration; those historical live-account/plan claims are owner-supplied and not independently reverified in this work.

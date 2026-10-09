@@ -33,6 +33,18 @@ test('remote artwork transport assembles exact bytes across bounded bridge reque
  await remote.set(key,bytes);assert.deepEqual(Buffer.from(await remote.get(key,{type:'arrayBuffer'})),bytes);
  let calls=0;const changing=createRemoteStore('sapiver-poster-uploads',async b=>{const r=await rpc(b);if(b.op==='get'&&++calls===2)r.etag='changed';return r;});await assert.rejects(changing.get(key,{type:'arrayBuffer'}));
 });
+
+test('ZIP bridge supports originals over the physical artwork limit and keeps product/delivery keys scoped',async()=>{
+ const s=memory(),bridge=createGithubBridge({env,store:()=>s,authenticate:async()=>({})});const rpc=async b=>{const r=await bridge(new Request(origin,{method:'POST',body:JSON.stringify(b)}));assert.equal(r.status,200);return r.json();};const remote=createRemoteStore('sapiver-poster-uploads',rpc),id='x'.repeat(32),bytes=Buffer.alloc(51_000_001,42);
+ await remote.set('uploads/'+id+'/original.zip',bytes);assert.deepEqual(Buffer.from(await remote.get('uploads/'+id+'/original.zip',{type:'arrayBuffer'})),bytes);
+ await remote.setJSON('products/'+id+'/record',{type:'digital',etsyListingId:123});assert.equal((await remote.get('products/'+id+'/record',{type:'json'})).etsyListingId,123);
+ await remote.set('uploads/'+id+'/delivery/4',Buffer.from('part'));await assert.rejects(remote.set('uploads/'+id+'/delivery/5',Buffer.from('part')));
+});
+
+test('digital worker dispatches only the digital route and keeps physical reference defaults',async()=>{
+ const q=memory(),u=memory(),e=memory(),id='v'.repeat(32),key='jobs/'+'w'.repeat(32),data={phase:'queued',action:'prepare',id};await q.setJSON(key,data);await u.setJSON('uploads/'+id+'/state',{phase:'preparing',type:'digital',productId:id});await u.setJSON('products/'+id+'/record',{productId:id,pendingRevision:id});await u.setJSON('template/settings',{referenceListingId:789});let digital=0;
+ await runGithubJobs({jobs:[{key,...data}],queue:q,uploads:u,etsyStore:e,env,clock:()=>now,prepare:async()=>{throw Error('Physical route must not run');},prepareDigital:async()=>{digital++;await u.setJSON('uploads/'+id+'/state',{phase:'ready_for_approval',type:'digital'});}});assert.equal(digital,1);assert.equal((await u.get('template/settings')).referenceListingId,789);assert.equal((await q.get(key)).phase,'complete');
+});
 test('website owner setup does not require provider secrets; valid callback queues once without calling Etsy',async()=>{
  assert.equal(websiteEnv(n=>n.startsWith('ETSY')?undefined:env(n))('ETSY_PRINTS_SHARED_SECRET'),'github-worker');
  const s=memory(),q=memory();await s.setJSON('github-config',{clientId:'app'});

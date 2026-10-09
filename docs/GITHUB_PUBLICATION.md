@@ -1,5 +1,8 @@
 # GitHub-backed approved publication
 
+> **Current direction (2026-10-09):** see [UNIFIED_PRODUCTS.md](UNIFIED_PRODUCTS.md). The new staged owner interface uses Deploy as final product approval, digital ZIP products, and **nine framed physical combinations** (A5/A4/A3 × Black/White/Oak). Earlier twelve-option and Approve & Publish descriptions below are historical; no live listing migration is authorised.
+
+
 Jim selected this architecture on 2026-10-09 because the verified provider secrets already exist in GitHub. No new personal access token and no copying/recovering the PrintShrimp key are required.
 
 ## Responsibilities

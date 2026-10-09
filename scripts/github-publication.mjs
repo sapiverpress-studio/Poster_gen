@@ -18,11 +18,11 @@ try{
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
  const jobs=(await rpc({op:'list',store:'sapiver-github-queue',prefix:'jobs/'})).jobs;
  const {runGithubJobs}=await import('../lib/github-publication.mjs');
- let prepare,publish;
+ let prepare,publish,prepareDigital,publishDigital;
  if(jobs.some(j=>j.action!=='oauth')){
   // Install image dependencies only when there is artwork work, not every poll.
   const {execFileSync}=await import('node:child_process');execFileSync('npm',['ci','--ignore-scripts','--no-audit','--no-fund'],{stdio:'ignore',env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR}});
-  ({prepareUploadedPoster:prepare,publishUploadedPoster:publish}=await import('../lib/uploaded-poster.mjs'));
+  ({prepareUploadedPoster:prepare,publishUploadedPoster:publish}=await import('../lib/uploaded-poster.mjs'));({prepareDigitalProduct:prepareDigital,publishDigitalProduct:publishDigital}=await import('../lib/digital-product.mjs'));
  }
- const result=await runGithubJobs({jobs,queue,uploads,etsyStore,env:workerEnv,prepare,publish});console.log('Worker completed. Tasks completed: '+result.completed);
+ const result=await runGithubJobs({jobs,queue,uploads,etsyStore,env:workerEnv,prepare,publish,prepareDigital,publishDigital});console.log('Worker completed. Tasks completed: '+result.completed);
 }catch{console.error('Worker unavailable; saved tasks retained. Inspect configuration without exposing secrets.');process.exitCode=1;}

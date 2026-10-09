@@ -1,5 +1,8 @@
 # Sapiver Prints — PrintShrimp Poster Template
 
+> **Current direction (2026-10-09):** see [UNIFIED_PRODUCTS.md](UNIFIED_PRODUCTS.md). The new staged owner interface uses Deploy as final product approval, digital ZIP products, and **nine framed physical combinations** (A5/A4/A3 × Black/White/Oak). Earlier twelve-option and Approve & Publish descriptions below are historical; no live listing migration is authorised.
+
+
 ## Purpose
 
 This file is the canonical setup for Sapiver Prints educational poster listings created through PrintShrimp and published to Etsy.

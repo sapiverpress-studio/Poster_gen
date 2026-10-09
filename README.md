@@ -1,58 +1,30 @@
 # Sapiver Poster Gen
 
-Dedicated Canva-to-print artwork workflow for Sapiver Prints, isolated from other Sapiver Press projects.
+One private product review and publication system for Sapiver Prints physical posters and digital ZIP downloads.
 
-## START HERE — mandatory
+**Start here:** read [AGENTS.md](AGENTS.md), then the current snapshot and latest history in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). [docs/UNIFIED_PRODUCTS.md](docs/UNIFIED_PRODUCTS.md) describes the current implementation, limits, tests, release state and outstanding live checks. Historical guides remain for earlier decisions.
 
-1. **Read [AGENTS.md](AGENTS.md)** before doing any work. It requires every development, design, deployment and significant investigation to be documented in the same work item.
-2. **Read [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md)**, starting with its **CURRENT PROJECT SNAPSHOT** and latest dated history.
-3. Inspect the active GitHub branch, Netlify costs/deployment status and actual code. Do not assume a prior chat's statements are still current.
+## Current workflow — implemented off production
 
-**The status document is the authoritative living handover**: current stage, verified results, pending work, blockers, risks, detailed change history, next action and release restrictions.
+Upload the finished checked PNG or digital ZIP once, review the prepared product, correct its details if needed, and press **Deploy** as final per-product publication approval. Uploading alone never publishes. The product dashboard filters type, subject and status and retains Etsy IDs/URLs, download files, errors and applicable PrintShrimp mapping.
 
-## Current product and progress
+- Physical: A5/A4/A3 × Black/White/Oak, exactly **nine** framed combinations. Existing template/settings and one unchanged master are reused; no automatic orders. Metadata updates retain merchant IDs. Artwork replacement on existing physical products is blocked pending verified supplier update support.
+- Digital: validated private ZIP, original customer-file preservation, independent lossless ZIP splitting within Etsy's five-file/20 MB limits where possible, labelled artwork previews, actual licence/instructions and no physical delivery. Updates replace files on the same listing ID with verification before reactivation.
+- Existing Canva source `DAHXUnmHofY` is preserved. A3 working copy `DAHXb1PdJlM` and prior private export are not recreated.
 
-**Dinosaurs Across Time** is a separate Canva product from `Dinosaurs of the World`. The user sells only **A5, A4 and A3** posters.
+## Code and checks
 
-- Original Canva design: `DAHXUnmHofY` (do not change).
-- A3 working copy: `DAHXb1PdJlM` (3508 × 4961 px).
-- Canva OAuth works; asynchronous PNG export to private Netlify storage works.
-- User's live A3 export report showed correct dimensions, paper ratio, 300 PPI at A3, 424 PPI at A4 and 600 PPI at A5, under the reported PrintShrimp upload limit.
-- **Done:** owner-approved A3 background correction saved directly in Canva; scheduled PNG export succeeded unattended (3508 × 4961, 37.4 MiB), stored privately. **Pending:** visual/colour/trim QA, Etsy draft and PrintShrimp match, sample proof.
-- **Live:** scheduled export for the approved revision and private owner report. **Staged off production:** one-master shared-SKU A5/A4/A3 mapping (43 passing tests). **Staged:** Etsy seller connection, token refresh, unpublished draft creation and one-master supplier transfer. Orders and publishing are disabled; live merchant integration still requires verification.
+- `lib/product-*.mjs`: product metadata, private records, review/dashboard UI.
+- `lib/digital-archive.mjs`, `lib/digital-product.mjs`: ZIP validation, preservation and digital Etsy publication.
+- `lib/uploaded-poster.mjs`, `lib/poster-template.mjs`: existing physical route, now nine framed variants.
+- `lib/github-*.mjs`, `scripts/github-publication.mjs`: scoped GitHub OIDC worker, queue and private transport.
+- `netlify/functions`: existing Canva/OAuth and product endpoints; `public/poster-upload.mjs`: owner upload/review script.
+- Node **24** (`.nvmrc`); `npm ci --ignore-scripts`, then `npm test`. 114 local tests pass; merchant fixtures are not live verification.
 
-## Code locations
+## Deployment and credentials
 
-- `netlify/functions/canva-oauth.mjs` — password-protected Canva OAuth flow.
-- `netlify/functions/canva-print-check.mjs` — private PNG export, job-status and download routes.
-- `lib/oauth.mjs` and `lib/print-check.mjs` — shared security/export and image/PPI checks.
-- `test/*.test.mjs` — regression tests (run `npm test`; Node 20+).
-- `netlify.toml` — publishes `public` and `netlify/functions`.
+Live Netlify release remains **7d1979660f9d830f950189d16ccb78b886dc3d40**, Ready deploy **6ac88cdf08cadc0008385789**. Owner/upload/Etsy routes currently return setup-incomplete 503. New unified functionality is on the off-production handover branch, not the live site. Default main has no publication worker installed.
 
-## Release, costs and secrets
+Existing GitHub secrets are used by the staged merchant worker: Etsy application pair and PrintShrimp key stay server-side. Normal Etsy seller consent, updated scopes, verified reference/frame configuration and real integration tests remain required. See [docs/GITHUB_PUBLICATION.md](docs/GITHUB_PUBLICATION.md). Do not copy credentials into repository, browser or logs.
 
-The Netlify-linked production branch is `feature/canva-oauth-callback`, currently deployed successfully at `fe2c128` with scheduled Canva export running. The earlier secret-scanner failure was corrected without disabling security scanning. Subsequent PrintShrimp mapping and this handover remain on isolated branch `docs/handover-and-change-policy-20261008`.
-
-The team's October billing screen showed substantial production deployment credit usage. **Never push changes to a production-deployed branch, trigger a deployment, change automatic builds, merge or spend deployment credits without the owner's explicit release approval.** Group tested changes into one controlled release.
-
-Never commit Canva client credentials, passwords, tokens, private PNGs, signed export links, customer data or stored cookies. Configuration is kept privately in Netlify environment variables and Blobs.
-
-No automatic Etsy publication or PrintShrimp manufacturing order without the owner's explicit approval.
-
-**Future chats:** open the repository at the branch containing the latest handover and read `AGENTS.md` and `docs/PROJECT_STATUS.md` before attempting edits. The repository files do not automatically appear in every ChatGPT conversation; you must explicitly inspect them.
-
-## PrintShrimp handoff
-
-See docs/PRINTSHRIMP_HANDOFF.md. **Owner-selected order: prepare an Etsy draft FIRST**, using one shared SKU for A5/A4/A3; then upload the **one** existing private A3 master to PrintShrimp under that same SKU, verify fulfilment, and publish only after separate approval. SKU mapping is staged only; no seller listing or supplier upload has occurred.
-
-## Etsy seller authorisation (staged)
-
-`lib/etsy-oauth.mjs` and `netlify/functions/etsy-oauth.mjs` implement `/etsy/start` → Etsy PKCE → `/etsy/callback`, encrypted token storage and exact SapiverPrints seller verification. 71 local tests pass across the full workflow; real seller flow not yet deployed or exercised. See `docs/ETSY_CONNECT.md` for runtime key-pair configuration and exact redirect registration. Existing GitHub keys have already passed live Etsy app authentication (HTTP 200). Draft creation and supplier transfer are now implemented and mocked end to end; publishing and orders remain disabled. See docs/POSTER_WORKFLOW.md for the owner controls and release checklist.
-
-## Owner-upload fixed template (new staged workflow)
-
-Download and check a Canva PNG, upload once at /poster/upload, then review and Approve & Publish. Name/SKU derive from the filename. The supplied template fixes prices, footer/disclosure, tags, UK delivery and A5/A4/A3 × Print Only/Black/White/Oak (12 options). See docs/UPLOAD_WORKFLOW.md and docs/SAPIVER_POSTER_TEMPLATE.md. 86 unique local tests pass. Live publication defaults disabled; existing production is unchanged and real framed fulfilment remains to be verified.
-
-## GitHub-backed publication (staged revision)
-
-Owner selected GitHub Actions for seller/supplier operations using existing saved provider secrets. Netlify keeps authenticated upload, review and approval; a strictly verified GitHub OIDC worker collects private queued tasks. No new personal token/provider key recovery. See docs/GITHUB_PUBLICATION.md for tests, trust boundaries, asynchronous collection and controlled release prerequisites. Production remains the prior release until approval.
+Jim authorised development, **not production deployment**. Do not push the Netlify-linked production branch, install/activate the main worker, enable publication, create live merchant records or spend deployment credits without the appropriate owner release/test authorisation. Batch one reviewed release; preserve existing products and artwork. Deploy on the website is per-product approval, not software-release approval. No automatic PrintShrimp orders.

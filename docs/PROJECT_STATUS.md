@@ -2,63 +2,37 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
-## CURRENT PROJECT SNAPSHOT — 2026-10-09 (UK time)
+## CURRENT PROJECT SNAPSHOT — 2026-10-09 10:00 UTC
 
 | Area | Current evidence-based state |
 | --- | --- |
-| Project | Owner checks Canva PNG → one private website upload → fixed Etsy template preview → Approve & Publish → draft first, supplier verification, Etsy publication |
-| Repo | `sapiverpress-studio/Poster_gen` |
-| Live Netlify application | Owner-approved production commit `7d1979660f9d830f950189d16ccb78b886dc3d40`, deploy `6ac88cdf08cadc0008385789` Ready. ZERO secret-scan matches. Live uploader/Etsy routes return setup-incomplete HTTP 503; runtime configuration blocks use. |
-| Development branch | `docs/handover-and-change-policy-20261008` remains off production for documentation; production branch `feature/canva-oauth-callback` now contains approved runtime `7d19796`. |
-| Product | **Hen & Bea: Dinosaurs Across Time** poster, **A5 / A4 / A3 only** (not A2/A1). Different from the user's approved `Dinosaurs of the World` map poster. |
-| Original Canva source | `DAHXUnmHofY` — 1024 × 1536, 2:3. **Do not overwrite or restyle.** Original share link: https://canva.link/jyolzhklfl2tpph |
-| A3 Canva working copy | `DAHXb1PdJlM` — 3508 × 4961, A-series ratio. Edit link: https://www.canva.com/d/x6_QPM4gnK8kZkR |
-| Canva authorisation | **VERIFIED:** OAuth connected via Netlify; successful connection shown to owner. Encrypted token storage reported by app. Live automatic token refresh/expiry cycle **not independently tested**. |
-| A3 export | **VERIFIED by owner-provided live report screenshot on 2026-10-09 at 05:33 BST:** scheduled Canva job automatically completed at `2026-10-09T00:01:11.623Z` for approved revision `1791485393`. Actual private PNG **3508 × 4961 pixels**, **37.4 MiB**. Report shows A5 600 PPI, A4 424 PPI, A3 300 PPI. This confirms automated state reached `ready_for_review`, but the PNG bytes/visual layout were not independently inspected here. |
-| Print resolutions | **VERIFIED by owner's validator screenshot:** A5 **600 PPI**, A4 **424 PPI**, A3 **300 PPI**. PPI alone does not approve actual image detail or printing. |
-| Print layout | **OWNER-APPROVED AND SAVED:** Background-only correction on A3 Canva copy `DAHXb1PdJlM` was committed after the original editing session expired. Verified by reopening Canva and reading the persisted scenic element at left 0, top -150, size 3508 × 5262 (38 text elements and 52 image layers still present). **Remaining:** visual print proof for heads/tails, text, edges and 2–3 mm safe areas; saving is NOT a full print approval. |
-| Print approval | **NOT APPROVED:** inspect the actual master at print size for legibility/soft assets, correct dinosaurs/labels, colour and 2–3 mm safety, and obtain PrintShrimp compatibility/proof before selling. |
-| Etsy + PrintShrimp | **OWNER-SELECTED NEW WORKFLOW:** filename-derived subject/SKU; A5/A4/A3 × Print Only/Black/White/Oak = 12 combinations. Final button approves the exact uploaded file and listing. Uploaded template is canonical; implementation staged, no new merchant writes. |
-| Credit safeguard | Netlify team usage screenshot (Oct 8): **182 production deploys / 2,730 credits** and **2,873.9 total credits in the billing period**. This is team-wide; do not claim Poster_gen caused all 182. GitHub showed 48 Poster_gen commits in a single afternoon. **No production deploy merely for documentation; batch changes, require owner release approval.** |
-| Etsy Connect route | DEPLOYED / 86 tests passed; live `/etsy/start` returns setup-incomplete 503. Required runtime Etsy configuration and seller consent remain. |
-| API credential preflight | **VERIFIED 2026-10-09 06:42 BST:** GitHub Actions run `37889856696`, commit `524879abc808990ee76dcfd5f96affb3fd237a8b`: existing Etsy app key pair and PrintShrimp merchant API key each returned **HTTP 200**. All 55 tests passed. Etsy seller OAuth remains NOT CONFIGURED; live upload untested. |
-| Supplier transfer code | DEPLOYED / MOCK-TESTED: draft, 12 options, three mockups, supplier read-back then file-approved publication. Gate remains default disabled; actual merchant transport and frame fulfilment unverified. |
-| Immediate stage | Controlled approved release complete. Runtime configuration blocks upload/login; seller consent, reference verification and supplier frame mapping remain before enabling publication. |
+| Direction | **Owner-authorised development only:** unified physical PNG and digital ZIP upload/review/Deploy; smallest extension of existing system. Deploy is final per-product approval, not a software release. |
+| Live production | Netlify Ready deploy `6ac88cdf08cadc0008385789`, commit `7d1979660f9d830f950189d16ccb78b886dc3d40`, branch `feature/canva-oauth-callback`. Unchanged during this work. |
+| Live routes | Owner workflow, uploader and Etsy start return setup-incomplete HTTP 503; Canva approved-report responds. Unified routes are **not deployed**. |
+| Development | Local `feature/unified-products`; save code/tests/docs on established off-production `docs/handover-and-change-policy-20261008`. Supersedes unreleased GitHub-worker candidate `5413ef62acd9552650336a6fed4ffa43dcdc142d`. |
+| Digital | **IMPLEMENTED / FIXTURE-TESTED:** secure ZIP validation/private storage, original-file preservation, Etsy-limit splitting, accurate metadata/previews, digital listing/file attachment/sections and same-ID updates. No PrintShrimp or physical profiles. |
+| Physical | **IMPLEMENTED / FIXTURE-TESTED:** exactly A5/A4/A3 × Black/White/Oak = **nine** framed variants, approved £49.99/£54.99/£64.99 prices, preserved template/settings, one master/shared SKU/supplier mapping. No automatic orders. Older twelve-option notes are superseded for new listings, not a live migration. |
+| Approval / reliability | Hash-bound Deploy, queue/revision/SKU claims, stored IDs and safe stop after partial/uncertain API operations; no automatic repeat creation. Physical previews now hash-bound too. |
+| Dashboard / edits | Type/subject/status filters, files, previews, Etsy URL, supplier ID and attention errors. Digital files and physical metadata update existing IDs. Physical artwork replacement blocked until supplier update schema verified. |
+| Tests | **114 local tests pass** on Node 24, real archive/image/PDF/SVG parsing plus controlled merchant fixtures and browser-script interaction tests. Clean isolated install and Function/digital-module imports passed. Live merchant writes untested. Browser screenshot test unavailable after failed download. |
+| GitHub worker | Staged worker reuses existing GitHub provider secrets. Default main has no worker installed; scheduled collection not active. Real OIDC bridge acceptance and seller consent not demonstrated. |
+| Etsy access | Existing key pair and supplier key previously returned HTTP 200 in read-only preflight. Seller OAuth NOT established by those keys; updated `shops_w` consent required for section creation. No live sections/listings changed. |
+| Canva | Original `DAHXUnmHofY` preserved. Working A3 `DAHXb1PdJlM`; existing owner report confirmed 3508 × 4961 PNG, 37.4 MiB, A3 300/A4 424/A5 600 PPI. No new export or artwork change. Visual print/sample and framed fulfilment remain unverified. |
+| Release / credits | No production push, main worker activation, publication gate change, Netlify release, merchant upload/listing or order. Existing site-wide Blobs not used for tests. Batch a single reviewed release only after owner authorisation. |
+| Next stage | Finish remote CI review on saved candidate, obtain release authorisation, verify actual worker/OAuth/routes/categories/files/supplier frame delivery and owner browser interface before enabling per-product publication. |
 
-### What is done and verified
+### Current implementation and explicit limits
 
-1. Secure Canva OAuth start/callback flow and browser authorisation; owner saw `Canva connected`.
-2. Private Canva PNG export and asynchronous, session-gated status/download workflow; actual earlier 3× 3072 × 4608 PNG and A3 working-copy 1× 3508 × 4961 PNG completed according to owner screenshots.
-3. PNG dimension and aspect-ratio analysis, effective PPI for paper sizes, limited file-size validation, Netlify Blobs private storage, and automated GitHub tests.
-4. Created independent Canva A3 working copy; its original text and illustrations were present in element inspection. Original design unchanged.
-5. GitHub tests and Netlify deploy were confirmed passing/Ready at prior checkpoint. This **does not** verify PrintShrimp production use or a physical proof.
+Read [UNIFIED_PRODUCTS.md](UNIFIED_PRODUCTS.md) for stage-by-stage changes, Etsy limits and section design, exact tests, update semantics, storage/security, failures and remaining integration checks. Marketplace taxonomy, flat Etsy shop sections and internal types/subjects remain separate. Five initial sections are recommended, with Printed Artwork created only when needed. Bundles require an actual compatible category choice rather than automatic guessing.
 
-### What is done and verified
+Current code is development-complete for the documented scope; production operation is **BLOCKED / NOT VERIFIED**. No known-working Canva functionality is replaced. Historical statements below about twelve variants, a separate post-upload approval, earlier SHAs or completed deployment do not describe this staged unified release.
 
-1. Canva OAuth connected, original source `DAHXUnmHofY` untouched; separate owner-approved A3 copy `DAHXb1PdJlM` with background correction saved.
-2. Scheduled Netlify worker **successfully exported and stored one private A3 master** unattended: 3508 × 4961 PNG, 37.4 MiB; A5 / A4 / A3 PPI 600 / 424 / 300. Owner's authenticated report showed `ready_for_review`. **No re-export is needed.**
-3. Production deploy `6ac7ea449b8dde00092c0cf4` at SHA `fe2c128` Ready and passed secret scanning, after documented earlier failed build.
-4. Canva structural audit: 38 text elements outside 3 mm border; 6 image layers enter it, including full-bleed background. **Full-resolution visual proof and physical sample remain pending.**
-5. Off-production `lib/printshrimp-product.mjs` and handoff guide implement/test one private PNG, one proposed common SKU, three Etsy size variations; **43/43 tests passed** in GitHub run `37885613924`. No actual Etsy/PrintShrimp integration or side-effect confirmed.
+### Commands and routes
 
-### What needs doing — agreed ETSY-FIRST order
-
-1. **Visual QA of the existing master:** obtain a secure preview/inspection of the private PNG, check spelling/pronunciation, dinosaur heads and tails, small lettering, sharpness, colour and trim. Do not make three artwork files or rerun Canva export.
-2. **Prepare the Etsy listing FIRST (as draft):** in the correct SapiverPrints seller account, one physical Dinosaurs Across Time product, Size variation A5/A4/A3, with **the same SKU across all sizes**, currently proposed `SP-DINOSAURS-ACROSS-TIME`. Verify existing SKU convention, actual prices, unframed/paper settings, mockups and correct existing shipping profile; do not invent values or publish. Secure Etsy seller-write access is not presently available through this chat's Etsy buyer tools.
-3. **Connect/verify PrintShrimp account and artwork match:** confirm Etsy shop integration and authenticated PrintShrimp merchant upload method; transfer the **single existing** private 3508 × 4961 master once using its matched SKU/filename, not three separate uploads. Verify correct size is determined by Etsy order variation. PrintShrimp can match orders lazily; **an already published Etsy listing is not proven necessary for file upload/matching**, so keep the Etsy listing unpublished until fulfilment is ready.
-4. **Check supplier readiness and sample proof:** reconcile Etsy listing SKU against the one PrintShrimp asset, verify 3 size variations, inspect actual full print, and ask before any paid proof order or manufacturing.
-5. **Publish only with separate owner approval** once artwork, supplier mapping, pricing and postage are verified. No automatic PrintShrimp payment, order or listing publication is authorised at present.
-6. **Build and release deliberately:** stage and test full connection away from production, then request approval for **one controlled Netlify deployment**, mindful of team's prior 2,873.9-credit usage. Future backlog: generalise Canva input without compromising approved-revision protections.
-
-### Key commands and endpoints
-
-- Tests: `npm test` (Node 20+).
-- App start: `CANVA_SITE_ORIGIN/canva/start`.
-- Print check: `CANVA_SITE_ORIGIN/canva/print-check`.
-- Existing export status: `CANVA_SITE_ORIGIN/canva/print-status`.
-- Private PNG download: `/canva/print-file` (**requires the owner's browser session; never publish or commit the URL, cookie or content**).
-- Canva master working copy: `DAHXb1PdJlM`.
-- Verify source branch and deployment before any changes; don't assume branch deploys are free or disabled.
+- Node 24: `npm ci --ignore-scripts`; `npm test`.
+- Owner login `/poster/workflow`; product upload/review `/poster/upload`; dashboard `/poster/products`.
+- Existing Canva report/download remain session-protected; do not expose stored artwork or signed URLs.
+- Publication defaults disabled. No automatic supplier orders.
 
 ## Documentation and change-recording rule
 
@@ -461,3 +435,15 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Final runtime candidate 5413ef62acd9552650336a6fed4ffa43dcdc142d: GitHub Verify Poster_gen run 37897537803 completed SUCCESS. Full suite 92/92 plus clean installation, syntax and Function import checks passed. Earlier hardening checkpoint was timestamped 08:12 BST prematurely; observed clock at that stage was 08:10 BST.
 - Default main was inspected: e9bee56be49ccf416c3a1edaa7b8cee6ef84e228, only README.md. It is NOT the Netlify production branch. Candidate contains the reviewed worker workflow; install only that file on main after the controlled release is authorised. Do not merge unrelated content or start the schedule before the bridge release.
 - Concrete release proposal: fast-forward production feature/canva-oauth-callback once to tested 5413ef62; verify Ready, then install main workflow and verify real signed bootstrap/login/queue. Publication stays disabled pending real seller/template/frame checks. No keys need recovery and no personal access token is required by the implemented architecture. This record is off production; no additional Netlify deploy or merchant operation.
+
+### 2026-10-09 10:00 UTC — Unified digital and physical development stages 1–5
+
+- Stage / purpose: inspect rather than rebuild existing Canva/Netlify/GitHub/Etsy/PrintShrimp workflow, then extend it for validated digital ZIP products and nine framed physical options under one Deploy approval. Owner explicitly withheld production release authorisation.
+- Audit: read AGENTS/README/latest handover and actual source/config/tests; inspected current Netlify deploy, live routes, main worker absence and provider integration status. App keys are verified independently of seller OAuth; no claim that setup is live or a merchant roundtrip has succeeded. Reused existing queue, private storage, authentication, bridge and physical pipeline.
+- Changed: new `lib/product-metadata.mjs`, `product-records.mjs`, `product-web.mjs`, `digital-archive.mjs`, `digital-product.mjs`; extended `poster-upload-web`, `uploaded-poster`, template/mockups, GitHub publication/bridge/remote store and worker script; added dashboard Function path; corrected Etsy DELETE 204 and added shops_w. Added pinned package-lock dependencies for ZIP/XML/PDF parsing, Node 24 requirement/.nvmrc, dependency-folder ignore and CI import check. Added digital/browser tests and physical/bridge/worker regressions. Updated AGENTS, README, current snapshot, old-guide supersession notes and UNIFIED_PRODUCTS guide. No Canva code/design change.
+- Stage 1: actual-content ZIP checks, bounded private upload/storage, payload preservation and exact Etsy-size splitting; customer artwork untouched. Stage 2: digital drafts/files/previews/sections/taxonomy. Stage 3: existing authenticated Deploy queues hash-bound final approval; permanent product/revision IDs, dashboard and metadata/file edits. Stage 4: real file parsing plus fixture E2E success/failure/retry/duplicate checks for both routes. Stage 5: this handover records implemented versus live-unverified behavior.
+- Tests / corrections: initial legacy twelve-option/description assertions failed against the owner-approved nine-option change; corrected expected behavior and reran. Preview source reuse fixed and regression-tested; physical preview hash binding added and mutation-tested. Latest full local suite **114/114 passed**. Split ZIP payload hashes, malformed/encrypted/linked/expansion/CRC files, active compressed PDF/SVG, changed approvals/archives/previews, partial APIs, stale/superseded revisions, no duplicate creation, same-ID updates, no digital supplier calls, nine physical options and 51 MB bridge roundtrip exercised.
+- Browser limitation: Playwright executable missing; attempted download returned invalid/truncated archive and failed. Browser-script interaction tests pass but full mobile/desktop visual testing remains pending. No claim of live Etsy file delivery, taxonomy resolution, section creation, GitHub identity/bootstrap or framed supplier compatibility.
+- Decisions / limits: five initial flat sections plus optional Printed Artwork; Etsy twenty-section/24-character limits and five-file/20 MB download caps verified against primary docs/OpenAPI. Bundles require matching explicit verified category. Original ZIP retained; split parts lossless, impossible oversized package blocked. Only-if-new claims stop ambiguous replay; records are not a multi-record transaction. Failed update may leave listing inactive; retained files/IDs permit controlled investigation. No automatic merchant-write recovery UI. Physical artwork replacement blocked until verified supplier PUT contract.
+- Safety / credit impact: code saved only off production; production branch, Netlify release/settings, main schedule, Canva source/master, existing merchant listings and supplier orders untouched. No live Blobs test writes, credentials in files/logs, new merchant consent, product publication or manufacturing purchase. Off-production GitHub verification only.
+- Next authorised action: review saved candidate and CI, then seek a single concrete production release/worker-install approval before changing live software. Actual seller consent and controlled live integration/device checks still needed; keep publication gate off until essential checks pass. The eventual website Deploy remains sole per-product final approval.
