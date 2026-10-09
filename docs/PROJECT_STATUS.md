@@ -2,15 +2,15 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
-## CURRENT PROJECT SNAPSHOT — 2026-10-09 13:18 UTC
+## CURRENT PROJECT SNAPSHOT — 2026-10-09 15:21 UTC
 
 | Area | Current evidence-based state |
 | --- | --- |
 | Direction | **Owner-authorised release:** Jim approved one bundled release of candidate 45240c8 and installation of the main GitHub worker on 2026-10-09 at 12:06 BST. Product publication stays disabled; no orders authorised. Deploy remains per-product approval. |
-| Live production | **VERIFIED LIVE:** redesigned owner studio at Ready deploy `6ac8e5d54698390008de1f60`, commit `fdefb3837207d748c7686da2e3d31cdea5ea37ab`. One owner-approved UI release; zero scanner matches. |
+| Live production | **VERIFIED LIVE:** seller-kit importer release `082645a765a66e75766fb46fe3ed4254763ad7b7`, Ready production deploy `6ac9065b2043370009b5fc61`, published 15:21:19 UTC. Both secret-scanner match lists empty. |
 | Live routes | Fresh unauthenticated checks: owner workflow, uploader and dashboard return HTTP 200 (login pages; not authenticated acceptance). Etsy start returns 503 awaiting worker bootstrap. Canva routes preserved. |
-| Development | New seller-kit importer on `feature/digital-seller-kit` (off production); previous unified candidate: code/tests/docs saved as `45240c8b6ceb6f34442074e68e304d87cc735210` on established off-production `docs/handover-and-change-policy-20261008`. Supersedes unreleased GitHub-worker candidate `5413ef62acd9552650336a6fed4ffa43dcdc142d`. |
-| Digital | **SELLER-KIT IMPORT IMPLEMENTED / TESTED OFF PRODUCTION:** one recognised envelope level separates unchanged buyer ZIPs, listing photographs and seller notes; embedded licence/instructions used in review. Invalid SVG dimensions rejected. Existing digital route: secure ZIP validation/private storage, original-file preservation, Etsy-limit splitting, accurate metadata/previews, digital listing/file attachment/sections and same-ID updates. No PrintShrimp or physical profiles. |
+| Development | Seller-kit importer released on production; development checkpoint on `feature/digital-seller-kit`; previous unified candidate: code/tests/docs saved as `45240c8b6ceb6f34442074e68e304d87cc735210` on established off-production `docs/handover-and-change-policy-20261008`. Supersedes unreleased GitHub-worker candidate `5413ef62acd9552650336a6fed4ffa43dcdc142d`. |
+| Digital | **SELLER-KIT IMPORT RELEASED / FIXTURE-TESTED:** one recognised envelope level separates unchanged buyer ZIPs, listing photographs and seller notes; embedded licence/instructions used in review. Invalid SVG dimensions rejected. Existing digital route: secure ZIP validation/private storage, original-file preservation, Etsy-limit splitting, accurate metadata/previews, digital listing/file attachment/sections and same-ID updates. No PrintShrimp or physical profiles. |
 | Physical | **IMPLEMENTED / FIXTURE-TESTED:** exactly A5/A4/A3 × Black/White/Oak = **nine** framed variants, approved £49.99/£54.99/£64.99 prices, preserved template/settings, one master/shared SKU/supplier mapping. No automatic orders. Older twelve-option notes are superseded for new listings, not a live migration. |
 | Approval / reliability | Hash-bound Deploy, queue/revision/SKU claims, stored IDs and safe stop after partial/uncertain API operations; no automatic repeat creation. Physical previews now hash-bound too. |
 | Dashboard / edits | Type/subject/status filters, files, previews, Etsy URL, supplier ID and attention errors. Digital files and physical metadata update existing IDs. Physical artwork replacement blocked until supplier update schema verified. |
@@ -518,3 +518,7 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - VERIFIED: 120/120 local tests pass, zero failures; new seller-kit and Netlify entrypoint imports pass. Simulated create/attach/readback/activate tests attach only buyer ZIP with exact bytes, retain listing images, never invoke supplier, and stop changed delivery before merchant writes. No live merchant operation performed.
 - Actual supplied file result: STRUCTURE RECOGNISED, BLOCKED by invalid SVG dimensions; exporter must produce valid SVG width/height before this exact kit is sale-ready. No claim that its quality report proves valid SVG.
 - Deployment/credits: no release, new listing, paid Etsy publication, supplier upload/order or another-repository change. Save isolated branch with skip-netlify marker. Next: review importer and obtain one release approval, verify real worker/OAuth, then owner-approved product publication.
+
+### 2026-10-09 16:21 BST — Approved seller-kit importer VERIFIED LIVE
+- Jim approved software deployment at 16:19 BST. Production advanced once with expected-SHA protection to 082645a765a66e75766fb46fe3ed4254763ad7b7. Netlify Ready production deploy 6ac9065b2043370009b5fc61 published 15:21:19 UTC; both scanner match lists empty. 120 local tests previously passed; no runtime changes after testing except approval documentation.
+- Actual supplied kit remains blocked by invalid SVG width/height; artwork untouched. Real authenticated upload, worker/OAuth and live Etsy listing still unverified. No live product publication or supplier orders performed. Handover saved off production with skip marker to avoid another deploy.
