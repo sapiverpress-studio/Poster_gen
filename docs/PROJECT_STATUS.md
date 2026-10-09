@@ -2,15 +2,15 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
-## CURRENT PROJECT SNAPSHOT — 2026-10-09 13:18 UTC
+## CURRENT PROJECT SNAPSHOT — 2026-10-09 15:21 UTC
 
 | Area | Current evidence-based state |
 | --- | --- |
 | Direction | **Owner-authorised release:** Jim approved one bundled release of candidate 45240c8 and installation of the main GitHub worker on 2026-10-09 at 12:06 BST. Product publication stays disabled; no orders authorised. Deploy remains per-product approval. |
-| Live production | **VERIFIED LIVE:** redesigned owner studio at Ready deploy `6ac8e5d54698390008de1f60`, commit `fdefb3837207d748c7686da2e3d31cdea5ea37ab`. One owner-approved UI release; zero scanner matches. |
+| Live production | **VERIFIED LIVE:** seller-kit importer release `082645a765a66e75766fb46fe3ed4254763ad7b7`, Ready production deploy `6ac9065b2043370009b5fc61`, published 15:21:19 UTC. Both secret-scanner match lists empty. |
 | Live routes | Fresh unauthenticated checks: owner workflow, uploader and dashboard return HTTP 200 (login pages; not authenticated acceptance). Etsy start returns 503 awaiting worker bootstrap. Canva routes preserved. |
-| Development | New seller-kit importer on `feature/digital-seller-kit` (off production); previous unified candidate: code/tests/docs saved as `45240c8b6ceb6f34442074e68e304d87cc735210` on established off-production `docs/handover-and-change-policy-20261008`. Supersedes unreleased GitHub-worker candidate `5413ef62acd9552650336a6fed4ffa43dcdc142d`. |
-| Digital | **SELLER-KIT IMPORT IMPLEMENTED / TESTED OFF PRODUCTION:** one recognised envelope level separates unchanged buyer ZIPs, listing photographs and seller notes; embedded licence/instructions used in review. Invalid SVG dimensions rejected. Existing digital route: secure ZIP validation/private storage, original-file preservation, Etsy-limit splitting, accurate metadata/previews, digital listing/file attachment/sections and same-ID updates. No PrintShrimp or physical profiles. |
+| Development | Seller-kit importer released on production; development checkpoint on `feature/digital-seller-kit`; previous unified candidate: code/tests/docs saved as `45240c8b6ceb6f34442074e68e304d87cc735210` on established off-production `docs/handover-and-change-policy-20261008`. Supersedes unreleased GitHub-worker candidate `5413ef62acd9552650336a6fed4ffa43dcdc142d`. |
+| Digital | **SELLER-KIT IMPORT RELEASED / FIXTURE-TESTED:** one recognised envelope level separates unchanged buyer ZIPs, listing photographs and seller notes; embedded licence/instructions used in review. Invalid SVG dimensions rejected. Existing digital route: secure ZIP validation/private storage, original-file preservation, Etsy-limit splitting, accurate metadata/previews, digital listing/file attachment/sections and same-ID updates. No PrintShrimp or physical profiles. |
 | Physical | **IMPLEMENTED / FIXTURE-TESTED:** exactly A5/A4/A3 × Black/White/Oak = **nine** framed variants, approved £49.99/£54.99/£64.99 prices, preserved template/settings, one master/shared SKU/supplier mapping. No automatic orders. Older twelve-option notes are superseded for new listings, not a live migration. |
 | Approval / reliability | Hash-bound Deploy, queue/revision/SKU claims, stored IDs and safe stop after partial/uncertain API operations; no automatic repeat creation. Physical previews now hash-bound too. |
 | Dashboard / edits | Type/subject/status filters, files, previews, Etsy URL, supplier ID and attention errors. Digital files and physical metadata update existing IDs. Physical artwork replacement blocked until supplier update schema verified. |
@@ -519,5 +519,14 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Actual supplied file result: STRUCTURE RECOGNISED, BLOCKED by invalid SVG dimensions; exporter must produce valid SVG width/height before this exact kit is sale-ready. No claim that its quality report proves valid SVG.
 - Deployment/credits: no release, new listing, paid Etsy publication, supplier upload/order or another-repository change. Save isolated branch with skip-netlify marker. Next: review importer and obtain one release approval, verify real worker/OAuth, then owner-approved product publication.
 
-### 2026-10-09 16:19 BST — Seller-kit software release approved
-- Jim explicitly approved the tested seller-kit importer release. Prepare one release of the tested 120-test candidate; verify Netlify Ready and public routes. Actual supplied ZIP remains blocked by invalid SVG dimensions. No product publication, artwork rewrite or supplier orders authorised by this software release.
+### 2026-10-09 16:21 BST — Approved seller-kit importer VERIFIED LIVE
+- Jim approved software deployment at 16:19 BST. Production advanced once with expected-SHA protection to 082645a765a66e75766fb46fe3ed4254763ad7b7. Netlify Ready production deploy 6ac9065b2043370009b5fc61 published 15:21:19 UTC; both scanner match lists empty. 120 local tests previously passed; no runtime changes after testing except approval documentation.
+- Actual supplied kit remains blocked by invalid SVG width/height; artwork untouched. Real authenticated upload, worker/OAuth and live Etsy listing still unverified. No live product publication or supplier orders performed. Handover saved off production with skip marker to avoid another deploy.
+
+### 2026-10-09 19:17 BST — Owner upload browser request failure diagnosed
+- Owner screenshot shows Failed to fetch on Prepare my product. Verified source defect: uploader CSP has default-src none and no connect-src, so browser fetch to its own API is denied before upload validation. This is a concrete browser-policy failure; other network or worker failures remain possible after correction.
+- Fixed lib/poster-upload-web.mjs with connect-src self only. Retained default-src none, same-origin scripts/forms, frame restriction, CSRF/auth and ZIP validation. Regression in test/poster-upload-web.test.mjs verifies authenticated page headers permit same-origin API requests and retain restrictive directives.
+- VERIFIED 121/121 local tests pass. No full browser reproduction available. Saved on feature/digital-seller-kit with skip-netlify; no deployment or merchant writes. Requires one separate software release approval under AGENTS.md; supplied SVG remains invalid.
+
+### 2026-10-09 19:31 BST — CSP corrective release approved
+- Jim approved one deployment of the tested same-origin connect-src correction. 121 tests pass. Release only upload-page CSP, regression test and handover; preserve production seller-kit importer and all authentication/merchant gates. Verify Ready deployment and live headers; authenticated owner browser upload remains to be tested.
