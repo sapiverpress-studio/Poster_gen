@@ -18,7 +18,7 @@
 | Print resolutions | **VERIFIED by owner's validator screenshot:** A5 **600 PPI**, A4 **424 PPI**, A3 **300 PPI**. PPI alone does not approve actual image detail or printing. |
 | Print layout | **OWNER-APPROVED AND SAVED:** Background-only correction on A3 Canva copy `DAHXb1PdJlM` was committed after the original editing session expired. Verified by reopening Canva and reading the persisted scenic element at left 0, top -150, size 3508 × 5262 (38 text elements and 52 image layers still present). **Remaining:** visual print proof for heads/tails, text, edges and 2–3 mm safe areas; saving is NOT a full print approval. |
 | Print approval | **NOT APPROVED:** inspect the actual master at print size for legibility/soft assets, correct dinosaurs/labels, colour and 2–3 mm safety, and obtain PrintShrimp compatibility/proof before selling. |
-| Etsy + PrintShrimp | **NOT IMPLEMENTED / NOT AUTHORISED FOR LIVE ACTIONS:** no listing publication, manufacturing order or automatic product sync. Existing secrets alone do not prove API integration is working. PrintShrimp SKU-to-size mapping/one-file suitability must be verified with its real workflow, not assumed. |
+| Etsy + PrintShrimp | **ONE-MASTER product mapping STAGED (not deployed):** shared SKU SP-DINOSAURS-ACROSS-TIME, one original private A3 PNG and A5/A4/A3 variations. Supplier API requires signed-in merchant docs; no supplier upload, Etsy draft or order has occurred. |
 | Credit safeguard | Netlify team usage screenshot (Oct 8): **182 production deploys / 2,730 credits** and **2,873.9 total credits in the billing period**. This is team-wide; do not claim Poster_gen caused all 182. GitHub showed 48 Poster_gen commits in a single afternoon. **No production deploy merely for documentation; batch changes, require owner release approval.** |
 | Immediate stage | **OVERNIGHT SCHEDULED EXPORT SUCCESSFULLY COMPLETED:** owner screenshot confirms latest approved A3 Canva version exported to private Netlify Blobs and print checker measured 3508 × 4961, 37.4 MiB, A5/A4/A3 PPI 600/424/300. **Still pending:** authenticated full-resolution or safe proof preview access, visual accuracy/trim/sRGB inspection and PrintShrimp proof. Etsy and PrintShrimp automation/orders remain disabled. No further Netlify deployment needed for export. |
 
@@ -312,3 +312,13 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - **Limits:** positional metadata is not a substitute for inspecting full-resolution rendered pixels. Text bounds might differ slightly from visible ink, and visual sharpness, individual dinosaur cropping, background joins, fine print and all supplier requirements remain **unverified**.
 - **Safety:** Canva editing transaction opened read-only and cancelled; no artwork was changed. No Netlify or GitHub production deployment was triggered. This handover is updated only on isolated documentation branch.
 - **Next:** use a secure owner-side image-preview or private file-transfer flow to inspect the actual auto-exported master, preferably without requiring a Canva download or upload. Only after visual approval proceed to PrintShrimp test proof; no Etsy publication or manufacturing order is authorised.
+
+### 2026-10-09 — Single master / shared SKU handoff staged
+
+- Owner reiterated ONE file for PrintShrimp; no multiple masters or different files per size.
+- Official PrintShrimp SKU guide confirmed one shared product SKU for all Etsy size variations, with print size read from the Etsy order.
+- Added pure validator and handoff mapping in lib/printshrimp-product.mjs, unit tests in test/printshrimp-product.test.mjs, and exact integration instructions in docs/PRINTSHRIMP_HANDOFF.md.
+- Suggested SKU SP-DINOSAURS-ACROSS-TIME, upload name SP-DINOSAURS-ACROSS-TIME.png. This has not been registered in PrintShrimp/Etsy and must be checked against existing shop SKU conventions before a live action.
+- Handoff uses the already-stored private Canva-approved A3 Blob, checks revision, hash, dimensions, upload limit and PPI; three Etsy size variations share the one SKU. It never calls provider APIs.
+- Full PrintShrimp upload API spec is accessible after account sign-in and is not available via current connected tools. No Etsy seller write connection is available; Etsy marketplace lookup is not a seller management connection.
+- PENDING: real private PNG transfer API, actual file visual review, supplier proof, prices, postage profile and paper finish. No Etsy listing or order, no Netlify deploy.

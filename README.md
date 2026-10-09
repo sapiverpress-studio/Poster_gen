@@ -40,3 +40,7 @@ Never commit Canva client credentials, passwords, tokens, private PNGs, signed e
 No automatic Etsy publication or PrintShrimp manufacturing order without the owner's explicit approval.
 
 **Future chats:** open the repository at the branch containing the latest handover and read `AGENTS.md` and `docs/PROJECT_STATUS.md` before attempting edits. The repository files do not automatically appear in every ChatGPT conversation; you must explicitly inspect them.
+
+## PrintShrimp handoff
+
+See docs/PRINTSHRIMP_HANDOFF.md. One existing approved A3 master maps to one SKU and A5/A4/A3 variations. This is staged only; no supplier upload or Etsy listing has occurred.
