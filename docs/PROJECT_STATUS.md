@@ -439,3 +439,8 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Candidate 7431d86c91cd87ee7946deb60e33a3431ae2d056: GitHub Verify Poster_gen run 37894293754/job 113701980158 SUCCESS. Clean npm ci, new and existing runtime imports/syntax checks and full 86-test suite passed.
 - Native Sharp packaging reviewed against first-party Netlify Function bundling documentation. Added a poster-upload* scoped esbuild/external Sharp rule plus explicit sharp/@img binary files in netlify.toml, avoiding bundler inlining of native dependencies. Runtime packaging on actual Netlify remains a live release check; importing on Linux locally/GitHub passed.
 - Source template replica, upload approval code and tests are saved off production. No release, merchant product, publication or order. New native bundling rule needs saved candidate CI before requesting a concrete release.
+
+### 2026-10-09 07:38 BST — Revised upload release candidate verified in GitHub
+- Final runtime candidate 7d1979660f9d830f950189d16ccb78b886dc3d40 includes native-image packaging. Verify Poster_gen run 37894462554 completed SUCCESS after clean installation, runtime imports/syntax checks and the same 86-test suite.
+- No live deployment or Etsy/PrintShrimp product/publication/order performed. Netlify production remains the existing Canva release. Candidate is staged for one controlled release approval; runtime credentials, seller consent, real frame matching and actual full-size transport remain live prerequisites. Publication gate remains default-disabled.
+- This is a documentation-only verification checkpoint on the established off-production handover branch; no production ref or deployment settings changed.
