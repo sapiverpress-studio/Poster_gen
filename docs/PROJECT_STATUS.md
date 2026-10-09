@@ -485,3 +485,19 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Fresh GET checks: /poster/workflow, /poster/upload and /poster/products return 200; these unauthenticated responses demonstrate login-route availability, not full owner/mobile acceptance. /etsy/start returns 503; cached GitHub bootstrap still unverified. No second manual trigger required.
 - Correction: preceding 12:45 checkpoint used an approximate timestamp; corrective deployment actually completed at 12:41:20 BST and this verification is 12:42 BST.
 - Next: verify first scheduled worker succeeds and unlocks normal Etsy consent; then controlled real merchant tests and frame/size matching. No new approval needed for read-only worker verification. Product publication and orders remain outside this software release.
+
+### 2026-10-09 13:57 BST — Owner interface redesign staged off production
+- Owner request: improve the unstyled upload website; professional mobile appearance is part of product readiness.
+- Branch: feature/polished-owner-ui, based on latest handover 4beac46. Added lib/owner-page.mjs shared presentation; changed poster-upload-web/product-web/poster-workflow and public/index.html. Forest/cream visual system, compact navigation, readable cards and fields, larger touch controls, responsive dashboard filters, login and home page. Existing input names/IDs, CSRF/session logic, upload endpoints and final approval gates retained.
+- VERIFIED: full existing local suite 115/115 pass, zero failures. New shared presentation and both handlers import successfully; script syntax valid.
+- Visual limitation: no Chromium executable available in runtime or installed system. Full browser screenshot/mobile appearance check is pending; no assertion of visual acceptance.
+- Digital seller-kit importer remains unimplemented; supplied sapiver-testy-etsy-kit.zip is not accepted by current nested-ZIP validator. This styling task does not fix archive compatibility.
+- Release/credit impact: isolated branch only; save with skip-netlify marker. No production deployment, new seller writes, supplier upload, publication flag change or order. Single cosmetic release requires owner authorisation after review.
+- Next: review redesigned UI and perform actual browser visual acceptance, then one approved bundled release; separately finish seller-kit import and real worker/merchant verification.
+### 2026-10-09 14:01 BST — Owner approves one interface release
+- Jim explicitly approved one deployment of the staged owner-interface redesign 1fb0f28df587af68a8a059b38abb482aa84cf43e.
+- Verified preflight: production branch remains e6e70b0; current Ready deploy 6ac8d5fb0f1f576e0ec9fb4f serves the same e6e70b0 runtime. UI candidate is a fast-forward descendant; local 115-test suite and shared-page/handler imports passed before approval.
+- Prepare a release commit with the same tested interface files plus this approval record. No worker, merchant API, archive validation, authentication/CSRF or publication setting changes. Seller-kit compatibility and real merchant checks remain pending.
+- Deploy exactly once; verify Netlify Ready commit and live page markup. Browser visual acceptance remains unverified in this runtime.
+
+- Release prepared and production branch advanced once to fdefb3837207d748c7686da2e3d31cdea5ea37ab using expected-SHA protection. New Ready deployment still pending observation; no repeat build triggered.
