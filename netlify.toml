@@ -3,3 +3,9 @@
 
 [functions]
   directory = "netlify/functions"
+
+# Preserve Sharp's native binaries in only the new upload Function bundles.
+[functions."poster-upload*"]
+  node_bundler = "esbuild"
+  external_node_modules = ["sharp"]
+  included_files = ["node_modules/sharp/**", "node_modules/@img/**"]
