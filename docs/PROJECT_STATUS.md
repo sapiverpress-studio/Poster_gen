@@ -1,5 +1,18 @@
 # Sapiver Poster Gen — living status, decisions and handover
 
+## 11 October 2026 — Verified Pattern Forge integration checkpoint (supersedes earlier handoff state)
+
+**Implementation:** draft [PR #1](https://github.com/sapiverpress-studio/Poster_gen/pull/1) is based on the deployed `feature/canva-oauth-callback` source, not the divergent earlier feature branch. The owner upload form receives a validated `postMessage` File from an exact trusted Pattern Forge origin after an authenticated owner login. A product is **never automatically published**; the GBP price, repeat confirmation and existing hash-bound Deploy approval remain owner decisions. Existing digital download and physical PrintShrimp handling are unchanged.
+
+**Cross-device duplicate control:** the authenticated `POST /poster/uploads` now accepts a validated digital `sourceProjectId` and maintains one private `pattern-links/<projectId>` mapping to a stable product ID. A conditional first-write reservation prevents concurrent new drafts. Later transfers from another browser resolve to the linked product, with outstanding uploads returning HTTP 409 rather than creating duplicates. Linked unpublished reviews can receive a new revision; incompatible product IDs/types and forged source IDs are rejected. The browser acknowledges the server-returned product ID, not an assumed new one. An interrupted mapping reservation or abandoned active upload remains fail-closed and may require owner investigation; there is no automatic stale-record deletion.
+
+**Evidence:** full [Poster_gen suite 129/129 passed](https://github.com/sapiverpress-studio/Poster_gen/actions/runs/38151994134). Netlify draft preview [`deploy-preview-1`](https://deploy-preview-1--sapiver-poster-gen-auth.netlify.app) built successfully from this PR with the upload Function. Read-only HTTP checks returned homepage 200, `/poster-upload.mjs` 200 and unauthenticated `/poster/upload` 303. The [Pattern Forge Chromium integration run](https://github.com/sapiverpress-studio/Pattern-forge/actions/runs/38152311561) passed desktop/mobile simulated cross-origin transfer and used an **actual** generated seller ZIP; `inspectDigitalUpload` in this repository accepted it with one customer ZIP, three gallery images, embedded licence and instructions.
+
+**Limitations:** no private live owner login, Netlify Blobs persistence, actual authenticated postMessage transfer, physical Android/Expo validation, live Etsy seller authorisation, listing creation/update, PrintShrimp manufacturing proof or order has been verified. No production branch was merged; no live merchant records, settings or orders were changed. This is a tested preproduction release candidate, **not** a 100% certified production workflow. Publishing and supplier orders remain gated. Do not deploy to production merely because CI or a Netlify preview is Ready.
+
+**Next release gate:** verify real owner login and a private draft upload end-to-end in the preview with a non-sale test product; then undertake one controlled production release and repeat private verification before considering any Etsy publication or supplier handling. Source-of-truth companion draft [Pattern Forge PR #6](https://github.com/sapiverpress-studio/Pattern-forge/pull/6).
+
+
 ## 11 October 2026 — Pattern Forge direct browser handoff (production-aligned development branch only)
 
 **NOT DEPLOYED.** Branch `feature/pattern-handoff-parity-20261011` was created from the current deployed-feature source `feature/canva-oauth-callback` after finding that the earlier `feature/digital-seller-kit` development branch had diverged by four production-fix commits. The earlier handoff branch `feature/pattern-forge-handoff-20261011` is superseded; do not merge it.
