@@ -37,7 +37,7 @@ function setup(){
   const uploadId='Y'.repeat(32);
   const fetch=async(path,opts)=>{
     calls.push({path,opts});
-    if(path==='/poster/uploads'&&opts.method==='POST')return json({id:uploadId,chunkBytes:2048,phase:'uploading'},201);
+    if(path==='/poster/uploads'&&opts.method==='POST')return json({id:uploadId,productId:uploadId,chunkBytes:2048,phase:'uploading'},201);
     if(path.startsWith('/poster/uploads/'+uploadId+'/chunks/'))return json({stored:true});
     if(path.endsWith('/finish'))return json({phase:'preparing'},202);
     throw Error('Unexpected route '+path);
@@ -77,6 +77,7 @@ test('preparation is authenticated same-origin and acknowledges stable product I
   const input=JSON.parse(create.opts.body);
   assert.equal(input.type,'digital');
   assert.equal(input.metadata.kind,'pattern');
+  assert.equal(input.sourceProjectId,'pf-project-mgkk1122-abcd123');
   assert.equal(input.metadata.price,'3.95');
   assert.equal(input.metadata.seamlessConfirmed,true);
   assert.equal(h.sent.at(-1).message.type,'saved');
