@@ -69,19 +69,19 @@ if(form&&window.opener&&window.opener!==window){
 }
 
 if(form)form.addEventListener('submit',async event=>{event.preventDefault();const button=form.querySelector('button');button.disabled=true;try{
- const type=form.elements.type.value,file=form.elements.poster.files[0],maximum=type==='digital'?100_000_000:50_000_000,updateProductId=form.dataset.update||null;
+ const type=form.elements.type.value,file=form.elements.poster.files[0],maximum=type==='digital'?100_000_000:50_000_000,updateProductId=form.dataset.update||null,sourceProjectId=patternHandoff?.projectId||null;
  if(!file&&!updateProductId)throw Error('Choose your finished file.');if(file&&(file.size>maximum||!file.name.toLowerCase().endsWith(type==='digital'?'.zip':'.png')))throw Error(type==='digital'?'Choose a ZIP no larger than 100 MB.':'Choose a PNG no larger than 50 MB.');
  const previews=type==='digital'?[...(form.elements.previews?.files||[])]:[];if(previews.length>3)throw Error('Choose up to three previews.');status.textContent='Preparing upload…';const data=metadata(form);let upload,saved;
  // Receipt is bound to configuration and update target. Only IDs/metadata are stored here, never credentials.
- const signature=JSON.stringify({filename:file?.name,bytes:file?.size,type,updateProductId,metadata:data,previews:previews.map(f=>[f.name,f.size])});try{saved=JSON.parse(sessionStorage.getItem('poster-upload')||'null');}catch{}
+ const signature=JSON.stringify({filename:file?.name,bytes:file?.size,type,updateProductId,sourceProjectId,metadata:data,previews:previews.map(f=>[f.name,f.size])});try{saved=JSON.parse(sessionStorage.getItem('poster-upload')||'null');}catch{}
  if(saved?.signature===signature&&file){upload=saved;const prior=await api('/poster/uploads/'+upload.id);if(prior.phase!=='uploading'){location.assign('/poster/upload?id='+upload.id);return;}}
- else{upload=await api('/poster/uploads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file?.name,bytes:file?.size,type,metadata:data,previewCount:previews.length,referenceListingId:form.elements.referenceListingId?.value,updateProductId,reuseOriginal:!file})});try{sessionStorage.setItem('poster-upload',JSON.stringify({...upload,signature}));}catch{}}
+ else{upload=await api('/poster/uploads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file?.name,bytes:file?.size,type,metadata:data,previewCount:previews.length,referenceListingId:form.elements.referenceListingId?.value,updateProductId,sourceProjectId,reuseOriginal:!file})});try{sessionStorage.setItem('poster-upload',JSON.stringify({...upload,signature}));}catch{}}
  if(upload.phase==='preparing'){location.assign('/poster/upload?id='+upload.id);return;}
  for(let offset=0,i=0;offset<file.size;offset+=upload.chunkBytes,i++){await api('/poster/uploads/'+upload.id+'/chunks/'+i,{method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:file.slice(offset,offset+upload.chunkBytes)});status.textContent='Uploaded '+Math.round(Math.min(offset+upload.chunkBytes,file.size)/file.size*100)+'%';}
  for(let i=0;i<previews.length;i++)await api('/poster/uploads/'+upload.id+'/preview-input/'+i,{method:'PUT',headers:{'Content-Type':'image/jpeg'},body:await previewJpeg(previews[i])});
  await api('/poster/uploads/'+upload.id+'/finish',{method:'POST'});
  if(patternHandoff&&window.opener){
-   window.opener.postMessage({channel:HANDOFF_CHANNEL,type:'saved',challenge:patternHandoff.challenge,projectId:patternHandoff.projectId,productId:updateProductId||upload.id},patternHandoff.origin);
+   window.opener.postMessage({channel:HANDOFF_CHANNEL,type:'saved',challenge:patternHandoff.challenge,projectId:patternHandoff.projectId,productId:upload.productId||updateProductId||upload.id},patternHandoff.origin);
  }
  location.assign('/poster/upload?id='+upload.id);
  }catch(error){status.textContent=error.message;button.disabled=false;}});
