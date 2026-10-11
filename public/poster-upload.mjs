@@ -52,11 +52,11 @@ if(form&&window.opener&&window.opener!==window){
       if(title){form.elements.name.value=title;form.elements.subject.value=title;}
       if(update)form.dataset.update=update;
       // Price and seamless confirmation stay owner decisions, never guessed.
-      form.elements.price.value='';
+      if(!update)form.elements.price.value='';
       form.elements.seamlessConfirmed.checked=false;
       patternHandoff={challenge,origin:event.origin,projectId,linkedProductId:update||null};
       notice.textContent=(update?'Updating the linked Sapiver Prints product. ':'Pattern Forge seller kit received. ')
-        +'Enter a price, confirm the repeat is seamless, then press Prepare my product. Nothing is published automatically.';
+        +(update?'Review the existing price, confirm the repeat and press Prepare my product. ':'Enter a price, confirm the repeat is seamless, then press Prepare my product. ')+'Nothing is published automatically.';
       window.opener.postMessage({channel:HANDOFF_CHANNEL,type:'received',challenge,projectId},event.origin);
       form.elements.price.focus();
     }catch(error){
