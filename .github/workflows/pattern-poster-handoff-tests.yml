@@ -14,3 +14,16 @@ jobs:
       - run: node --check public/poster-upload.mjs
       - run: npm ci --ignore-scripts
       - run: npm test
+      - name: Confirm non-production Netlify preview routes (GET only)
+        run: |
+          set -euo pipefail
+          origin="https://deploy-preview-1--sapiver-poster-gen-auth.netlify.app"
+          for attempt in 1 2 3 4 5; do
+            root="$(curl -sS -o /dev/null --max-time 15 -w '%{http_code}' "$origin/" || true)"
+            client="$(curl -sS -o /dev/null --max-time 15 -w '%{http_code}' "$origin/poster-upload.mjs" || true)"
+            private="$(curl -sS -o /dev/null --max-time 15 -w '%{http_code}' "$origin/poster/upload" || true)"
+            echo "Preview response codes: root=$root client=$client unauth_upload=$private"
+            if [[ "$root" == 200 && "$client" == 200 && "$private" == 303 ]]; then exit 0; fi
+            sleep 5
+          done
+          exit 1
