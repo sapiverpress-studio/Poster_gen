@@ -11,4 +11,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: node --test test/pattern-handoff.test.mjs
+      - run: node --check public/poster-upload.mjs
+      - run: npm ci --ignore-scripts
+      - run: npm test
