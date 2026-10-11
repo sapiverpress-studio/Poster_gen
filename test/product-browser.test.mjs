@@ -10,7 +10,7 @@ function fixture(){
  const digital={hidden:false,querySelectorAll:()=>[elements.price,elements.licence,elements.instructions]},physical={hidden:false};const form={elements,dataset:{},querySelector:()=>button,querySelectorAll:q=>q==='[data-digital]'?[digital]:[physical],addEventListener:(name,fn)=>events[name]=fn};
  const document={querySelector:()=>({content:'csrf'}),getElementById:id=>id==='poster-upload-form'?form:id==='upload-status'?status:null};
  const fetch=async(path,opts)=>{calls.push([path,opts]);return {ok:true,json:async()=>path==='/poster/uploads'?{id:'a'.repeat(32),chunkBytes:2,phase:'uploading'}:{stored:true}};};
- runInNewContext(source,{document,fetch,sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},location:{assign:u=>assigned.push(u)},setTimeout,console});
+ runInNewContext(source,{document,window:{opener:null},fetch,sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},location:{assign:u=>assigned.push(u)},setTimeout,console});
  return {events,elements,form,digital,physical,button,status,assigned,calls};
 }
 test('browser product selection shows relevant fields and accepts only the selected file type',()=>{

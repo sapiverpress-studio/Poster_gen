@@ -5,17 +5,84 @@ function showType(f,type){f.querySelectorAll('[data-digital]').forEach(e=>{e.hid
 if(form){showType(form,form.elements.type.value);form.elements.type.addEventListener('change',()=>showType(form,form.elements.type.value));}
 if(configure){const type=configure.elements.kind.selectedOptions[0].dataset.type;showType(configure,type);configure.addEventListener('submit',async event=>{event.preventDefault();const button=configure.querySelector('button');button.disabled=true;try{const result=await api('/poster/uploads/'+configure.dataset.upload+'/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({metadata:metadata(configure)})});location.assign('/poster/upload?id='+result.id);}catch(error){status.textContent=error.message;button.disabled=false;}});}
 async function previewJpeg(file){if(!['image/png','image/jpeg'].includes(file.type)||file.size>20_000_000)throw Error('Use PNG/JPG previews under 20 MB.');const bitmap=await createImageBitmap(file),scale=Math.min(1,1200/Math.max(bitmap.width,bitmap.height)),canvas=document.createElement('canvas');canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.9));if(!blob||blob.size>2_000_000)throw Error('Preview could not be prepared.');return blob;}
+
+/*
+ * Explicit cross-origin handoff from Pattern Forge: the opener remains on its
+ * own site, and the seller ZIP is held in memory only until the owner submits
+ * this existing authenticated, CSRF-protected upload form.
+ *
+ * No cross-origin fetch, shared secret, automatic listing or supplier order.
+ */
+const HANDOFF_CHANNEL='sapiver-pattern-poster-handoff-v1';
+const TRUSTED_PATTERN_ORIGINS=new Set([
+  'https://sapiver-pattern-forge.netlify.app',
+  'https://sapiver-pattern-forge-ux2-staging.netlify.app'
+]);
+let patternHandoff=null;
+if(form&&window.opener&&window.opener!==window){
+  const challenge=[...crypto.getRandomValues(new Uint8Array(16))].map(n=>n.toString(16).padStart(2,'0')).join('');
+  const notice=document.createElement('p');
+  notice.id='pattern-handoff-status';
+  notice.setAttribute('role','status');
+  notice.textContent='Waiting for the Pattern Forge seller kit. If you came here directly, choose your own ZIP below.';
+  form.parentNode.insertBefore(notice,form);
+  window.addEventListener('message',event=>{
+    const message=event.data;
+    if(event.source!==window.opener||!TRUSTED_PATTERN_ORIGINS.has(event.origin)
+       ||message?.channel!==HANDOFF_CHANNEL||message.type!=='kit'
+       ||message.challenge!==challenge||patternHandoff)return;
+    try{
+      const received=message.file;
+      const name=String(received?.name||message.fileName||'');
+      if(!(received instanceof Blob)||received.size<33||received.size>100_000_000
+         ||!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,179}-etsy-kit\.zip$/i.test(name))throw Error('Invalid seller kit');
+      const projectId=String(message.projectId||'');
+      if(!/^pf-project-[A-Za-z0-9_-]{8,90}$/.test(projectId))throw Error('Invalid source project');
+      const update=message.updateProductId;
+      if(update!==null&&update!==undefined&&!/^[A-Za-z0-9_-]{32}$/.test(update))throw Error('Invalid linked product');
+      const file=received instanceof File?received:new File([received],name,{type:'application/zip'});
+      const transfer=new DataTransfer();transfer.items.add(file);
+      form.elements.poster.files=transfer.files;
+      if(form.elements.poster.files.length!==1)throw Error('Browser file handoff unavailable');
+      form.elements.type.value='digital';
+      showType(form,'digital');
+      form.elements.kind.value='pattern';
+      form.elements.useEmbeddedText.checked=true;
+      const title=String(message.projectTitle||'').trim().slice(0,100);
+      if(title){form.elements.name.value=title;form.elements.subject.value=title;}
+      if(update)form.dataset.update=update;
+      // Price and seamless confirmation stay owner decisions, never guessed.
+      if(!update)form.elements.price.value='';
+      form.elements.seamlessConfirmed.checked=false;
+      patternHandoff={challenge,origin:event.origin,projectId,linkedProductId:update||null};
+      notice.textContent=(update?'Updating the linked Sapiver Prints product. ':'Pattern Forge seller kit received. ')
+        +(update?'Review the existing price, confirm the repeat and press Prepare my product. ':'Enter a price, confirm the repeat is seamless, then press Prepare my product. ')+'Nothing is published automatically.';
+      window.opener.postMessage({channel:HANDOFF_CHANNEL,type:'received',challenge,projectId},event.origin);
+      form.elements.price.focus();
+    }catch(error){
+      notice.textContent='Could not import the Pattern Forge kit. Use the normal ZIP upload instead.';
+      window.opener.postMessage({channel:HANDOFF_CHANNEL,type:'error',challenge,message:error?.message||'Import failed'},event.origin);
+    }
+  });
+  for(const origin of TRUSTED_PATTERN_ORIGINS)
+    window.opener.postMessage({channel:HANDOFF_CHANNEL,type:'ready',challenge},origin);
+}
+
 if(form)form.addEventListener('submit',async event=>{event.preventDefault();const button=form.querySelector('button');button.disabled=true;try{
- const type=form.elements.type.value,file=form.elements.poster.files[0],maximum=type==='digital'?100_000_000:50_000_000,updateProductId=form.dataset.update||null;
+ const type=form.elements.type.value,file=form.elements.poster.files[0],maximum=type==='digital'?100_000_000:50_000_000,updateProductId=form.dataset.update||null,sourceProjectId=patternHandoff?.projectId||null;
  if(!file&&!updateProductId)throw Error('Choose your finished file.');if(file&&(file.size>maximum||!file.name.toLowerCase().endsWith(type==='digital'?'.zip':'.png')))throw Error(type==='digital'?'Choose a ZIP no larger than 100 MB.':'Choose a PNG no larger than 50 MB.');
  const previews=type==='digital'?[...(form.elements.previews?.files||[])]:[];if(previews.length>3)throw Error('Choose up to three previews.');status.textContent='Preparing upload…';const data=metadata(form);let upload,saved;
  // Receipt is bound to configuration and update target. Only IDs/metadata are stored here, never credentials.
- const signature=JSON.stringify({filename:file?.name,bytes:file?.size,type,updateProductId,metadata:data,previews:previews.map(f=>[f.name,f.size])});try{saved=JSON.parse(sessionStorage.getItem('poster-upload')||'null');}catch{}
+ const signature=JSON.stringify({filename:file?.name,bytes:file?.size,type,updateProductId,sourceProjectId,metadata:data,previews:previews.map(f=>[f.name,f.size])});try{saved=JSON.parse(sessionStorage.getItem('poster-upload')||'null');}catch{}
  if(saved?.signature===signature&&file){upload=saved;const prior=await api('/poster/uploads/'+upload.id);if(prior.phase!=='uploading'){location.assign('/poster/upload?id='+upload.id);return;}}
- else{upload=await api('/poster/uploads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file?.name,bytes:file?.size,type,metadata:data,previewCount:previews.length,referenceListingId:form.elements.referenceListingId?.value,updateProductId,reuseOriginal:!file})});try{sessionStorage.setItem('poster-upload',JSON.stringify({...upload,signature}));}catch{}}
+ else{upload=await api('/poster/uploads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file?.name,bytes:file?.size,type,metadata:data,previewCount:previews.length,referenceListingId:form.elements.referenceListingId?.value,updateProductId,sourceProjectId,reuseOriginal:!file})});try{sessionStorage.setItem('poster-upload',JSON.stringify({...upload,signature}));}catch{}}
  if(upload.phase==='preparing'){location.assign('/poster/upload?id='+upload.id);return;}
  for(let offset=0,i=0;offset<file.size;offset+=upload.chunkBytes,i++){await api('/poster/uploads/'+upload.id+'/chunks/'+i,{method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:file.slice(offset,offset+upload.chunkBytes)});status.textContent='Uploaded '+Math.round(Math.min(offset+upload.chunkBytes,file.size)/file.size*100)+'%';}
  for(let i=0;i<previews.length;i++)await api('/poster/uploads/'+upload.id+'/preview-input/'+i,{method:'PUT',headers:{'Content-Type':'image/jpeg'},body:await previewJpeg(previews[i])});
- await api('/poster/uploads/'+upload.id+'/finish',{method:'POST'});location.assign('/poster/upload?id='+upload.id);
+ await api('/poster/uploads/'+upload.id+'/finish',{method:'POST'});
+ if(patternHandoff&&window.opener){
+   window.opener.postMessage({channel:HANDOFF_CHANNEL,type:'saved',challenge:patternHandoff.challenge,projectId:patternHandoff.projectId,productId:upload.productId||updateProductId||upload.id},patternHandoff.origin);
+ }
+ location.assign('/poster/upload?id='+upload.id);
  }catch(error){status.textContent=error.message;button.disabled=false;}});
 if(status?.dataset.upload){const id=status.dataset.upload;let stopped=false;async function poll(){try{const a=await api('/poster/uploads/'+id);if(a.phase==='ready_for_approval'){location.assign('/poster/upload?id='+id);return;}if(['published','needs_investigation'].includes(a.phase)){if(!stopped&&status.dataset.phase!==a.phase){stopped=true;location.assign('/poster/upload?id='+id);}return;}if(['uploading','preparing','publishing'].includes(a.phase))setTimeout(poll,5000);}catch{status.textContent='Refresh status to check saved progress.';}}poll();}
