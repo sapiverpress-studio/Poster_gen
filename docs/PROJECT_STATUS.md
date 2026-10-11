@@ -1,5 +1,16 @@
 # Sapiver Poster Gen — living status, decisions and handover
 
+## 11 October 2026 — Pattern Forge direct browser handoff (production-aligned development branch only)
+
+**NOT DEPLOYED.** Branch `feature/pattern-handoff-parity-20261011` was created from the current deployed-feature source `feature/canva-oauth-callback` after finding that the earlier `feature/digital-seller-kit` development branch had diverged by four production-fix commits. The earlier handoff branch `feature/pattern-forge-handoff-20261011` is superseded; do not merge it.
+
+Change scope: `public/poster-upload.mjs` only in runtime. A strict origin/source/challenge-validated `postMessage` handshake accepts one Pattern Forge Etsy seller-kit ZIP into the existing authenticated upload form. The form selects Digital Download / Pattern, fills the source project title and file, uses embedded licence/instructions, and requires the owner to choose price and explicitly confirm the seamless repeat before submitting the original CSRF-protected private upload workflow. A returned /finish success only confirms submission to private preparation; it does not mean the Etsy listing is live. Source project and linked product IDs are retained by Pattern Forge in that browser only, not by independent server-side cross-device synchronization.
+
+The existing server seller-kit import/validation, physical nine-option print route, Etsy approval and GitHub worker gates, PrintShrimp prohibitions, and Canva integration have not been changed. No Etsy listing, PrintShrimp order, supplier SKU, settings, production deployment, or APK has been changed. New isolated Node regression test is `test/pattern-handoff.test.mjs`, with a branch-scoped workflow that also executes the full `npm test` suite. Physical Android browser popup support, Netlify login/redirect continuity and real end-to-end digital upload require explicit acceptance before release.
+
+Companion Pattern Forge branch: `feature/poster-gen-handoff-20261011`. Do not promote either branch until test results and owner/device acceptance have been recorded.
+
+
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
 ## CURRENT PROJECT SNAPSHOT — 2026-10-09 15:21 UTC
