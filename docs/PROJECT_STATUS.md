@@ -1,5 +1,16 @@
 # Sapiver Poster Gen — living status, decisions and handover
 
+## 11 October 2026 — Pattern Forge seller-kit handoff (development branch only)
+
+**NOT DEPLOYED.** Companion source: `sapiverpress-studio/Pattern-forge` branch `feature/poster-gen-handoff-20261011`. This Poster_gen work is isolated on `feature/pattern-forge-handoff-20261011`, based on the existing tested `feature/digital-seller-kit` branch, not the stale default README on `main`.
+
+The existing authenticated product upload page (`public/poster-upload.mjs`) now accepts an owner-triggered browser-to-browser handoff from the exact Pattern Forge origin(s). It validates the sender's window, explicit per-page challenge, source project ID, digital kit ZIP name/size, and optional locally linked product ID. It places the transmitted File in the existing upload control, selects **Digital Download / Seamless pattern**, and uses embedded licence/instructions. **The owner must provide the price, confirm repeat accuracy and explicitly submit Prepare my product.** Existing private upload, chunking, CSRF, seller-kit server validation, review, approval gate and publication/PrintShrimp restrictions remain unchanged.
+
+Following a successful /finish response (submission accepted for preparation, not proof of completed preparation), the browser acknowledges the product ID to Pattern Forge. Pattern Forge stores that ID locally and sends it with later revisions. The server validates ownership and compatibility for updates; cross-device mapping, independent duplicate detection, automatic upload after opening, physical print manufacturing and full ongoing synchronization are **not** implemented.
+
+Changed: `public/poster-upload.mjs`, `test/pattern-handoff.test.mjs`, isolated handoff CI; no Netlify configuration, Etsy session, catalogue data, worker schedule, credentials, supplier order or production branch changed. Real Chrome/Android popup/opener/File support and owner login must be validated before production release.
+
+
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
 ## CURRENT PROJECT SNAPSHOT — 2026-10-09 15:21 UTC
