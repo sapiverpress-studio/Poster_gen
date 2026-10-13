@@ -689,3 +689,6 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Outstanding: actual owner-uploaded-artwork acceptance requires the tested interface release; full merchant/supplier workflow and framed fulfilment remain unverified. Do not represent the dry run as end-to-end publication.
 
 - Checkpoint-time correction: the direct-product checkpoint was recorded at 15:08 BST, not the initially typed 15:12 BST. GitHub CI run 38410843689 is queued. Netlify Ready/current remains 6ace36488e46e5ef61b1962b; no new paid deploy occurred during the alternative investigation.
+
+### 2026-10-13 15:09 BST — Direct first-product candidate CI passed
+- Verify Poster_gen run 38410843689 / job 115342436810 passed all syntax/import checks and 159/159 tests, zero failures, at candidate 2d12b0c912eee735851fd1a174c632a1d0563fbc. Together with live read-only worker plan 115340676022, the candidate is ready for one separately approved software release. Still no full owner artwork upload or supplier write. PR #11 remains staged with skip-netlify; no additional deployment.
