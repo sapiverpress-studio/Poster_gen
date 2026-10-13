@@ -28,7 +28,7 @@ test('callback verifies actual seller, encrypts tokens and blocks concurrent/rep
  const {handler,records}=setup(async(url,options)=>{
   requests++;assert.equal(options.redirect,'error');
   if(url.endsWith('/oauth/token')){assert.equal(options.method,'POST');assert.equal(new URLSearchParams(options.body).get('grant_type'),'authorization_code');return Response.json(token);}
-  assert.equal(options.method,'GET');assert.equal(url,'https://openapi.etsy.com/v3/application/users/123/shops');return Response.json({shop_name:'SapiverPrints',shop_id:456,user_id:123});
+  assert.equal(options.method,'GET');assert.equal(url,'https://openapi.etsy.com/v3/application/users/123/shops');return Response.json({count:1,results:[{shop_name:'SapiverPrints',shop_id:456,user_id:123}]});
  });
  const flow=newFlow(),results=await Promise.all([handler(callback(flow)),handler(callback(flow))]);assert.deepEqual(results.map(r=>r.status).sort(),[200,400]);assert.equal(requests,2);
  const stored=records.get('primary');assert.doesNotMatch(stored,/private-access|private-refresh/);assert.equal(unseal(stored,secret,'etsy-stored-tokens').shop_id,456);
@@ -36,7 +36,7 @@ test('callback verifies actual seller, encrypts tokens and blocks concurrent/rep
 });
 test('wrong seller, insufficient scopes, expiry and tampered states fail closed',async()=>{
  const flow=newFlow();let calls=0;
- const {handler,records}=setup(async(url)=>{calls++;return url.endsWith('/oauth/token')?Response.json(token):Response.json({shop_name:'OtherShop',shop_id:456,user_id:123});});
+ const {handler,records}=setup(async(url)=>{calls++;return url.endsWith('/oauth/token')?Response.json(token):Response.json({count:1,results:[{shop_name:'OtherShop',shop_id:456,user_id:123}]});});
  assert.equal((await handler(callback(flow,'wrong-state'))).status,400);assert.equal(calls,0);
  assert.equal((await handler(callback({...flow,expiry:Date.now()-1}))).status,400);assert.equal(calls,0);
  assert.equal((await handler(callback(flow))).status,403);assert.equal(records.has('primary'),false);
