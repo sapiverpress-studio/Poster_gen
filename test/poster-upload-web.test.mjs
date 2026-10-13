@@ -47,13 +47,13 @@ test('fourth framed option preview is available to authenticated owner',async()=
  assert.equal(response.status,200);assert.match(response.headers.get('Content-Type'),/jpeg/);
 });
 
-test('empty Etsy reference is diagnosed before upload and reference status is owner-only',async()=>{
+test('first physical upload needs no reference while seller status remains owner-only',async()=>{
  const f=fixture(),state={phase:'seller_consent_required',checkedAt:Date.now()};await f.uploads.setJSON('template/catalog-status',state);
  const page=await f.handler(request('/poster/upload'),f.context);assert.equal(page.status,200);
- const html=await page.text();assert.match(html,/seller authorisation has not been established/);assert.match(html,/Check Etsy references through API/);
+ const html=await page.text();assert.match(html,/seller authorisation has not been established/);assert.match(html,/Check Etsy connection/);assert.match(html,/no previous listing needed/i);
  const status=await f.handler(request('/poster/catalog/status'),f.context);assert.equal((await status.json()).phase,'seller_consent_required');
  const payload=JSON.stringify({filename:'47271.png',bytes:12345,metadata:{name:'Coast to Coast Walk Poster',kind:'artwork'}});
- const rejected=await f.handler(request('/poster/uploads','POST',payload),f.context);assert.equal(rejected.status,409);assert.match((await rejected.json()).error,/No Etsy reference/);
+ const rejected=await f.handler(request('/poster/uploads','POST',payload),f.context);assert.equal(rejected.status,201);const {id}=await rejected.json();assert.equal((await f.uploads.get(assetKey(id))).referenceListingId,null);
  assert.equal(f.uploads.map.has('template/settings'),false);
 });
 test('catalogue refresh is private, CSRF protected and never creates a product or merchant listing',async()=>{
@@ -97,4 +97,12 @@ test('a completed private queue job without its final Etsy API status is identif
  assert.equal(response.status,200);
  const data=await response.json();assert.equal(data.phase,'worker_finished_no_result');
  assert.equal(data.listings.length,0);assert.doesNotMatch(JSON.stringify(data),/jobs\//);
+});
+
+test('new first-product upload ignores a stale reference default and rejects an invalid explicit reference',async()=>{
+ const f=fixture();await f.uploads.setJSON('template/settings',{referenceListingId:789,physicalSetup:{phase:'ready'}});
+ const body={filename:'Coast.png',bytes:100,metadata:{kind:'artwork'}};
+ const response=await f.handler(request('/poster/uploads','POST',JSON.stringify(body)),f.context);assert.equal(response.status,201);
+ const {id}=await response.json();assert.equal((await f.uploads.get(assetKey(id))).referenceListingId,null);assert.equal((await f.uploads.get('template/settings')).referenceListingId,789);
+ const invalid=await f.handler(request('/poster/uploads','POST',JSON.stringify({...body,referenceListingId:'wrong'})),f.context);assert.equal(invalid.status,400);
 });
