@@ -718,3 +718,8 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - GitHub Verify Poster_gen run 38415657327 passed candidate 030dd9b30ffb71fe6043327a2d5f80d6335cda21, 169-test suite. Strengthened cached-receipt regression to use the exact matching signature with a missing ID (the old HTML-response path can persist this before its phase exception); targeted 13 browser tests passed.
 - Use a fresh Chrome tab for the immediate retry: it avoids the per-tab broken recovery receipt as well as obtaining a current studio page/CSRF pair. Merely returning from a different login tab can leave a stale CSRF token in the old page; merely refreshing can retain malformed sessionStorage. Select PNG anew. This is the studio's normal app session, not a Netlify dashboard login or fresh Etsy consent.
 - PR #12 remains off-production and skip-netlify. ZERO additional paid deployments since PR #11; publication/orders unchanged. Actual owner's private cookie was never inspected, so the precise expired/missing-session state remains an inference from the exact reproduced failure path.
+
+
+### 2026-10-13 20:39 BST — Owner explicitly approved PR #12 deployment
+- Jim instructed Deploy it, authorising one production release of the staged upload response/session and corrupt-receipt correction through the existing GitHub/Netlify connection. No dashboard sign-in or repeated approval is needed.
+- Latest code head 40446f71b2eb737aa300470ce4b005dc75faa9e5 passed Verify Poster_gen run 38416017621. Release merge will omit skip-netlify; this approval-only documentation commit skips deployment. Verify Ready commit, live unsigned API JSON 401, and served browser receipt guard after release. No merchant publication or supplier order is authorised.
