@@ -76,7 +76,7 @@ test('server JSON session error is shown before artwork can upload',async()=>{
  const f=fixture({responseFor:async()=>({ok:false,status:401,json:async()=>({code:'studio_session_required'})})});selectedPng(f);await f.events.submit({preventDefault(){}});assert.match(f.status.textContent,/session has expired/);assert.equal(f.calls.length,1);assert.equal(f.button.disabled,false);
 });
 test('malformed old saved receipt is discarded instead of requesting an undefined upload ID',async()=>{
- const f=fixture();selectedPng(f);f.storage.set('poster-upload',JSON.stringify({signature:'old failed request'}));await f.events.submit({preventDefault(){}});
+ const f=fixture();selectedPng(f);await f.events.submit({preventDefault(){}});const signature=JSON.parse(f.storage.get('poster-upload')).signature;f.storage.set('poster-upload',JSON.stringify({signature}));f.calls.length=0;f.assigned.length=0;await f.events.submit({preventDefault(){}});
  assert.ok(f.calls.every(([path])=>!path.includes('undefined')));assert.equal(f.calls.filter(([path])=>path==='/poster/uploads').length,1);assert.equal(JSON.parse(f.storage.get('poster-upload')).id,'a'.repeat(32));
 });
 
