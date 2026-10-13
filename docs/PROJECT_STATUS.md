@@ -2,7 +2,7 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
-## CURRENT PROJECT SNAPSHOT — 2026-10-09 15:21 UTC
+## CURRENT PROJECT SNAPSHOT — 2026-10-13 (production state retained; off-production correction in progress)
 
 | Area | Current evidence-based state |
 | --- | --- |
@@ -11,7 +11,7 @@
 | Live routes | Fresh unauthenticated checks: owner workflow, uploader and dashboard return HTTP 200 (login pages; not authenticated acceptance). Etsy start returns 503 awaiting worker bootstrap. Canva routes preserved. |
 | Development | Seller-kit importer released on production; development checkpoint on `feature/digital-seller-kit`; previous unified candidate: code/tests/docs saved as `45240c8b6ceb6f34442074e68e304d87cc735210` on established off-production `docs/handover-and-change-policy-20261008`. Supersedes unreleased GitHub-worker candidate `5413ef62acd9552650336a6fed4ffa43dcdc142d`. |
 | Digital | **SELLER-KIT IMPORT RELEASED / FIXTURE-TESTED:** one recognised envelope level separates unchanged buyer ZIPs, listing photographs and seller notes; embedded licence/instructions used in review. Invalid SVG dimensions rejected. Existing digital route: secure ZIP validation/private storage, original-file preservation, Etsy-limit splitting, accurate metadata/previews, digital listing/file attachment/sections and same-ID updates. No PrintShrimp or physical profiles. |
-| Physical | **IMPLEMENTED / FIXTURE-TESTED:** exactly A5/A4/A3 × Black/White/Oak = **nine** framed variants, approved £49.99/£54.99/£64.99 prices, preserved template/settings, one master/shared SKU/supplier mapping. No automatic orders. Older twelve-option notes are superseded for new listings, not a live migration. |
+| Physical | **LIVE PRODUCTION STILL HAS NINE FRAMED VARIANTS.** On `fix/12-variants-print-upload-20261013`, twelve framed/unframed variants (A5/A4/A3 × Print Only/Black/White/Oak) are being tested; previously  approved £49.99/£54.99/£64.99 prices, preserved template/settings, one master/shared SKU/supplier mapping. No automatic orders. Older twelve-option notes are superseded for new listings, not a live migration. |
 | Approval / reliability | Hash-bound Deploy, queue/revision/SKU claims, stored IDs and safe stop after partial/uncertain API operations; no automatic repeat creation. Physical previews now hash-bound too. |
 | Dashboard / edits | Type/subject/status filters, files, previews, Etsy URL, supplier ID and attention errors. Digital files and physical metadata update existing IDs. Physical artwork replacement blocked until supplier update schema verified. |
 | Tests | **120 local tests pass** including seller-kit preparation/publication, payload preservation, safe validation errors and public-origin fix, including tracked-file scanner regression. Prior candidate remote CI 114/114 passed. Real Netlify Function/Edge packaging now passed; live merchant writes and device acceptance unverified. |
@@ -19,7 +19,7 @@
 | Etsy access | Existing key pair and supplier key previously returned HTTP 200 in read-only preflight. Seller OAuth NOT established by those keys; updated `shops_w` consent required for section creation. No live sections/listings changed. |
 | Canva | Original `DAHXUnmHofY` preserved. Working A3 `DAHXb1PdJlM`; existing owner report confirmed 3508 × 4961 PNG, 37.4 MiB, A3 300/A4 424/A5 600 PPI. No new export or artwork change. Visual print/sample and framed fulfilment remain unverified. |
 | Release / credits | Owner approved bundled release and worker installation. First attempt failed public-origin scan; corrective release is Ready. Publication flag not changed; no merchant writes/orders. No more release needed for this scanner fix. |
-| Next stage | Release authorisation received; corrective candidate e6e70b0 passes 115 local tests. Verify successful Netlify build, real worker/OAuth/routes/categories/files/supplier frame delivery and owner browser interface before enabling per-product publication. |
+| Next stage | Do not upload Coast to Coast to production until fix-branch CI, a separately approved release and authenticated owner/supplier acceptance tests pass. Previous corrective candidate e6e70b0 passes 115 local tests. Verify successful Netlify build, real worker/OAuth/routes/categories/files/supplier frame delivery and owner browser interface before enabling per-product publication. |
 
 ### Current implementation and explicit limits
 
@@ -556,3 +556,13 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 
 ### 2026-10-10 19:54 BST — Worker storage correction release approved
 - Jim confirmed this fixes the workflow, not artwork, then approved the tested correction. Release bridge/gallery compatibility and safe diagnostics with 124 tests passed. Retry retained preparation once after Ready deployment. No product publication or orders approved by this software release.
+
+
+## 2026-10-13 — Twelve-option physical poster correction (NON-PRODUCTION)
+- Purpose: Restore approved A5/A4/A3 × Print Only/Black/White/Oak combinations and previously documented price matrix for a single Etsy listing per design.
+- Branch: `fix/12-variants-print-upload-20261013`, forked from production commit `42172af576eb3e48ecabae79b3e05072b73f4afa`; production branch, merchant records and live website unchanged.
+- Changes: Correct physical variation matrix and shared SP- SKU prefix handling; use effective minimum 270 PPI at A3 with intact A-series ratio guard (300 preferred); four print/frame mockups; reviewed physical description field; updated tests for 12 inventory variations and 3294×4663/3394×4800 artwork acceptance.
+- Verification pending: new-branch GitHub CI. Passing fixtures will not establish seller OAuth, worker bootstrap, reference listing's twelve real value IDs, or PrintShrimp's correct frame selection from imported Etsy orders. Keep those as live acceptance blockers.
+- Credit and deployment impact: GitHub staging only. No production deploy, Etsy publication, PrintShrimp order, API key change or live customer purchase authorised.
+- Risks: supplier artwork create API lists three sizes, not 12 fulfilment combinations; frame selection remains a real order/import acceptance requirement. Original artwork and existing listings are not replaced.
+- Next authorised action: verify green CI; request one controlled deployment approval, then owner uploads Coast to Coast privately for preparation/review while publication remains disabled. Capture exact import/fulfilment evidence before enabling live publication.
