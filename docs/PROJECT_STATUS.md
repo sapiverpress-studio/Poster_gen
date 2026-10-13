@@ -2,7 +2,7 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
-## CURRENT PROJECT SNAPSHOT — 2026-10-13 15:08 BST (direct first-product plan LIVE READ-VERIFIED; uploader changes STAGED)
+## CURRENT PROJECT SNAPSHOT — 2026-10-13 15:22 BST (direct first-product uploader RELEASED; protected owner form LIVE VERIFIED)
 
 | Area | Current evidence-based state |
 | --- | --- |
@@ -11,10 +11,10 @@
 | Catalogue | **VERIFIED LIMITED RESULT:** zero matching active physical references, not proof that the shop has no drafts/inactive products. Released worker now searches active, draft and inactive listings. Live rerun also returned empty. |
 | Correction | **RELEASED / CI TESTED:** PR #10 merged into `feature/canva-oauth-callback` searches active, draft and inactive physical references; labels private nonactive references; derives missing draft processing ID only from unambiguous enabled inventory. All twelve variants, prices, seller/profile validation and approval gates remain enforced. Etsy documents that listing-level processing IDs can be null on drafts; checked directly against its downloaded OpenAPI schema. |
 | Tests | Existing production suite **147/147** passed locally; revised suite **150/150** passed locally. Draft fallback and missing/ambiguous/wrong-shop rejection covered. Merchant writes remain fixture-tested only. |
-| Direct first-product route | **LIVE READ-VERIFIED:** worker job 115340676022 validated all four existing shop settings and built twelve custom variations with no reference required. Royal Mail carrier-based delivery legitimately returns null day fields; validator corrected from official schema and actual API evidence. **STAGED:** uploader now accepts a first physical product without a reference; prepares real PNG/mockups from live shop settings. |
+| Direct first-product route | **LIVE READ-VERIFIED:** worker job 115340676022 validated all four existing shop settings and built twelve custom variations with no reference required. Royal Mail carrier-based delivery legitimately returns null day fields; validator corrected from official schema and actual API evidence. **RELEASED:** uploader implements first-product preparation without a reference. Protected owner-form GET returned ready/direct first-product form=yes in worker job 115348527127; actual owner artwork preparation remains pending. |
 | Remaining live checks | Owner-authenticated uploaded artwork preparation and PrintShrimp frame fulfilment remain unverified. No merchant listing or supplier product was created by the dry run. Publication and orders remain disabled. |
 | Safety / cost | No new Netlify deploy, no publication flag change, no live listing creation/publication, no supplier order and no other-shop change. Existing worker rerun consumes worker/API runtime; not claimed cost-free. Software release requires explicit approval for a single concrete release. |
-| Next action | Review the tested direct-upload candidate and approve one controlled software release if desired; verify a real owner-uploaded artwork reaches review using the validated shop settings. No further consent or existing reference is needed. Do not enable publication or orders until separate live checks support them. |
+| Next action | Upload the checked PNG through the released owner form and verify it reaches prepared review using the live-validated shop settings. No new dashboard sign-in or existing listing is needed. Live merchant publication and PrintShrimp frame handling remain unverified; no orders enabled. |
 
 ### Current implementation and explicit limits
 
@@ -700,3 +700,8 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Released PR #11 once, merge commit 14b980bcb609672bf3cbb4196f5fa86ba7a29af9, Netlify 6ace3db8a753cbaf3f0126dc created 14:18:32 UTC and confirmed Ready/current. Existing GitHub/Netlify connection handled it; no dashboard sign-in.
 - Trusted worker-only smoke module signs a transient 60-second application session in memory using its existing authorised root, makes one same-origin protected uploader GET with redirects forbidden, logs only phase/boolean, and persists safe check status. No credential is returned/logged or retained; no product, merchant listing, order, browser account or new access permission is created. Three targeted helper tests pass. Worker-only commit uses skip-netlify; no second paid deploy.
 - Await actual protected GET result before claiming live first-product form accepted. Real owner-artwork upload and live supplier fulfilment remain unverified. Product publication and orders stay disabled.
+
+### 2026-10-13 15:22 BST — Protected first-product form verified live without dashboard sign-in
+- Worker run 38374036756 / job 115348527127 completed successfully and logged Owner upload form read-only check: ready; direct first-product form=yes at 14:21:26 UTC. Short-lived signed owner GET reached actual new production form, not the login fallback. Production upload JS returned HTTP 200 with new no-reference message. No artwork/product/merchant write was made by these checks.
+- Release confirmed: Netlify 6ace3db8a753cbaf3f0126dc Ready/current, application commit 14b980bcb609672bf3cbb4196f5fa86ba7a29af9. Exactly one approved paid deployment for PR #11; worker-only verification and this status update use skip-netlify. User did not sign into dashboard.
+- Verified scope: code tests 159/159, three targeted smoke tests, live shop/category twelve-variant plan and protected uploader rendering. NOT verified: user PNG upload/prepared review, actual Etsy merchant publication or PrintShrimp frame fulfilment. Publication and orders remain disabled.
