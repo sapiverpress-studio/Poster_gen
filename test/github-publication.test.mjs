@@ -79,7 +79,7 @@ test('scheduled worker verifies the previously exchanged Etsy token and records 
  const calls=[];
  await runGithubJobs({jobs:[{key,...job}],queue:q,uploads:u,etsyStore:e,env,clock:()=>now,request:async(url,opts)=>{
   calls.push(url);assert.equal(opts.headers['x-api-key'],'app:shared');assert.equal(opts.headers.Authorization,'Bearer 123.access-secret');
-  if(url.includes('/users/123/shops'))return Response.json({shop_name:'SapiverPrints',shop_id:456,user_id:123});
+  if(url.includes('/users/123/shops'))return Response.json({count:1,results:[{shop_name:'SapiverPrints',shop_id:456,user_id:123}]});
   return Response.json({results:[]});
  }});
  assert.equal((await e.get(statusKey)).phase,'complete');
@@ -97,7 +97,7 @@ test('delayed GitHub shop verification can refresh the already exchanged token w
  let refreshes=0,verified=0;
  await runGithubJobs({jobs:[{key,...job}],queue:q,uploads:u,etsyStore:e,env,clock:()=>now+7200000,request:async(url,options)=>{
   if(url.endsWith('/oauth/token')){refreshes++;assert.equal(new URLSearchParams(options.body).get('grant_type'),'refresh_token');return Response.json({access_token:'123.new-token',refresh_token:'123.new-refresh',scope:'shops_r shops_w listings_r listings_w',expires_in:3600,token_type:'Bearer'});}
-  if(url.includes('/users/123/shops')){verified++;assert.equal(options.headers.Authorization,'Bearer 123.new-token');return Response.json({shop_name:'SapiverPrints',shop_id:456,user_id:123});}
+  if(url.includes('/users/123/shops')){verified++;assert.equal(options.headers.Authorization,'Bearer 123.new-token');return Response.json({count:1,results:[{shop_name:'SapiverPrints',shop_id:456,user_id:123}]});}
   return Response.json({results:[]});
  }});
  assert.equal(refreshes,1);assert.equal(verified,1);assert.equal((await e.get(statusKey)).phase,'complete');
@@ -146,8 +146,29 @@ test('worker fetches Etsy catalogue through read-only seller API and records bou
  assert.equal((await u.get('template/catalog-status')).count,1);
  assert.deepEqual((await u.get('template/catalog')).listings.map(x=>x.listing_id),[123]);
  assert.ok(calls.every(url=>url.startsWith('https://openapi.etsy.com/v3/application/')));
+ assert.ok(calls.some(url=>url.includes('/shops/456/listings/active?limit=100&offset=0')),'Catalogues must use the Etsy active-listings endpoint proven by the legacy uploader');
 });
 
+
+test('catalogue fetch handles more than 100 active listings and rejects a partial seller cache',async()=>{
+ const q=memory(),u=memory(),e=memory(),key='jobs/'+'k'.repeat(32),job={phase:'queued',action:'catalog'};
+ await q.setJSON(key,job);
+ const saved={shop_name:'SapiverPrints',shop_id:456,user_id:'1',access_token:'1.token',refresh_token:'1.refresh',scope:'shops_r shops_w listings_r listings_w',expires_at:now+3600000,connected_at:now};
+ await e.set('primary',seal(saved,secret,'etsy-stored-tokens'));
+ const seen=[];
+ const request=async url=>{
+  if(url.includes('/seller-taxonomy/nodes'))return Response.json({results:[]});
+  const target=new URL(url);if(!target.pathname.endsWith('/shops/456/listings/active'))return new Response('',{status:404});
+  seen.push(target.searchParams.get('offset'));
+  const offset=Number(target.searchParams.get('offset'));
+  return Response.json({results:Array.from({length:offset===0?100:1},(_,i)=>({shop_id:456,listing_id:10000+offset+i,listing_type:'physical',state:'active',title:'Print reference '+i}))});
+ };
+ await runGithubJobs({jobs:[{key,...job}],queue:q,uploads:u,etsyStore:e,env,request,clock:()=>now});
+ assert.deepEqual(seen,['0','100']);
+ assert.equal((await u.get('template/catalog-status')).count,101);
+ assert.equal((await u.get('template/catalog')).listings.length,101);
+ assert.equal((await q.get(key)).phase,'complete');
+});
 test('a catalogue job is not acknowledged complete before the read-only API result is saved',async()=>{
  const queue=memory(),uploads=memory(),etsyStore=memory(),key='jobs/'+'r'.repeat(32),job={phase:'queued',action:'catalog',id:'r'.repeat(32),approvalHash:null,createdAt:now};
  await queue.setJSON(key,job);
