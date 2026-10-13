@@ -26,4 +26,18 @@ try{
   ({prepareUploadedPoster:prepare,publishUploadedPoster:publish}=await import('../lib/uploaded-poster.mjs'));({prepareDigitalProduct:prepareDigital,publishDigitalProduct:publishDigital}=await import('../lib/digital-product.mjs'));
  }
  const result=await runGithubJobs({jobs,queue,uploads,etsyStore,env:workerEnv,prepare,publish,prepareDigital,publishDigital});console.log('Worker completed. Tasks completed: '+result.completed+'; read-only catalogue phase: '+(['available','empty','seller_consent_required','seller_consent_invalid','seller_refresh_error','etsy_api_unavailable'].includes(result.cataloguePhase)?result.cataloguePhase:'not_checked'));
+ // One read-only first-product diagnostic, independent of publication and no Netlify release.
+ if(!bootstrap.publicationEnabled){
+  const settings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
+  if(!settings?.physicalSetup){
+   const {discoverPhysicalSetup,physicalSetupSummary}=await import('../lib/physical-shop-setup.mjs');
+   const {createEtsySession}=await import('../lib/etsy-session.mjs');
+   const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+   let setup;
+   try{setup=await discoverPhysicalSetup({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})});}
+   catch{setup={phase:'unavailable',checkedAt:Date.now()};}
+   await uploads.setJSON('template/settings',{...(settings||{}),physicalSetup:setup});
+   console.log(physicalSetupSummary(setup));
+  }
+ }
 }catch{console.error('Worker unavailable; saved tasks retained. Inspect configuration without exposing secrets.');process.exitCode=1;}
