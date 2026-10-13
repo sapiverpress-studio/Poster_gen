@@ -12,6 +12,9 @@ const catalogueMessages={
  seller_consent_invalid:'Your saved Etsy seller authorisation is invalid. Renew approval for the existing SapiverPrints app.',
  seller_refresh_error:'Etsy seller token renewal failed. The saved authorisation requires review.',
  etsy_api_unavailable:'Etsy API listing retrieval failed. The existing seller connection needs investigation.',
+ worker_delayed:'The GitHub worker has not confirmed this Etsy check after ten minutes. You can retry the read-only check; no poster was uploaded.',
+ worker_finished_no_result:'The GitHub worker marked the Etsy check complete but the result is missing. We need to repair the worker result transfer; do not upload a poster yet.',
+ worker_failed:'The GitHub worker could not complete the Etsy API check. Your poster is unchanged; inspect the worker report before retrying.',
  not_checked:'Etsy API connection has not been checked yet.'
 };
 let catalogCheckInFlight=false;
