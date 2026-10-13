@@ -4,6 +4,8 @@ import {createPosterUploadHandler} from '../lib/poster-upload-web.mjs';
 import {createUploadRunner} from '../lib/poster-upload-runner.mjs';
 import {seal} from '../lib/oauth.mjs';
 import {assetKey,CHUNK_BYTES} from '../lib/uploaded-poster.mjs';
+import {uploadBody,metadataFields} from '../lib/product-web.mjs';
+
 const origin='https://poster.example.test',secret='a-test-encryption-key-of-sufficient-length';
 const values={CANVA_SITE_ORIGIN:origin,CANVA_CLIENT_SECRET:secret,CANVA_SETUP_PASSWORD:'owner-password',ETSY_PRINTS_KEYSTRING:'app',ETSY_PRINTS_SHARED_SECRET:'shared',POSTER_PUBLICATION_ENABLED:'true'};
 const env=n=>values[n];
@@ -18,3 +20,29 @@ test('approval requires reviewed hash, configured publication and a single atomi
 test('upload runner ignores forged/expired work and never retries a claimed failing prepare',async()=>{const uploads=memory(),id='b'.repeat(32);await uploads.setJSON(assetKey(id),{phase:'preparing',chunks:1,bytes:33});const runner=createUploadRunner({env,uploads,client:{}});const req=body=>new Request(origin+'/poster/upload-run',{method:'POST',body});await runner(req('forged'));await runner(req(seal({id,action:'prepare',expiry:Date.now()-1},secret,'poster-upload-run')));assert.equal((await uploads.get(assetKey(id))).phase,'preparing');const token=seal({id,action:'prepare',expiry:Date.now()+60000},secret,'poster-upload-run');await runner(req(token));assert.equal((await uploads.get(assetKey(id))).phase,'needs_investigation');await runner(req(token));assert.equal(uploads.map.has('runner/'+id+'/prepare'),true);});
 
 test('authenticated uploader allows same-origin API fetches while retaining restrictive CSP',async()=>{const f=fixture(),r=await f.handler(request('/poster/upload'),f.context);assert.equal(r.status,200);const directives=Object.fromEntries(r.headers.get('Content-Security-Policy').split(';').map(s=>s.trim().split(/\s+/)).filter(a=>a[0]).map(([key,...v])=>[key,v]));assert.deepEqual(directives['connect-src'],["'self'"]);assert.deepEqual(directives['default-src'],["'none'"]);assert.deepEqual(directives['script-src'],["'self'"]);assert.deepEqual(directives['frame-ancestors'],["'none'"]);assert.deepEqual(directives['form-action'],["'self'"]);});
+
+
+test('new physical listing shows Printed artwork first and labels its field Poster type',()=>{
+ const html=uploadBody({defaults:{referenceListingId:789},catalog:{listings:[]},taxonomy:[],update:null});
+ assert.ok(html.includes('id="poster-kind-label">Poster type'));
+ const artwork=html.indexOf('value="artwork"'),educational=html.indexOf('value="educational"'),dinosaur=html.indexOf('value="dinosaur"');
+ assert.ok(artwork>=0&&artwork<educational&&educational<dinosaur);
+ assert.match(html,/Printed artwork is for travel posters/);
+ assert.equal(metadataFields({kind:'pattern'}).includes('id="poster-kind-label">Product group'),true);
+});
+test('numbered Canva PNG creates stable descriptive filename and SKU when Name is supplied',async()=>{
+ const f=fixture(),body={filename:'47271.png',bytes:100,referenceListingId:789,metadata:{name:'Coast to Coast Walk Poster',subject:'Walks'}};
+ let result=await f.handler(request('/poster/uploads','POST',JSON.stringify(body)),f.context);
+ assert.equal(result.status,201);const {id}=await result.json();const state=await f.uploads.get(assetKey(id));
+ assert.equal(state.filename,'Coast to Coast Walk Poster.png');assert.equal(state.sourceFilename,'47271.png');
+ assert.equal(state.metadata.sku,'SP-COAST-TO-COAST-WALK-POSTER');assert.equal(state.metadata.kind,'artwork');
+ result=await f.handler(request('/poster/uploads','POST',JSON.stringify({...body,metadata:{subject:'Walks'}})),f.context);
+ assert.equal(result.status,400);assert.match((await result.json()).error,/Name/);
+});
+test('fourth framed option preview is available to authenticated owner',async()=>{
+ const f=fixture(),id='c'.repeat(32);
+ await f.uploads.setJSON(assetKey(id),{phase:'ready_for_approval'});
+ await f.uploads.set('uploads/'+id+'/mockups/3.jpg',new Uint8Array([255,216,255]));
+ const response=await f.handler(request('/poster/uploads/'+id+'/mockups/3'),f.context);
+ assert.equal(response.status,200);assert.match(response.headers.get('Content-Type'),/jpeg/);
+});
