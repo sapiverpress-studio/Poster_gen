@@ -48,4 +48,12 @@ try{
 
   }
  }
+ // One protected-page GET using existing worker authority; no browser or merchant writes.
+ const checkedSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
+ if(!bootstrap.publicationEnabled&&checkedSettings?.ownerUploadCheck?.release!=='14b980bcb609672bf3cbb4196f5fa86ba7a29af9'){
+  const {checkOwnerUpload}=await import('../lib/owner-upload-smoke.mjs');
+  const check=await checkOwnerUpload({origin,secret:bootstrap.secret});
+  await uploads.setJSON('template/settings',{...(checkedSettings||{}),ownerUploadCheck:{release:'14b980bcb609672bf3cbb4196f5fa86ba7a29af9',...check,checkedAt:Date.now()}});
+  console.log('Owner upload form read-only check: '+check.phase+'; direct first-product form='+(check.directUpload===true?'yes':'no'));
+ }
 }catch{console.error('Worker unavailable; saved tasks retained. Inspect configuration without exposing secrets.');process.exitCode=1;}

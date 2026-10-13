@@ -6,7 +6,7 @@
 
 | Area | Current evidence-based state |
 | --- | --- |
-| Production | Netlify Ready/current deployment `6ace36488e46e5ef61b1962b`, commit `a078c9e319c969e7cc0aa6f2a77feab0822ee06c`, production branch `feature/canva-oauth-callback`. This supersedes the older live SHA and OFF-PRODUCTION labels in the historical entries below. |
+| Production | Netlify Ready/current deployment `6ace3db8a753cbaf3f0126dc`, commit `14b980bcb609672bf3cbb4196f5fa86ba7a29af9`, production branch `feature/canva-oauth-callback`. This supersedes the older live SHA and OFF-PRODUCTION labels in the historical entries below. |
 | Seller connection | **VERIFIED:** manually reran existing worker job after the scheduled worker had not run since 09:07 UTC. Run `38374036756`, new job `115326595003`, completed successfully at 13:36 UTC: two tasks completed and read-only catalogue phase `empty`. The authenticated session therefore passed the worker's session checks and Etsy catalogue API call. No new owner consent needed for this check. |
 | Catalogue | **VERIFIED LIMITED RESULT:** zero matching active physical references, not proof that the shop has no drafts/inactive products. Released worker now searches active, draft and inactive listings. Live rerun also returned empty. |
 | Correction | **RELEASED / CI TESTED:** PR #10 merged into `feature/canva-oauth-callback` searches active, draft and inactive physical references; labels private nonactive references; derives missing draft processing ID only from unambiguous enabled inventory. All twelve variants, prices, seller/profile validation and approval gates remain enforced. Etsy documents that listing-level processing IDs can be null on drafts; checked directly against its downloaded OpenAPI schema. |
@@ -695,3 +695,8 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 
 ### 2026-10-13 15:16 BST — Owner approved direct-upload deployment; sign-in clarification
 - Jim clarified that We don't do that referred to extra sign-in, not product-template direction. Existing GitHub/Netlify connector route is sufficient; do not request dashboard sign-in again. He authorises the necessary tested PR #11 software deployment to remove the confirmed upload blocker. One normal release commit; no extra preview/docs deployment. Publication and supplier orders remain disabled; real upload/merchant verification claims must remain bounded by observed evidence.
+
+### 2026-10-13 15:20 BST — Direct first-product software release Ready; protected-page check
+- Released PR #11 once, merge commit 14b980bcb609672bf3cbb4196f5fa86ba7a29af9, Netlify 6ace3db8a753cbaf3f0126dc created 14:18:32 UTC and confirmed Ready/current. Existing GitHub/Netlify connection handled it; no dashboard sign-in.
+- Trusted worker-only smoke module signs a transient 60-second application session in memory using its existing authorised root, makes one same-origin protected uploader GET with redirects forbidden, logs only phase/boolean, and persists safe check status. No credential is returned/logged or retained; no product, merchant listing, order, browser account or new access permission is created. Three targeted helper tests pass. Worker-only commit uses skip-netlify; no second paid deploy.
+- Await actual protected GET result before claiming live first-product form accepted. Real owner-artwork upload and live supplier fulfilment remain unverified. Product publication and orders stay disabled.
