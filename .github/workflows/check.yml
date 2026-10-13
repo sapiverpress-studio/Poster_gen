@@ -1,7 +1,7 @@
 name: Verify Poster_gen
 on:
   push:
-    branches: ["feature/canva-oauth-callback", "docs/handover-and-change-policy-20261008", "fix/12-variants-print-upload-20261013", "fix/poster-type-ui-20261013", "fix/etsy-api-catalog-diagnostics-20261013"]
+    branches: ["feature/canva-oauth-callback", "docs/handover-and-change-policy-20261008", "fix/12-variants-print-upload-20261013", "fix/poster-type-ui-20261013", "fix/etsy-api-catalog-diagnostics-20261013", "fix/etsy-live-status-poll-20261013"]
   pull_request:
 jobs:
   test:
