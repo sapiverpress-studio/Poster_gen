@@ -6,7 +6,7 @@ import {createGithubBridge} from '../lib/github-bridge.mjs';
 import {createRemoteStore} from '../lib/github-remote-store.mjs';
 import {runGithubJobs} from '../lib/github-publication.mjs';
 import {websiteEnv,createQueuedEtsyHandler} from '../lib/github-web.mjs';
-import {seal} from '../lib/oauth.mjs';
+import {seal,unseal} from '../lib/oauth.mjs';
 const now=1800000000000,origin='https://poster.example.test',secret='a-long-test-encryption-secret-12345';
 const values={CANVA_CLIENT_SECRET:secret,CANVA_SETUP_PASSWORD:'test-password',CANVA_SITE_ORIGIN:origin,ETSY_PRINTS_KEYSTRING:'app',ETSY_PRINTS_SHARED_SECRET:'shared',SHRIMP_APIKEY:'test',POSTER_PUBLICATION_ENABLED:'true'};
 const env=n=>values[n];
@@ -45,13 +45,62 @@ test('digital worker dispatches only the digital route and keeps physical refere
  const q=memory(),u=memory(),e=memory(),id='v'.repeat(32),key='jobs/'+'w'.repeat(32),data={phase:'queued',action:'prepare',id};await q.setJSON(key,data);await u.setJSON('uploads/'+id+'/state',{phase:'preparing',type:'digital',productId:id});await u.setJSON('products/'+id+'/record',{productId:id,pendingRevision:id});await u.setJSON('template/settings',{referenceListingId:789});let digital=0;
  await runGithubJobs({jobs:[{key,...data}],queue:q,uploads:u,etsyStore:e,env,clock:()=>now,prepare:async()=>{throw Error('Physical route must not run');},prepareDigital:async()=>{digital++;await u.setJSON('uploads/'+id+'/state',{phase:'ready_for_approval',type:'digital'});}});assert.equal(digital,1);assert.equal((await u.get('template/settings')).referenceListingId,789);assert.equal((await q.get(key)).phase,'complete');
 });
-test('website owner setup does not require provider secrets; valid callback queues once without calling Etsy',async()=>{
+test('site exchanges Etsy PKCE code immediately and queues only an encrypted seller verification task',async()=>{
  assert.equal(websiteEnv(n=>n.startsWith('ETSY')?undefined:env(n))('ETSY_PRINTS_SHARED_SECRET'),'github-worker');
  const s=memory(),q=memory();await s.setJSON('github-config',{clientId:'app'});
  const flow={state:'state_test',verifier:'verifier',expiry:now+600000};
- const handler=createQueuedEtsyHandler({env,etsyStore:s,queue:q,clock:()=>now}),req=()=>new Request(origin+'/etsy/callback?state=state_test&code=private-code',{headers:{cookie:'__Host-sapiver_etsy_flow='+seal(flow,secret,'etsy-browser-flow')}});
- assert.equal((await handler(req())).status,200);assert.equal((await handler(req())).status,200);assert.equal(q.map.size,1);
+ let current=now,calls=0;
+ const handler=createQueuedEtsyHandler({env,etsyStore:s,queue:q,clock:()=>current,request:async(url,opts)=>{
+  calls++;assert.equal(url,'https://api.etsy.com/v3/public/oauth/token');
+  assert.equal(new URLSearchParams(opts.body).get('code_verifier'),'verifier');
+  assert.equal(new URLSearchParams(opts.body).get('client_id'),'app');
+  assert.equal(opts.headers['x-api-key'],undefined);
+  return Response.json({access_token:'123.access-secret',refresh_token:'123.refresh-secret',scope:'shops_r shops_w listings_r listings_w',token_type:'Bearer',expires_in:3600});
+ }});
+ const req=()=>new Request(origin+'/etsy/callback?state=state_test&code=private-code',{headers:{cookie:'__Host-sapiver_etsy_flow='+seal(flow,secret,'etsy-browser-flow')}});
+ assert.equal((await handler(req())).status,200);
+ const pending=await s.get('oauth-pending/state_test');
+ assert.doesNotMatch(pending,/access-secret|refresh-secret|private-code/);
+ assert.equal(unseal(pending,secret,'etsy-pending-grant').user_id,'123');
+ const tasks=[...q.map.values()].map(x=>x.data);assert.equal(tasks.length,1);
+ assert.equal(tasks[0].action,'oauth');assert.equal(tasks[0].pendingKey,'oauth-pending/state_test');
+ assert.doesNotMatch(JSON.stringify(tasks),/access-secret|refresh-secret|private-code|cookie|\/etsy\/callback/);
+ current+=700000;
+ assert.equal((await handler(req())).status,200);assert.equal(calls,1);
  assert.equal((await handler(new Request(origin+'/etsy/callback?state=wrong&code=x',{headers:{cookie:'__Host-sapiver_etsy_flow='+seal(flow,secret,'etsy-browser-flow')}}))).status,400);
+});
+test('scheduled worker verifies the previously exchanged Etsy token and records SapiverPrints without replaying auth code',async()=>{
+ const q=memory(),u=memory(),e=memory(),id='t'.repeat(32),state='safestate',
+  key='jobs/'+id,statusKey='oauth-status/'+state,pendingKey='oauth-pending/'+state;
+ const job={phase:'queued',action:'oauth',createdAt:now,pendingKey,statusKey};
+ await q.setJSON(key,job);
+ const token={access_token:'123.access-secret',refresh_token:'123.refresh-secret',user_id:'123',scope:'shops_r shops_w listings_r listings_w',expires_at:now+3600000,connected_at:now};
+ await e.set(pendingKey,seal(token,secret,'etsy-pending-grant'));
+ const calls=[];
+ await runGithubJobs({jobs:[{key,...job}],queue:q,uploads:u,etsyStore:e,env,clock:()=>now,request:async(url,opts)=>{
+  calls.push(url);assert.equal(opts.headers['x-api-key'],'app:shared');assert.equal(opts.headers.Authorization,'Bearer 123.access-secret');
+  if(url.includes('/users/123/shops'))return Response.json({shop_name:'SapiverPrints',shop_id:456,user_id:123});
+  return Response.json({results:[]});
+ }});
+ assert.equal((await e.get(statusKey)).phase,'complete');
+ const confirmed=unseal(await e.get('primary'),secret,'etsy-stored-tokens');
+ assert.equal(confirmed.shop_name,'SapiverPrints');assert.equal(confirmed.shop_id,456);
+ assert.equal((await q.get(key)).phase,'complete');
+ assert.equal(calls.some(v=>v.includes('/oauth/token')),false);
+});
+test('delayed GitHub shop verification can refresh the already exchanged token without browser session',async()=>{
+ const q=memory(),u=memory(),e=memory(),key='jobs/'+'z'.repeat(32),state='late',
+ pendingKey='oauth-pending/'+state,statusKey='oauth-status/'+state;
+ const job={phase:'queued',action:'oauth',createdAt:now,pendingKey,statusKey};
+ await q.setJSON(key,job);
+ await e.set(pendingKey,seal({access_token:'123.old-token',refresh_token:'123.old-refresh',user_id:'123',scope:'shops_r shops_w listings_r listings_w',expires_at:now+3600000,connected_at:now},secret,'etsy-pending-grant'));
+ let refreshes=0,verified=0;
+ await runGithubJobs({jobs:[{key,...job}],queue:q,uploads:u,etsyStore:e,env,clock:()=>now+7200000,request:async(url,options)=>{
+  if(url.endsWith('/oauth/token')){refreshes++;assert.equal(new URLSearchParams(options.body).get('grant_type'),'refresh_token');return Response.json({access_token:'123.new-token',refresh_token:'123.new-refresh',scope:'shops_r shops_w listings_r listings_w',expires_in:3600,token_type:'Bearer'});}
+  if(url.includes('/users/123/shops')){verified++;assert.equal(options.headers.Authorization,'Bearer 123.new-token');return Response.json({shop_name:'SapiverPrints',shop_id:456,user_id:123});}
+  return Response.json({results:[]});
+ }});
+ assert.equal(refreshes,1);assert.equal(verified,1);assert.equal((await e.get(statusKey)).phase,'complete');
 });
 test('worker demands persisted exact owner approval; concurrent/repeated pickup cannot publish twice',async()=>{
  const q=memory(),u=memory(),e=memory(),id='b'.repeat(32),key='jobs/'+'c'.repeat(32),data={phase:'queued',action:'publish',id,approvalHash:'hash'};await q.setJSON(key,data);
