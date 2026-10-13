@@ -64,3 +64,21 @@ test('catalogue refresh is private, CSRF protected and never creates a product o
  await Promise.all(f.pending);assert.equal(f.sent.length,1);
  assert.doesNotMatch(JSON.stringify(f.sent),/PrintShrimp|etsy.com\/v3|\/approve/);
 });
+
+test('owner status endpoint safely includes the physical Etsy choices already synced by GitHub',async()=>{
+ const f=fixture();await f.uploads.setJSON('template/catalog-status',{phase:'available',count:2,checkedAt:12345});
+ await f.uploads.setJSON('template/catalog',{shopId:444,listings:[{listing_id:123,shop_id:444,listing_type:'physical',title:'Travel poster reference'},{listing_id:124,shop_id:444,listing_type:'digital',title:'Digital ZIP'},{listing_id:125,shop_id:999,listing_type:'physical',title:'Other shop'}]});
+ const res=await f.handler(request('/poster/catalog/status'),f.context);
+ assert.equal(res.status,200);const d=await res.json();assert.equal(d.phase,'available');assert.deepEqual(d.listings,[{id:123,title:'Travel poster reference'}]);
+ const page=await f.handler(request('/poster/upload'),f.context);
+ assert.match(await page.text(),/data-phase="available"/);
+ const denied=await f.handler(new Request(origin+'/poster/catalog/status'),f.context);
+ assert.equal(denied.status,303);
+});
+test('pending Etsy reference status exposes no stale listings or seller credentials',async()=>{
+ const f=fixture();await f.uploads.setJSON('template/catalog-status',{phase:'pending',checkedAt:12345});
+ await f.uploads.setJSON('template/catalog',{shopId:444,listings:[{listing_id:123,shop_id:444,listing_type:'physical',title:'Old listing'}]});
+ const res=await f.handler(request('/poster/catalog/status'),f.context);
+ const d=await res.json();assert.equal(d.phase,'pending');assert.deepEqual(d.listings,[]);
+ assert.doesNotMatch(JSON.stringify(d),/token|secret|Old listing/);
+});
