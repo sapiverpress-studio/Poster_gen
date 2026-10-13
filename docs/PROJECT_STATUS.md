@@ -650,3 +650,6 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 
 ### 2026-10-13 14:44 BST — Draft-reference CI verified
 - GitHub Verify Poster_gen run 38407296258, job 115330139641, passed all syntax/import checks and 150/150 tests at candidate 177a5eb2ae72acf06b46262a76c0b0defad6a8aa. PR #10 is staged; no production deployment. Netlify current deploy remains 6ace30fcb56692b27917a520. This documentation-only checkpoint uses skip-netlify and does not change release approval gates.
+
+### 2026-10-13 14:46 BST — Owner approved one PR #10 production release
+- Jim explicitly approved one paid deployment of the tested draft-reference correction followed by a live catalogue/upload check. Authorised scope: PR #10 software release, existing worker catalogue run and verification. No listing publication, supplier order or publication-flag activation is authorised. Merge into feature/canva-oauth-callback with one normal release commit; avoid separate preview or documentation builds. Record observed deploy and worker outcomes afterward using skip-netlify.
