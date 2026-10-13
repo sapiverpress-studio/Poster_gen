@@ -20,5 +20,5 @@ test('missing or duplicate merchant profiles never select an arbitrary value',as
 test('wrong shop and incompatible shipping stop direct setup; safe log reports only counts',async()=>{
  const f=fixture({shipping:[{...shipping,shipping_profile_id:11,origin_country_iso:'US'}]});assert.equal((await discoverPhysicalSetup({client:f.client})).phase,'setup_required');
  await assert.rejects(discoverPhysicalSetup({client:{session:async()=>({shop_name:'SapiverPress',shop_id:456})}}),/Wrong physical shop/);
- assert.equal(physicalSetupSummary({phase:'ready',counts:{shipping:1,processing:1,returns:1,partner:1},access_token:'secret'}),'Physical shop setup: ready; shipping=1; processing=1; returns=1; partner=1');
+ assert.equal(physicalSetupSummary({phase:'ready',counts:{shipping:1,processing:1,returns:1,partner:1},access_token:'secret'}),'Physical shop setup: ready; shipping=1; processing=1; returns=1; partner=1; delivery checks=[]');
 });
