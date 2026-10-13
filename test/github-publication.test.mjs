@@ -91,10 +91,27 @@ test('worker fetches Etsy catalogue through read-only seller API and records bou
  const q=memory(),u=memory(),e=memory(),key='jobs/'+'q'.repeat(32),job={phase:'queued',action:'catalog'};
  const session={shop_name:'SapiverPrints',shop_id:456,user_id:'1',access_token:'1.token',refresh_token:'1.refresh',scope:'shops_r shops_w listings_r listings_w',expires_at:now+3600000,connected_at:now};
  await e.set('primary',seal(session,secret,'etsy-stored-tokens'));await q.setJSON(key,job);
- const calls=[];const request=async url=>{calls.push(url);if(url.includes('/seller-taxonomy/nodes'))return Response.json({results:[]});if(url.includes('/shops/456/listings'))return Response.json({results:[{listing_id:123,shop_id:456,listing_type:'physical',title:'Poster reference'},{listing_id:124,shop_id:456,listing_type:'digital',title:'Not a physical product'}]});return new Response('',{status:500});};
+ const calls=[];const request=async url=>{calls.push(url);if(url.includes('/seller-taxonomy/nodes'))return Response.json({results:[]});if(url.includes('/shops/456/listings'))return Response.json({results:[{listing_id:123,shop_id:456,listing_type:'physical',state:'active',title:'Poster reference'},{listing_id:124,shop_id:456,listing_type:'digital',title:'Not a physical product'}]});return new Response('',{status:500});};
  await runGithubJobs({jobs:[{key,...job}],queue:q,uploads:u,etsyStore:e,env,clock:()=>now,request});
  assert.equal((await u.get('template/catalog-status')).phase,'available');
  assert.equal((await u.get('template/catalog-status')).count,1);
  assert.deepEqual((await u.get('template/catalog')).listings.map(x=>x.listing_id),[123]);
  assert.ok(calls.every(url=>url.startsWith('https://openapi.etsy.com/v3/application/')));
+});
+
+test('a catalogue job is not acknowledged complete before the read-only API result is saved',async()=>{
+ const queue=memory(),uploads=memory(),etsyStore=memory(),key='jobs/'+'r'.repeat(32),job={phase:'queued',action:'catalog',id:'r'.repeat(32),approvalHash:null,createdAt:now};
+ await queue.setJSON(key,job);
+ const original=uploads.setJSON.bind(uploads);
+ uploads.setJSON=async(k,value,options)=>{if(k==='template/catalog-status')throw Error('Simulated private status write failure');return original(k,value,options);};
+ await assert.rejects(runGithubJobs({jobs:[{key,...job}],queue,uploads,etsyStore,env,clock:()=>now}),/Simulated private status write failure/);
+ assert.equal((await queue.get(key)).phase,'needs_investigation');
+});
+test('catalogue refresh returns a safely classified result after the job is complete',async()=>{
+ const queue=memory(),uploads=memory(),etsyStore=memory(),key='jobs/'+'s'.repeat(32),job={phase:'queued',action:'catalog',id:'s'.repeat(32),approvalHash:null,createdAt:now};
+ await queue.setJSON(key,job);
+ const result=await runGithubJobs({jobs:[{key,...job}],queue,uploads,etsyStore,env,clock:()=>now});
+ assert.equal(result.cataloguePhase,'seller_consent_required');
+ assert.equal((await uploads.get('template/catalog-status')).phase,'seller_consent_required');
+ assert.equal((await queue.get(key)).phase,'complete');
 });
