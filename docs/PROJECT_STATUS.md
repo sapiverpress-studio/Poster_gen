@@ -2,7 +2,7 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
-## CURRENT PROJECT SNAPSHOT — 2026-10-13 (12-option production live; Poster type usability correction staged)
+## CURRENT PROJECT SNAPSHOT — 2026-10-13 (12-option and Poster type UI corrections deployed)
 
 | Area | Current evidence-based state |
 | --- | --- |
@@ -19,7 +19,7 @@
 | Etsy access | Existing key pair and supplier key previously returned HTTP 200 in read-only preflight. Seller OAuth NOT established by those keys; updated `shops_w` consent required for section creation. No live sections/listings changed. |
 | Canva | Original `DAHXUnmHofY` preserved. Working A3 `DAHXb1PdJlM`; existing owner report confirmed 3508 × 4961 PNG, 37.4 MiB, A3 300/A4 424/A5 600 PPI. No new export or artwork change. Visual print/sample and framed fulfilment remain unverified. |
 | Release / credits | Owner approved bundled release and worker installation. First attempt failed public-origin scan; corrective release is Ready. Publication flag not changed; no merchant writes/orders. No more release needed for this scanner fix. |
-| Next stage | Owner's 2026-10-13 mobile screenshot confirmed the live physical upload form opens but defaults to Educational poster, and shows a numbered `47271.png` file; upload submission, twelve-option reference selection and owner Etsy login still need acceptance. Poster type UI fix is staged on nonproduction branch and must not be released without a separate explicit deployment approval. Keep publishing and orders disabled. |
+| Next stage | Owner explicitly approved production deployment of the 130/130-tested Poster type change; Netlify production commit `c600f28431b59a5c877d86b53637948b94506773`, Ready deploy `6acddc93555ea678fbb528a8`, published 2026-10-13 07:24:25 UTC. Owner mobile upload/12-variant reference and Etsy seller consent still require acceptance; no merchant publishing or ordering enabled by this release. |
 
 ### Current implementation and explicit limits
 
@@ -584,3 +584,13 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Deploy / credit impact: Only off-production GitHub commits and CI. No production deploy, Netlify configuration change, live Etsy listing, PrintShrimp product or order, or publication flag change.
 - Risks / decisions: Do not auto-detect categories from artwork or silently invent an artwork name; default Printed artwork and require owner confirmation before prepared listing. Continue retaining uploaded filename for audit, but use stable descriptive name for product identity when the file is numbered.
 - Next authorised action: Seek separate authorisation for one verified production release of this batch, then test the corrected Coast to Coast upload on the owner's phone without publishing.
+
+
+### 2026-10-13 08:25 BST — Approved single production release and Netlify verification (documented off production)
+- Stage / purpose: The owner responded 'Deploy' to the tested Poster type UI changes. Exactly one update to Netlify-linked production branch `feature/canva-oauth-callback` moved from `b9a43c7f8badbba63a15d6cf286ccd497845e4ce` to `c600f28431b59a5c877d86b53637948b94506773`.
+- Changed / deployed: Previously documented 9 changed source, test, workflow and documentation files (default Printed artwork, Poster type label, numeric Canva PNG filename handling with owner-entered name, fourth preview). No additional feature scopes.
+- Verified: GitHub Actions for candidate run 38360911243 and production run 38362405380 completed SUCCESS; candidate tests 130 passed, zero failed. Netlify production deploy ID `6acddc93555ea678fbb528a8` state Ready, branch `feature/canva-oauth-callback`, commit exactly `c600f28431b59a5c877d86b53637948b94506773`, published 07:24:25 UTC. Secret scan: zero matches. Existing Netlify Functions present.
+- Not yet verified / blocked: Authenticated mobile form submission, existing twelve-variant Etsy reference and seller scopes, actual supplier import and correct frame processing remain untested; no claim of end-to-end readiness.
+- Deploy / credit impact: One owner-authorised production branch move triggered one successful production deployment. This documentation postscript is committed only to an off-production branch to avoid an unnecessary second Netlify production build.
+- Guardrails: No publication flag, provider keys, automatic fulfilment, listings, or supplier orders intentionally modified. Do not initiate any live merchant transaction without separate authorisation.
+- Next action: Owner reloads existing `/poster/upload`, selects Printed artwork, enters Coast to Coast name, and proceeds to private preparation review. Record first authenticated results and any blocker before enabling publication.
