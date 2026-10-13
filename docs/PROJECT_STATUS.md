@@ -647,3 +647,6 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Not verified / blocked: Whether the owner's shop contains a saved twelve-option draft; full physical upload/preparation; live PrintShrimp frame mapping; listing publication. Existing physical template dependency remains and is explicitly not described as removed.
 - Deploy / credit impact: ZERO Netlify deployments. One existing GitHub worker job rerun; normal worker/API costs may apply. No new seller consent, Etsy merchant writes, supplier orders or other-shop changes.
 - Next authorised action: Review/save this tested candidate without production deployment, obtain approval for one concrete release if needed, then verify actual catalogue/draft data before further releases or enabling publication.
+
+### 2026-10-13 14:44 BST — Draft-reference CI verified
+- GitHub Verify Poster_gen run 38407296258, job 115330139641, passed all syntax/import checks and 150/150 tests at candidate 177a5eb2ae72acf06b46262a76c0b0defad6a8aa. PR #10 is staged; no production deployment. Netlify current deploy remains 6ace30fcb56692b27917a520. This documentation-only checkpoint uses skip-netlify and does not change release approval gates.
