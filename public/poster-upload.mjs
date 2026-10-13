@@ -7,7 +7,7 @@ const refresh=document.getElementById('refresh-etsy-catalog'),catalogStatus=docu
 const catalogueMessages={
  pending:'Etsy API check queued. Waiting for the GitHub worker; this page checks again automatically.',
  available:'Etsy API connection checked. Select an Etsy physical listing below; its twelve variations will be validated during preparation.',
- empty:'Etsy is connected, but no active, draft or inactive physical references were returned. A reference with the twelve size/frame combinations is still required.',
+ empty:'Etsy is connected. Prepare your first print using your saved shop settings; no previous listing is required.',
  seller_consent_required:'The Etsy developer keys exist, but seller approval is missing. Authorise the existing SapiverPrints app once.',
  seller_consent_invalid:'Your saved Etsy seller authorisation is invalid. Renew approval for the existing SapiverPrints app.',
  seller_refresh_error:'Etsy seller token renewal failed. The saved authorisation requires review.',
