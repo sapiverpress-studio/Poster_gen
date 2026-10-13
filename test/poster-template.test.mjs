@@ -27,3 +27,10 @@ test('draft reference cannot guess processing, copy another shop or use sold-out
  assert.throws(()=>templateDraftPlan({filename:'Coast.png',reference:{...draft,shop_id:999},inventory,shopId:456}));
  assert.throws(()=>templateDraftPlan({filename:'Coast.png',reference:{...reference,state:'sold_out'},inventory,shopId:456}));
 });
+
+test('real carrier-based Etsy shipping accepts null days but rejects incomplete or changed delivery estimates',()=>{
+ const destination=shipping.shipping_profile_destinations[0];
+ const p={...shipping,shipping_profile_destinations:[{...destination,min_delivery_days:null,max_delivery_days:null}]};
+ verifyTemplateCarrier(p,carriers);
+ for(const changed of [{min_delivery_days:2,max_delivery_days:null},{min_delivery_days:null,max_delivery_days:3},{min_delivery_days:4,max_delivery_days:5},{shipping_carrier_id:999}])assert.throws(()=>verifyTemplateCarrier({...p,shipping_profile_destinations:[{...p.shipping_profile_destinations[0],...changed}]},carriers));
+});

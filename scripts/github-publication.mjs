@@ -29,15 +29,23 @@ try{
  // One read-only first-product diagnostic, independent of publication and no Netlify release.
  if(!bootstrap.publicationEnabled){
   const settings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
-  if(settings?.physicalSetup?.version!==3){
+  if(settings?.physicalSetup?.version!==4){
    const {discoverPhysicalSetup,physicalSetupSummary}=await import('../lib/physical-shop-setup.mjs');
    const {createEtsySession}=await import('../lib/etsy-session.mjs');
    const {etsySetup}=await import('../lib/etsy-oauth.mjs');
    let setup;
    try{setup=await discoverPhysicalSetup({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})});}
-   catch{setup={version:3,phase:'unavailable',checkedAt:Date.now()};}
+   catch{setup={version:4,phase:'unavailable',checkedAt:Date.now()};}
    await uploads.setJSON('template/settings',{...(settings||{}),physicalSetup:setup});
    console.log(physicalSetupSummary(setup));
+   if(setup.phase==='ready'){
+    let probe;
+    try{const {firstPhysicalPlan}=await import('../lib/physical-first-product.mjs');const plan=await firstPhysicalPlan({filename:'Coast to Coast Walk Poster.png',metadata:{kind:'artwork'},client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})});probe={phase:'ready',variantCount:plan.inventory.products.length,referenceRequired:plan.referenceListingId!==null,listingType:plan.body.type};}
+    catch{probe={phase:'needs_checking'};}
+    await uploads.setJSON('template/settings',{...(settings||{}),physicalSetup:setup,directPlanProbe:probe});
+    console.log('Read-only first-product plan: '+probe.phase+'; variants='+Number(probe.variantCount||0)+'; existing reference required='+(probe.referenceRequired===true?'yes':'no'));
+   }
+
   }
  }
 }catch{console.error('Worker unavailable; saved tasks retained. Inspect configuration without exposing secrets.');process.exitCode=1;}
