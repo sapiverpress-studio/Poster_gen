@@ -2,7 +2,7 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
-## CURRENT PROJECT SNAPSHOT — 2026-10-13 (12-option and Poster type UI live; Etsy API catalogue diagnostic fix staged)
+## CURRENT PROJECT SNAPSHOT — 2026-10-13 (Etsy API catalogue diagnostics live; seller API verification pending)
 
 | Area | Current evidence-based state |
 | --- | --- |
@@ -19,7 +19,7 @@
 | Etsy access | Existing key pair and supplier key previously returned HTTP 200 in read-only preflight. Seller OAuth NOT established by those keys; updated `shops_w` consent required for section creation. No live sections/listings changed. |
 | Canva | Original `DAHXUnmHofY` preserved. Working A3 `DAHXb1PdJlM`; existing owner report confirmed 3508 × 4961 PNG, 37.4 MiB, A3 300/A4 424/A5 600 PPI. No new export or artwork change. Visual print/sample and framed fulfilment remain unverified. |
 | Release / credits | Owner approved bundled release and worker installation. First attempt failed public-origin scan; corrective release is Ready. Publication flag not changed; no merchant writes/orders. No more release needed for this scanner fix. |
-| Next stage | Owner's live screenshot confirms Printed artwork default works but Etsy reference dropdown contains zero choices; physical upload fails before transferring the PNG. Diagnosed cause: uploader requires a referenceListingId but currently no catalogue/default exists. GitHub keys are configured; seller OAuth/catalogue API health still unverified. Controlled diagnostic branch `fix/etsy-api-catalog-diagnostics-20261013` passes 134+ tests but is NOT deployed. Keep publication and orders disabled. |
+| Next stage | Read-only Etsy API catalogue diagnostics owner-approved and live at Netlify commit `459aac1cb96a941bf136b9166c33ba6226547d89`; authenticated owner should click `Check Etsy references through API` then review status after worker processing. GitHub key names configured, seller OAuth/catalogue and 12-variant reference validation still unverified. Publication and PrintShrimp ordering unchanged/disabled by this release. |
 
 ### Current implementation and explicit limits
 
@@ -594,3 +594,12 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Deploy / credit impact: GitHub off-production branch commits and CI only; no Netlify production deployment, Etsy listing creation/publication, supplier order, PrintShrimp image upload, key/credential change or payment. Do not merge/publish solely to inspect an API status without owner release consent.
 - Risks / decisions: A seller-authorisation-required diagnosis may still require one browser-based OAuth approval by the shop owner, even though all subsequent seller actions are API based. Avoid retrying ambiguous seller write operations, exposing provider error bodies, and mislabeling all returned physical listings as fully verified. GitHub scheduled jobs may be delayed; refresh queues safely, not instant.
 - Next authorised action: Verify clean CI on final candidate; seek owner permission for one controlled release with publication/orders disabled. After live release, owner clicks `Check Etsy references through API`, allow worker to run, then inspect safe status. If consent missing, use existing OAuth route once, no new app keys. If `available`, choose a real candidate and validate all 12 variants before private Coast to Coast preparation; if `empty`, inspect shop template through read-only API, not manual guesses.
+
+
+### 2026-10-13 09:11 BST — Owner-approved single API diagnostics deployment (LIVE)
+- Approval: Owner answered 'Yes' to exactly one controlled production release of Etsy API catalogue diagnostics, with merchant publication and supplier orders remaining disabled.
+- Changed / released: Fast-forwarded only Netlify-linked production branch `feature/canva-oauth-callback` from `c600f28431b59a5c877d86b53637948b94506773` to tested candidate `459aac1cb96a941bf136b9166c33ba6226547d89`. No credentials, OAuth scopes, live listing data, publication flags, supplier orders or payments changed by this commit.
+- Verified: final candidate GitHub Actions run https://github.com/sapiverpress-studio/Poster_gen/actions/runs/38366229920 succeeded with 134 tests passed / zero failures; release compare ahead 12 commits/behind 0 and preserved prior production base SHA; Netlify production deploy `6acde7a14044cab8358f15e1` reached state **ready**, commit exactly `459aac1cb96a941bf136b9166c33ba6226547d89`, published 2026-10-13 08:11:33 UTC. Netlify scanned 219 files, with zero detected secret matches; expected existing Functions present.
+- Not yet verified: Owner-only refreshed catalogue API status, stored Etsy seller OAuth token (cannot inspect from connected admin tools), 12-variation template/profile validation, PrintShrimp frame mapping. Worker API refresh is asynchronous. Deployment success does not prove Etsy seller connectivity.
+- Deploy / credit impact: One approved production branch update, one verified Netlify production deploy. This documentation postscript is deliberately saved only to existing off-production branch `fix/etsy-api-catalog-diagnostics-20261013`; no second production build for documentation.
+- Next step: Owner reloads `/poster/upload`, clicks `Check Etsy references through API`, awaits GitHub worker run, and refreshes. Record safe status and repair only proven issue. If seller consent required, use the existing PKCE browser approval once; API app keys already exist, no duplicate developer app. Retain publication and orders disabled.
