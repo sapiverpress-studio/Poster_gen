@@ -2,7 +2,7 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
-## CURRENT PROJECT SNAPSHOT — 2026-10-13 15:12 BST (direct first-product plan LIVE READ-VERIFIED; uploader changes STAGED)
+## CURRENT PROJECT SNAPSHOT — 2026-10-13 15:08 BST (direct first-product plan LIVE READ-VERIFIED; uploader changes STAGED)
 
 | Area | Current evidence-based state |
 | --- | --- |
@@ -680,10 +680,12 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Direct first-product plan builds twelve documented custom-property variations (513/514) using existing verified shop profiles and category, with no existing reference listing. Does not create or publish anything. Worker-only once-only dry-run probe uses existing authenticated client and emits allowlisted readiness/counts. Local full candidate test suite: 158 passed, zero failures, including real PNG preparation without previous listing and simulated draft/inventory/image/supplier flow.
 - Netlify interface changes remain staged off-production. Worker-only source/library change uses skip-netlify and cannot change deployed UI/functions. No paid deployment, supplier write, order or listing publication. Verify live direct-plan probe before proposing any release.
 
-### 2026-10-13 15:12 BST — Direct first-product route implemented and live settings validated
+### 2026-10-13 15:08 BST — Direct first-product route implemented and live settings validated
 - Alternative requested by Jim: use existing authenticated GitHub worker and direct draft creation, no prior listing/template or dashboard sign-in.
 - Live evidence: job 115340676022, run 38374036756, logged shipping=1, processing=1, returns=1, partner=1 and read-only first-product plan ready, twelve variants, existing reference required=no. This is actual authenticated Etsy business-profile/category validation, not merchant creation or artwork upload.
 - Changed off-production: lib/uploaded-poster.mjs, lib/poster-upload-web.mjs, lib/github-publication.mjs, lib/poster-upload-runner.mjs, lib/product-web.mjs, public/poster-upload.mjs and regression tests. New uploads ignore stale reference defaults and use saved shop profiles; explicit optional legacy reference and existing-update semantics retained. Custom Size/Frame properties 513/514 use custom text values and fixed existing prices/quantity. Preserve setup cache when old reference preparation saves defaults. Production-partner/shop identity rechecked before potential writes. No publication gate change.
 - Validation: full local npm test 159 passed, zero failed. Real PNG/master preservation and four previews prepared with no reference; fixture-only direct draft/inventory/image/supplier flow passed. Previous UI-copy rerun had one case-sensitive assertion failure after capitalising No; corrected the test and reran successfully. Syntax/diff checks passed. Official Etsy reference confirms carrier+mail service and manual delivery-day fields are alternatives; listing tutorial documents custom variation IDs.
 - Storage/release: candidate to be saved on fix/physical-first-product-20261013 with skip-netlify; worker-only earlier commits are in production source but do not change deployed Netlify functions until a release. Last paid site deploy remains 6ace36488e46e5ef61b1962b. No paid Netlify deploy this turn; no merchant listing/product write, order, other-shop change or consent retry.
 - Outstanding: actual owner-uploaded-artwork acceptance requires the tested interface release; full merchant/supplier workflow and framed fulfilment remain unverified. Do not represent the dry run as end-to-end publication.
+
+- Checkpoint-time correction: the direct-product checkpoint was recorded at 15:08 BST, not the initially typed 15:12 BST. GitHub CI run 38410843689 is queued. Netlify Ready/current remains 6ace36488e46e5ef61b1962b; no new paid deploy occurred during the alternative investigation.
