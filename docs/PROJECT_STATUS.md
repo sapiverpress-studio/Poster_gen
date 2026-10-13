@@ -2,19 +2,19 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
-## CURRENT PROJECT SNAPSHOT — 2026-10-13 15:22 BST (direct first-product uploader RELEASED; protected owner form LIVE VERIFIED)
+## CURRENT PROJECT SNAPSHOT — 2026-10-13 20:43 BST (upload response/session fix RELEASED; live API VERIFIED)
 
 | Area | Current evidence-based state |
 | --- | --- |
-| Production | Netlify Ready/current deployment `6ace3db8a753cbaf3f0126dc`, commit `14b980bcb609672bf3cbb4196f5fa86ba7a29af9`, production branch `feature/canva-oauth-callback`. This supersedes the older live SHA and OFF-PRODUCTION labels in the historical entries below. |
+| Production | Netlify Ready/current deployment `6ace8973027abc7a7b1eb183`, commit `45862f35d32bff83ce835142603f00fd1846148d`, production branch `feature/canva-oauth-callback`. This supersedes the older live SHA and OFF-PRODUCTION labels in the historical entries below. |
 | Seller connection | **VERIFIED:** manually reran existing worker job after the scheduled worker had not run since 09:07 UTC. Run `38374036756`, new job `115326595003`, completed successfully at 13:36 UTC: two tasks completed and read-only catalogue phase `empty`. The authenticated session therefore passed the worker's session checks and Etsy catalogue API call. No new owner consent needed for this check. |
 | Catalogue | **VERIFIED LIMITED RESULT:** zero matching active physical references, not proof that the shop has no drafts/inactive products. Released worker now searches active, draft and inactive listings. Live rerun also returned empty. |
 | Correction | **RELEASED / CI TESTED:** PR #10 merged into `feature/canva-oauth-callback` searches active, draft and inactive physical references; labels private nonactive references; derives missing draft processing ID only from unambiguous enabled inventory. All twelve variants, prices, seller/profile validation and approval gates remain enforced. Etsy documents that listing-level processing IDs can be null on drafts; checked directly against its downloaded OpenAPI schema. |
-| Tests | Existing production suite **147/147** passed locally; revised suite **150/150** passed locally. Draft fallback and missing/ambiguous/wrong-shop rejection covered. Merchant writes remain fixture-tested only. |
+| Tests | Upload response/session correction: **169/169** local tests passed and latest code head passed GitHub Verify Poster_gen run 38416017621. Actual browser module/real server/A3 PNG integration reaches ready_for_approval with twelve variants using merchant fixtures; expired session saves no upload/job. Merchant writes remain fixture-tested only. |
 | Direct first-product route | **LIVE READ-VERIFIED:** worker job 115340676022 validated all four existing shop settings and built twelve custom variations with no reference required. Royal Mail carrier-based delivery legitimately returns null day fields; validator corrected from official schema and actual API evidence. **RELEASED:** uploader implements first-product preparation without a reference. Protected owner-form GET returned ready/direct first-product form=yes in worker job 115348527127; actual owner artwork preparation remains pending. |
 | Remaining live checks | Owner-authenticated uploaded artwork preparation and PrintShrimp frame fulfilment remain unverified. No merchant listing or supplier product was created by the dry run. Publication and orders remain disabled. |
-| Safety / cost | No new Netlify deploy, no publication flag change, no live listing creation/publication, no supplier order and no other-shop change. Existing worker rerun consumes worker/API runtime; not claimed cost-free. Software release requires explicit approval for a single concrete release. |
-| Next action | **OWNER-REPORTED SUBMISSION FAILURE:** phase-from-undefined screenshot matches reproduced missing/expired studio-session HTML redirect. Retry in a fresh Chrome tab to avoid a corrupt cached receipt and use a normal current studio session; no paid deployment needed for renewal. Durable response/session guard is staged in PR #12, 169 tests passed. Actual owner's PNG and merchant/supplier flow remain unverified. |
+| Safety / cost | Jim explicitly approved PR #12 with Deploy it. One production deployment completed through existing connectors, no dashboard sign-in. Approval/outcome documentation skips Netlify builds. Publication and supplier orders remain disabled. |
+| Next action | PR #12 RELEASED: live unsigned upload POST returns 401 JSON studio_session_required and served browser module validates receipts, eliminating the reproduced HTML-response phase crash path. Owner should reopen uploader in a fresh tab, select PNG and retry. Actual owner-file preparation and supplier fulfilment remain unverified. |
 
 ### Current implementation and explicit limits
 
@@ -723,3 +723,9 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 ### 2026-10-13 20:39 BST — Owner explicitly approved PR #12 deployment
 - Jim instructed Deploy it, authorising one production release of the staged upload response/session and corrupt-receipt correction through the existing GitHub/Netlify connection. No dashboard sign-in or repeated approval is needed.
 - Latest code head 40446f71b2eb737aa300470ce4b005dc75faa9e5 passed Verify Poster_gen run 38416017621. Release merge will omit skip-netlify; this approval-only documentation commit skips deployment. Verify Ready commit, live unsigned API JSON 401, and served browser receipt guard after release. No merchant publication or supplier order is authorised.
+
+
+### 2026-10-13 20:43 BST — Approved PR #12 release Ready and live response verified
+- Merged PR #12 once as 45862f35d32bff83ce835142603f00fd1846148d. Netlify production deploy 6ace8973027abc7a7b1eb183 created 19:41:39 UTC, published 19:41:59 UTC, confirmed Ready/current with matching release commit. Existing GitHub/Netlify connection; no dashboard sign-in and no extra release build.
+- Live unsigned POST /poster/uploads returned HTTP 401 application/json, code studio_session_required, same API path (no HTML login redirect). Public /poster-upload.mjs returned HTTP 200 with validUploadReceipt guard. Probe created no product and used no private owner cookie. Latest code CI run 38416017621 succeeded; 169 tests cover valid preparation and expired/corrupt-response cases.
+- This fixes the reproduced crash path and malformed cached upload receipt handling. It does not prove Jim's particular phone session or actual owner artwork submission; retry in a fresh studio tab with PNG selected. Etsy publication and PrintShrimp orders remain disabled/unverified. This outcome-only documentation commit uses skip-netlify, avoiding a second paid deployment.
