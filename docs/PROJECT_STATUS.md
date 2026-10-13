@@ -670,3 +670,6 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 
 ### 2026-10-13 15:00 BST — Direct-route live profile evidence and delivery diagnostic
 - Worker job 115335923900 authenticated successfully; first-product setup reported shipping=0, processing=1, returns=1, partner=1. No merchant write. The strict delivery check remains unresolved; expand GET-only inspection to all existing shipping profiles and log only allowlisted boolean compatibility flags (name/origin/UK-only/free/second-class), no address or raw provider data. Versioned once-only diagnostic prevents repeated polling cost. Targeted three setup tests pass. No Netlify deployment.
+
+### 2026-10-13 15:02 BST — Matching delivery profile located; carrier check unresolved
+- Live GET-only worker job 115337225955 found the named PrintShrimp delivery profile; supplier-origin, UK-only and free-delivery checks passed, exact carrier/service check failed. Version 3 diagnostic reads only the matching named profile and reports safe carrier-match flags and delivery day counts; no address, credentials, raw response or merchant write. Three targeted tests passed; Netlify deployment skipped.
