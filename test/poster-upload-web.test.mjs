@@ -46,3 +46,21 @@ test('fourth framed option preview is available to authenticated owner',async()=
  const response=await f.handler(request('/poster/uploads/'+id+'/mockups/3'),f.context);
  assert.equal(response.status,200);assert.match(response.headers.get('Content-Type'),/jpeg/);
 });
+
+test('empty Etsy reference is diagnosed before upload and reference status is owner-only',async()=>{
+ const f=fixture(),state={phase:'seller_consent_required',checkedAt:Date.now()};await f.uploads.setJSON('template/catalog-status',state);
+ const page=await f.handler(request('/poster/upload'),f.context);assert.equal(page.status,200);
+ const html=await page.text();assert.match(html,/seller authorisation has not been established/);assert.match(html,/Check Etsy references through API/);
+ const status=await f.handler(request('/poster/catalog/status'),f.context);assert.equal((await status.json()).phase,'seller_consent_required');
+ const payload=JSON.stringify({filename:'47271.png',bytes:12345,metadata:{name:'Coast to Coast Walk Poster',kind:'artwork'}});
+ const rejected=await f.handler(request('/poster/uploads','POST',payload),f.context);assert.equal(rejected.status,409);assert.match((await rejected.json()).error,/No Etsy reference/);
+ assert.equal(f.uploads.map.has('template/settings'),false);
+});
+test('catalogue refresh is private, CSRF protected and never creates a product or merchant listing',async()=>{
+ const f=fixture();assert.equal((await f.handler(new Request(origin+'/poster/catalog/refresh',{method:'POST'}),f.context)).status,303);
+ assert.equal((await f.handler(request('/poster/catalog/refresh','POST',null,{'X-Poster-CSRF':'wrong'}),f.context)).status,403);
+ const r=await f.handler(request('/poster/catalog/refresh','POST'),f.context);assert.equal(r.status,202);
+ assert.equal((await r.json()).phase,'pending');assert.equal((await f.uploads.get('template/catalog-status')).phase,'pending');
+ await Promise.all(f.pending);assert.equal(f.sent.length,1);
+ assert.doesNotMatch(JSON.stringify(f.sent),/PrintShrimp|etsy.com\/v3|\/approve/);
+});
