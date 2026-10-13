@@ -76,9 +76,25 @@ test('owner status endpoint safely includes the physical Etsy choices already sy
  assert.equal(denied.status,303);
 });
 test('pending Etsy reference status exposes no stale listings or seller credentials',async()=>{
- const f=fixture();await f.uploads.setJSON('template/catalog-status',{phase:'pending',checkedAt:12345});
+ const f=fixture();await f.uploads.setJSON('template/catalog-status',{phase:'pending',checkedAt:Date.now()});
  await f.uploads.setJSON('template/catalog',{shopId:444,listings:[{listing_id:123,shop_id:444,listing_type:'physical',title:'Old listing'}]});
  const res=await f.handler(request('/poster/catalog/status'),f.context);
  const d=await res.json();assert.equal(d.phase,'pending');assert.deepEqual(d.listings,[]);
  assert.doesNotMatch(JSON.stringify(d),/token|secret|Old listing/);
+});
+
+test('old pending Etsy API status becomes a useful stalled warning instead of indefinitely queued',async()=>{
+ const f=fixture();await f.uploads.setJSON('template/catalog-status',{phase:'pending',checkedAt:Date.now()-20*60*1000});
+ const res=await f.handler(request('/poster/catalog/status'),f.context);
+ assert.equal(res.status,200);assert.equal((await res.json()).phase,'worker_delayed');
+});
+test('a completed private queue job without its final Etsy API status is identified safely',async()=>{
+ const queue=memory(),uploads=memory(),pending=[],sent=[],key='jobs/'+'q'.repeat(32);
+ await queue.setJSON(key,{phase:'complete',action:'catalog',id:'q'.repeat(32)});
+ await uploads.setJSON('template/catalog-status',{phase:'pending',jobKey:key,checkedAt:Date.now()});
+ const handler=createPosterUploadHandler({env,uploads,queue,request:async(url,o)=>{sent.push([url,o]);return new Response(null,{status:202});}});
+ const response=await handler(request('/poster/catalog/status'),{waitUntil:p=>pending.push(p)});
+ assert.equal(response.status,200);
+ const data=await response.json();assert.equal(data.phase,'worker_finished_no_result');
+ assert.equal(data.listings.length,0);assert.doesNotMatch(JSON.stringify(data),/jobs\//);
 });
