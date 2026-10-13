@@ -77,3 +77,24 @@ test('digital seller-kit validation gives the owner a useful safe error without 
 test('worker bridge preserves every seller-kit gallery photo and denies indexes outside 0-9',async()=>{const s=memory(),bridge=createGithubBridge({env,store:()=>s,authenticate:async()=>({})});const rpc=async b=>{const r=await bridge(new Request(origin,{method:'POST',body:JSON.stringify(b)}));if(r.status!==200)throw Error('Bridge unavailable');return r.json();};const remote=createRemoteStore('sapiver-poster-uploads',rpc),id='p'.repeat(32);for(let i=0;i<10;i++){const bytes=Buffer.from('listing-photo-'+i),key='uploads/'+id+'/mockups/'+i+'.jpg';await remote.set(key,bytes);assert.deepEqual(Buffer.from(await remote.get(key,{type:'arrayBuffer'})),bytes);}await assert.rejects(remote.set('uploads/'+id+'/mockups/10.jpg',Buffer.from('denied')));await assert.rejects(remote.set('uploads/'+id+'/preview-input/3.jpg',Buffer.from('denied')));});
 
 test('worker reports missing Etsy consent safely and never leaks arbitrary provider errors',async()=>{for(const [error,expected] of [['Etsy seller connection required','Connect Etsy before preparing your product.'],['Bridge unavailable','The worker could not access the private product files. Your upload is retained.']]){const q=memory(),u=memory(),e=memory(),id='z'.repeat(32),key='jobs/'+'y'.repeat(32),data={phase:'queued',action:'prepare',id};await q.setJSON(key,data);await u.setJSON('uploads/'+id+'/state',{phase:'preparing',type:'digital',stage:'checking_etsy_category'});await runGithubJobs({jobs:[{key,...data}],queue:q,uploads:u,etsyStore:e,env,clock:()=>now,prepareDigital:async()=>{throw Error(error);}});const a=await u.get('uploads/'+id+'/state');assert.equal(a.failureCode,expected);assert.equal(a.stage,'checking_etsy_category');}});
+
+test('worker diagnoses missing Etsy seller consent without exposing credentials',async()=>{
+ const q=memory(),u=memory(),e=memory(),key='jobs/'+'q'.repeat(32),job={phase:'queued',action:'catalog',createdAt:now};
+ await q.setJSON(key,job);
+ const result=await runGithubJobs({jobs:[{key,...job}],queue:q,uploads:u,etsyStore:e,env,clock:()=>now});
+ assert.equal(result.completed,1);
+ assert.equal((await u.get('template/catalog-status')).phase,'seller_consent_required');
+ assert.equal((await q.get(key)).phase,'complete');
+ assert.equal((await u.get('template/catalog-status')).count,undefined);
+});
+test('worker fetches Etsy catalogue through read-only seller API and records bounded status',async()=>{
+ const q=memory(),u=memory(),e=memory(),key='jobs/'+'q'.repeat(32),job={phase:'queued',action:'catalog'};
+ const session={shop_name:'SapiverPrints',shop_id:456,user_id:'1',access_token:'1.token',refresh_token:'1.refresh',scope:'shops_r shops_w listings_r listings_w',expires_at:now+3600000,connected_at:now};
+ await e.set('primary',seal(session,secret,'etsy-stored-tokens'));await q.setJSON(key,job);
+ const calls=[];const request=async url=>{calls.push(url);if(url.includes('/seller-taxonomy/nodes'))return Response.json({results:[]});if(url.includes('/shops/456/listings'))return Response.json({results:[{listing_id:123,shop_id:456,listing_type:'physical',title:'Poster reference'},{listing_id:124,shop_id:456,listing_type:'digital',title:'Not a physical product'}]});return new Response('',{status:500});};
+ await runGithubJobs({jobs:[{key,...job}],queue:q,uploads:u,etsyStore:e,env,clock:()=>now,request});
+ assert.equal((await u.get('template/catalog-status')).phase,'available');
+ assert.equal((await u.get('template/catalog-status')).count,1);
+ assert.deepEqual((await u.get('template/catalog')).listings.map(x=>x.listing_id),[123]);
+ assert.ok(calls.every(url=>url.startsWith('https://openapi.etsy.com/v3/application/')));
+});
