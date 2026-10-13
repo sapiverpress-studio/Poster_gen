@@ -692,3 +692,6 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 
 ### 2026-10-13 15:09 BST — Direct first-product candidate CI passed
 - Verify Poster_gen run 38410843689 / job 115342436810 passed all syntax/import checks and 159/159 tests, zero failures, at candidate 2d12b0c912eee735851fd1a174c632a1d0563fbc. Together with live read-only worker plan 115340676022, the candidate is ready for one separately approved software release. Still no full owner artwork upload or supplier write. PR #11 remains staged with skip-netlify; no additional deployment.
+
+### 2026-10-13 15:16 BST — Owner approved direct-upload deployment; sign-in clarification
+- Jim clarified that We don't do that referred to extra sign-in, not product-template direction. Existing GitHub/Netlify connector route is sufficient; do not request dashboard sign-in again. He authorises the necessary tested PR #11 software deployment to remove the confirmed upload blocker. One normal release commit; no extra preview/docs deployment. Publication and supplier orders remain disabled; real upload/merchant verification claims must remain bounded by observed evidence.
