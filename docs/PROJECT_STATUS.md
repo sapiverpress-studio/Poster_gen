@@ -2,7 +2,7 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
-## CURRENT PROJECT SNAPSHOT — 2026-10-13 (API diagnostics live; automatic status refresh improvement staged)
+## CURRENT PROJECT SNAPSHOT — 2026-10-13 (automatic Etsy status readback released; seller reference still unverified)
 
 | Area | Current evidence-based state |
 | --- | --- |
@@ -604,3 +604,12 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Not verified: Live seller OAuth token health or valid reference listing, twelve variation IDs and processing profiles, supplier handling of Black/White/Oak frames, production mobile rendering of this future patch. A worker completing queue items does not confirm Etsy listing retrieval. GitHub scheduled worker cadence is unreliable; automatic status display does NOT speed worker processing.
 - Release impact: Non-production GitHub edits/tests only; NO production deployment, provider tokens/secrets, Etsy listing creation/publication, supplier order or payment, or additional Netlify credit authorised at this stage. Before moving production ref, obtain separate explicit owner approval as required by AGENTS.md.
 - Next: A single owner-approved production release can surface asynchronous Etsy API status without requiring browser manual reload. If the result is `seller_consent_required`, owner needs one PKCE approval of existing app; never create another developer app or request secrets. If no active physical reference exists, validate how to bootstrap a 12-option template via authorised seller APIs rather than promising fabricated IDs or forcing a manual per-poster workflow.
+
+
+### 2026-10-13 — Owner-approved production deployment of Etsy live-status readback (VERIFIED)
+- Approval/scope: Owner approved deployment in chat. Exactly one update to the Netlify-linked `feature/canva-oauth-callback` branch, from production commit `459aac1cb96a941bf136b9166c33ba6226547d89` to `9083dc9574aa49f8b866b70f0b43ce1d7e066249`. No Etsy publication, PrintShrimp order, automatic payment, API key modification or publication flag changes were requested or performed.
+- Preflight: GitHub compare reported ahead by 7, behind by 0, expected base SHA matched live production and seven reviewed files. GitHub Actions run `38372096063` was successful at candidate SHA, with 138 tests passed, 0 failed.
+- Deployed/verified: Netlify deploy `6acdf1a7bb4d3e85c5d054ab`, state READY, branch `feature/canva-oauth-callback`, commit exactly `9083dc9574aa49f8b866b70f0b43ce1d7e066249`, published 2026-10-13 08:54:18 UTC. Netlify scanned 219 files with zero secret matches; expected Functions available.
+- User-facing behaviour: Owner-only API status endpoint supports refreshed, bounded reference choices, browser automatically refreshes on initial page load and foreground and polls while pending, preserving owner-selected Coast to Coast PNG and typed metadata. Exposes safe statuses with existing Etsy consent route where applicable. A successful worker run alone does not prove seller authorization or a twelve-option reference exists.
+- Outstanding acceptance: Owner opens `/poster/upload` in actual Chrome page, not Android recent-apps snapshot. Observe resolved safe API status. If `seller_consent_required`, authorise existing app once. If `available`, validate real Etsy reference variation IDs and frame mapping before private poster preparation. No real Etsy or PrintShrimp writes until separately approved and checked.
+- Deployment budget and documentation: This post-release record is committed on off-production `fix/etsy-live-status-poll-20261013` only, avoiding a second production deployment for notes.
