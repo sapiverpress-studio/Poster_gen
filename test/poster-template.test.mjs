@@ -10,3 +10,20 @@ test('inventory read-back rejects changed price, SKU and variation counts',()=>{
 import {verifyTemplateCarrier,verifyTemplateListing} from '../lib/poster-template.mjs';
 import {carriers} from './fixtures/poster-template.mjs';
 test('wrong carrier service, personalisation or changed description blocks publication',()=>{verifyTemplateCarrier(shipping,carriers);assert.throws(()=>verifyTemplateCarrier(shipping,{results:[{...carriers.results[0],name:'Different carrier'}]}));const p=plan(),l={...p.body,tags:TAGS.slice(),shop_id:456,state:'draft',listing_type:'physical',is_personalizable:false};verifyTemplateListing(l,p,{shopId:456,state:'draft'});assert.throws(()=>verifyTemplateListing({...l,description:'Changed' },p,{shopId:456,state:'draft'}));assert.throws(()=>verifyTemplateListing({...l,is_personalizable:true},p,{shopId:456,state:'draft'}));});
+
+test('saved draft reference uses its independently verified inventory processing profile',()=>{
+ const p=templateDraftPlan({filename:'Coast.png',reference:{...reference,state:'draft',readiness_state_id:null},inventory,shopId:456});
+ assert.equal(p.body.readiness_state_id,22);assert.equal(p.inventory.products.length,12);
+ const l={...p.body,tags:p.body.tags.split(','),shop_id:456,state:'draft',listing_type:'physical',is_personalizable:false,readiness_state_id:null};
+ verifyTemplateListing(l,p,{shopId:456,state:'draft'});
+ assert.throws(()=>verifyTemplateListing({...l,state:'active'},p,{shopId:456,state:'active'}));
+ assert.throws(()=>verifyTemplateListing({...l,readiness_state_id:99},p,{shopId:456,state:'draft'}));
+});
+test('draft reference cannot guess processing, copy another shop or use sold-out inventory',()=>{
+ const draft={...reference,state:'draft',readiness_state_id:null};
+ for(const offerings of [[{is_enabled:true,quantity:10,readiness_state_id:null}],[{is_enabled:true,quantity:10,readiness_state_id:22},{is_enabled:true,quantity:10,readiness_state_id:23}]]){
+  assert.throws(()=>templateDraftPlan({filename:'Coast.png',reference:draft,inventory:{products:[{offerings}]},shopId:456}));
+ }
+ assert.throws(()=>templateDraftPlan({filename:'Coast.png',reference:{...draft,shop_id:999},inventory,shopId:456}));
+ assert.throws(()=>templateDraftPlan({filename:'Coast.png',reference:{...reference,state:'sold_out'},inventory,shopId:456}));
+});
