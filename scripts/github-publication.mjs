@@ -81,4 +81,15 @@ try{
   await uploads.setJSON('template/settings',{...(latest||{}),publicationActivationCheck:{version:1,...check,checkedAt:Date.now()}});
   console.log('Publication activation preflight: '+check.phase+'; unpublished attempt archived='+(check.archived===true?'yes':'no'));
  }
+ // Bounded owner-authorised renewal-setting update; no publication or order action.
+ const renewalSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
+ if(renewalSettings?.coastAutoRenew?.phase!=='verified'){
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {enableCoastAutoRenew}=await import('../lib/listing-auto-renew.mjs');
+  const check=await enableCoastAutoRenew({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})});
+  const latest=await uploads.get('template/settings',{type:'json',consistency:'strong'});
+  await uploads.setJSON('template/settings',{...(latest||{}),coastAutoRenew:{...check,checkedAt:Date.now()}});
+  console.log('Auto-renew: '+check.phase+'; listing='+check.listingId+'; enabled='+check.shouldAutoRenew+'; changed='+check.changed);
+ }
 }catch{console.error('Worker unavailable; saved tasks retained. Inspect configuration without exposing secrets.');process.exitCode=1;}
