@@ -3,9 +3,10 @@
 
 [functions]
   directory = "netlify/functions"
+  included_files = ["lib/assets/poster-scenes/*.webp"]
 
 # Preserve Sharp's native binaries in only the new upload Function bundles.
 [functions."poster-upload*"]
   node_bundler = "esbuild"
   external_node_modules = ["sharp"]
-  included_files = ["node_modules/sharp/**", "node_modules/@img/**"]
+  included_files = ["node_modules/sharp/**", "node_modules/@img/**", "lib/assets/poster-scenes/*.webp"]
