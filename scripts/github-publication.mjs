@@ -94,11 +94,11 @@ try{
  }
  // One read-only supplier schema check for owner-requested frame mockups.
  const mockupSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
- if(mockupSettings?.supplierTemplateCheck?.version!==1){
+ if(mockupSettings?.supplierTemplateCheck?.version!==2){
   const {inspectSupplierTemplates}=await import('../lib/printshrimp-template-check.mjs');
   const check=await inspectSupplierTemplates({apiKey:env('SHRIMP_APIKEY')});
   const latest=await uploads.get('template/settings',{type:'json',consistency:'strong'});
-  await uploads.setJSON('template/settings',{...(latest||{}),supplierTemplateCheck:{version:1,...check,checkedAt:Date.now()}});
+  await uploads.setJSON('template/settings',{...(latest||{}),supplierTemplateCheck:{version:2,...check,checkedAt:Date.now()}});
   console.log('Supplier template schema: '+JSON.stringify(check));
  }
 }catch{console.error('Worker unavailable; saved tasks retained. Inspect configuration without exposing secrets.');process.exitCode=1;}
