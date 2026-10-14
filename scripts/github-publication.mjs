@@ -156,6 +156,11 @@ try{
   const {organiseShopSections}=await import('../lib/shop-section-organisation.mjs');const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
   const check=await organiseShopSections({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),uploads,etsyStore});const latest=await uploads.get('template/settings',{type:'json',consistency:'strong'});await uploads.setJSON('template/settings',{...(latest||{}),shopSectionOrganisation:{...check,checkedAt:Date.now()}});console.log('Shop sections organised: '+JSON.stringify(check));
  }
+ // Read-only verification of the owner-approved section-selector website release.
+ const selectorSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
+ if(selectorSettings?.sectionSelectorCheck?.version!==1||selectorSettings?.sectionSelectorCheck?.phase!=='ready'){
+  const {checkOwnerPrintSections}=await import('../lib/owner-upload-smoke.mjs');const check=await checkOwnerPrintSections({origin,secret:bootstrap.secret});const latest=await uploads.get('template/settings',{type:'json',consistency:'strong'});await uploads.setJSON('template/settings',{...(latest||{}),sectionSelectorCheck:{...check,version:1,checkedAt:Date.now()}});console.log('Live section selector: '+JSON.stringify(check));
+ }
  // One read-only supplier schema check for owner-requested frame mockups.
  const mockupSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
  if(mockupSettings?.supplierTemplateCheck?.version!==2){

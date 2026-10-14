@@ -65,3 +65,9 @@ test('fresh physical upload publishes the four shared room-scene previews withou
  const imageCalls=f.calls.filter(([p,o])=>p.endsWith('/images')&&o.method==='POST');assert.equal(imageCalls.length,4);
  for(let i=0;i<4;i++){const form=imageCalls[i][1].body;assert.equal(form.get('rank'),String(i+1));assert.equal(hashBytes(await form.get('image').arrayBuffer()),expected[i]);}
 });
+
+test('selected Early Learning section reaches approved plan and actual physical Etsy publication',async()=>{
+ const {productMetadata}=await import('../lib/product-metadata.mjs');const f=await fixture({modern:true,direct:true});const source=await f.uploads.get(assetKey(id));source.metadata=productMetadata({kind:'dinosaur',name:'Dinosaurs Across Time',sectionTitle:'Early Learning'},source.filename,'physical');await f.uploads.setJSON(assetKey(id),source);
+ const api=f.client.api;let assigned=false;f.client.api=async(path,o={})=>{if(path==='/shops/456/sections')return {results:[{shop_section_id:44,title:'Early Learning'}]};if(path==='/shops/456/listings'&&o.method==='POST'){assert.equal(new URLSearchParams(o.body).get('shop_section_id'),'44');assigned=true;}return api(path,o);};
+ await prepareUploadedPoster({...f,mockups:async()=>['1','2','3','4'].map(v=>Buffer.from(v))});const a=await f.uploads.get(assetKey(id));assert.equal(a.plan.identity.sectionTitle,'Early Learning');await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing'});await publishUploadedPoster({...f,approvalHash:a.approvalHash});assert.equal(assigned,true);
+});
