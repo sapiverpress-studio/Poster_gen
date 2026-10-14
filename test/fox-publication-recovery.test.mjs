@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {recoverFoxPublication} from '../lib/fox-publication-recovery.mjs';
@@ -84,4 +85,10 @@ test('v2 rescue is blocked without precise first-attempt failure proof or for ma
   if(kind==='mapped_reserved')await f.etsyStore.setJSON('draft/'+etsyCompatibleSku(SKU),{phase:'published'});
   await assert.rejects(recoverFoxPublication(f));assert.ok(f.calls.every(([,m])=>m==='GET'));
  }
+});
+
+test('future generic publication worker never executes completed fox one-off recovery',()=>{
+ const source=readFileSync(new URL('../scripts/github-publication.mjs',import.meta.url),'utf8');
+ assert.doesNotMatch(source,/await\s+recoverFoxPublication\s*\(/);
+ assert.doesNotMatch(source,/await\s+auditFoxDraft\s*\(/);
 });
