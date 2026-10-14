@@ -62,7 +62,7 @@ test('site exchanges Etsy PKCE code immediately and queues only an encrypted sel
  const pending=await s.get('oauth-pending/state_test');
  assert.doesNotMatch(pending,/access-secret|refresh-secret|private-code/);
  assert.equal(unseal(pending,secret,'etsy-pending-grant').user_id,'123');
- const tasks=[...q.map.values()].map(x=>x.data);assert.equal(tasks.length,1);
+ const tasks=[...q.map.entries()].filter(([key])=>key.startsWith('jobs/')).map(([,x])=>x.data);assert.equal(tasks.length,1);assert.equal([...q.map.entries()].filter(([key])=>key.startsWith('dispatch/'))[0][1].data.phase,'not_configured');
  assert.equal(tasks[0].action,'oauth');assert.equal(tasks[0].pendingKey,'oauth-pending/state_test');
  assert.doesNotMatch(JSON.stringify(tasks),/access-secret|refresh-secret|private-code|cookie|\/etsy\/callback/);
  current+=700000;
