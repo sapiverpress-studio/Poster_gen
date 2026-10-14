@@ -2,7 +2,7 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
-## CURRENT PROJECT SNAPSHOT — 2026-10-14 (first product published; auto-renew update in progress)
+## CURRENT PROJECT SNAPSHOT — 2026-10-14 (first product published; auto-renew VERIFIED)
 
 | Area | Current evidence-based state |
 | --- | --- |
@@ -15,7 +15,7 @@
 | Remaining live checks | Etsy publication and PrintShrimp artwork/SKU transfer are now ENABLED after final exact-revision owner Deploy. Owner screenshots now confirm the first active listing and supplier A5/A4/A3 artwork; frame/size order import and physical proof remain unverified. Automatic supplier orders/payment stay off. |
 | Safety / cost | Jim explicitly authorised publication/handoff enablement and clearing this run. Coast to coast's idle unpublished attempt archived, not deleted; original retained. Activation consumed THREE paid deploys because two scoped configuration attempts did not reach runtime. This outcome/docs commit skips Netlify. No automatic paid order or archived-product publication. |
 | First published product | **OWNER SCREENSHOT EVIDENCE:** Coast to coast listing `4594997083` active; SKU `SP-COAST-TO-COAST`; supplier product `21974e5e-e840-48cf-baed-cd01bca8ef32`, A5/A4/A3 artwork thumbnails present. App reported published in 57 seconds. Order import/frame fulfilment/payment remain unverified. |
-| Auto renewal | Owner authorised enabling the current Coast listing and future defaults. Four plan builders now request true; bounded worker patch/read-back pending execution. Existing approved plans/hashes retained. |
+| Auto renewal | **VERIFIED:** Etsy read-back confirmed listing `4594997083` has automatic renewal true, worker job `115708020452` at 06:06:19 UTC. All four future plan builders default true (189 local tests passed). Existing approved plans/hashes retained. |
 | Next action | Open a fresh /poster/upload page, choose artwork/details, prepare and review. Final Deploy now enables the existing sequence: Etsy draft/inventory/photos, supplier SKU/artwork transfer/read-back for A5/A4/A3, then Etsy activation. Correct size/frame/payment on customer orders manually until actual fulfilment is verified; do not silently add automatic order purchase. Cancelled browser receipts now create a fresh upload rather than reopening archived review. |
 
 ### Current implementation and explicit limits
@@ -798,6 +798,8 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 ### 2026-10-14 — Owner-authorised automatic listing renewal
 - Purpose: Jim requested automatic renewal after the first Coast listing showed an expiry date.
 - Changed: four physical/digital/legacy plan builders default `should_auto_renew:true`; bounded `lib/listing-auto-renew.mjs` updates only listing 4594997083 after SapiverPrints/shop/active physical/SKU checks. Worker persists verified result to existing private settings; subsequent runs skip. Old prepared revisions remain unchanged.
-- Verification: tests exercise exact one-field PATCH, already-enabled no-write path, wrong shop/SKU rejection and failed read-back. All 189 tests passed locally. Live read-back pending.
+- Verification: tests exercise exact one-field PATCH, already-enabled no-write path, wrong shop/SKU rejection and failed read-back. All 189 tests passed locally. Live worker job `115708020452` succeeded; `Auto-renew: verified; listing=4594997083; enabled=true; changed=true` at 06:06:19 UTC (07:06:19 BST). Helper read back true and unchanged title/price/quantity/inventory.
 - New evidence: owner screenshots show active Etsy listing and supplier A5/A4/A3 artwork. This supersedes the earlier pending-first-publication statements; actual order import/frame mapping/proof remain unverified. PrintShrimp bulk mockup integration is NOT IMPLEMENTED; investigation still needed.
 - Deploy / credit impact: worker-only change with [skip netlify]; no Netlify deploy requested. One existing GitHub worker rerun will apply the authorised boolean update; no immediate-renew/state/inventory or supplier-order request is sent. Normal Etsy automatic-renewal billing applies under the owner's instruction.
+
+- Outcome: worker-only commit `9499a4962d3adf9cec22c0deeed49a60d8a74673` applied. Live Netlify current deployment remains `6acf146c0d89b6f1d4457e98` / Ready. No Netlify deployment. Existing listing now automatic renewal; future plans default automatic renewal, but future real publications with the new default still require owner Deploy and live acceptance. Supplier order purchases remain off.
