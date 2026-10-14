@@ -56,4 +56,16 @@ try{
   await uploads.setJSON('template/settings',{...(checkedSettings||{}),ownerUploadCheck:{release:'14b980bcb609672bf3cbb4196f5fa86ba7a29af9',...check,checkedAt:Date.now()}});
   console.log('Owner upload form read-only check: '+check.phase+'; direct first-product form='+(check.directUpload===true?'yes':'no'));
  }
+ // One release check only. Persist its claim before calling the site so the
+ // newly dispatched child cannot recursively queue another smoke task.
+ const triggerSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
+ const triggerRelease='48d9bca023afaa2139408fe048c2ca3dfbdba73d';
+ if(!bootstrap.publicationEnabled&&triggerSettings?.ownerTriggerCheck?.release!==triggerRelease){
+  await uploads.setJSON('template/settings',{...(triggerSettings||{}),ownerTriggerCheck:{release:triggerRelease,phase:'checking',checkedAt:Date.now()}});
+  const {checkOwnerWorkerTrigger}=await import('../lib/owner-upload-smoke.mjs');
+  const check=await checkOwnerWorkerTrigger({origin,secret:bootstrap.secret});
+  const latest=await uploads.get('template/settings',{type:'json',consistency:'strong'});
+  await uploads.setJSON('template/settings',{...(latest||{}),ownerTriggerCheck:{release:triggerRelease,...check,checkedAt:Date.now()}});
+  console.log('Website catalogue trigger check: '+check.phase+'; stage four='+(check.stageFour===true?'yes':'no'));
+ }
 }catch{console.error('Worker unavailable; saved tasks retained. Inspect configuration without exposing secrets.');process.exitCode=1;}
