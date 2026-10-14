@@ -116,6 +116,18 @@ try{
   await uploads.setJSON('template/settings',{...(latest||{}),catPresentationRefresh:{...check,version:2,checkedAt:Date.now()}});
   console.log('Cat presentation: '+check.phase+'; listing='+check.listingId+'; images='+check.imageIds.join(',')+'; video='+check.videoId+'; changed='+check.changed);
  }
+ // Jim authorises the existing Coast to Coast listing presentation as well.
+ const coastSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
+ if(coastSettings?.coastPresentationRefresh?.version!==2||coastSettings?.coastPresentationRefresh?.phase!=='verified'){
+  {const {execFileSync}=await import('node:child_process');const options={stdio:'ignore',env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR}};if(!prepare)execFileSync('npm',['ci','--ignore-scripts','--no-audit','--no-fund'],options);try{execFileSync('ffmpeg',['-version'],{...options,timeout:15000});}catch{execFileSync('sudo',['apt-get','update','-qq'],{...options,timeout:120000});execFileSync('sudo',['apt-get','install','-y','--no-install-recommends','ffmpeg'],{...options,timeout:180000});}}
+  const {refreshListingPresentation,presentationRefreshId}=await import('../lib/listing-presentation-refresh.mjs');
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  let check;
+  try{check=await refreshListingPresentation({sku:'SP-COAST-TO-COAST',client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),uploads,etsyStore});}
+  catch(error){const state=await uploads.get('uploads/'+presentationRefreshId('SP-COAST-TO-COAST')+'/state',{type:'json',consistency:'strong'});const messages=['Published poster mapping unavailable','Published poster revision unavailable','Unexpected poster listing','Unexpected poster inventory','Expected four current poster photographs','Poster master changed','Listing video capacity unavailable','Invalid listing video','Poster refresh already claimed; inspect before retry','Poster listing changed before update','Replacement photo response mismatch','Replacement photo read-back mismatch','Listing video response mismatch','Listing video read-back mismatch','Poster listing retained-field mismatch','Etsy request failed','Video validation failed'];console.log('Coast refresh diagnostic: reason='+(error.code==='ENOENT'?'video_tool_unavailable':messages.includes(error.message)?error.message:'unclassified')+'; saved phase='+(state?.phase||'none')+'; replaced images='+Number(state?.presentationRefresh?.imageIds?.length||0)+'; video recorded='+(state?.presentationRefresh?.videoId?'yes':'no'));throw Error('Coast refresh needs checking');}
+  const latest=await uploads.get('template/settings',{type:'json',consistency:'strong'});await uploads.setJSON('template/settings',{...(latest||{}),coastPresentationRefresh:{...check,version:2,checkedAt:Date.now()}});
+  console.log('Coast presentation: '+check.phase+'; listing='+check.listingId+'; images='+check.imageIds.join(',')+'; video='+check.videoId+'; changed='+check.changed);
+ }
  // One read-only supplier schema check for owner-requested frame mockups.
  const mockupSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
  if(mockupSettings?.supplierTemplateCheck?.version!==2){

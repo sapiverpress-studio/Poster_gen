@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {refreshCatListing} from '../lib/cat-listing-refresh.mjs';
+import {refreshListingPresentation} from '../lib/listing-presentation-refresh.mjs';
 const old='a'.repeat(32),sku='SP-THIS-SEATS-TAKEN',listingId=4595028274;
 function memory(){const data=new Map();return {data,get:async k=>data.get(k),set:async(k,v)=>data.set(k,v),setJSON:async(k,v,o={})=>{if(o.onlyIfNew&&data.has(k))return {modified:false};data.set(k,structuredClone(v));return {modified:true};}};}
 function fixture({wrongSku=false,fail=false,pending=false}={}){
@@ -17,7 +18,7 @@ function fixture({wrongSku=false,fail=false,pending=false}={}){
  let photos=Array.from({length:4},(_,i)=>({listing_id:listingId,listing_image_id:i+10,rank:i+1}));let videos=[];const writes=[];
  const client={session:async()=>({shop_id:456,shop_name:'SapiverPrints'}),api:async(path,o={})=>{
   if(o.method){writes.push([path,o]);if(fail)throw Error('ambiguous response');
-   if(o.method==='POST'&&path.includes('/videos?')){assert.equal(o.body.get('name'),'this-seats-taken-room-scenes.mp4');assert.ok(o.body.get('video') instanceof Blob);videos.push({video_id:321,video_state:'active'});return {video_id:321};}
+   if(o.method==='POST'&&path.includes('/videos?')){assert.equal(o.body.get('name'),'sp-this-seats-taken-room-scenes.mp4');assert.ok(o.body.get('video') instanceof Blob);videos.push({video_id:321,video_state:'active'});return {video_id:321};}
    if(o.method==='POST'){assert.ok(o.body instanceof FormData);assert.equal(o.body.get('overwrite'),'true');assert.ok(o.body.get('image') instanceof Blob);const rank=Number(o.body.get('rank'));const photo={listing_id:listingId,listing_image_id:100+rank,rank};photos[rank-1]=photo;return photo;}
    if(o.method==='PATCH'){const fields=Object.fromEntries(new URLSearchParams(o.body));assert.deepEqual(Object.keys(fields),['description']);listing={...listing,...fields};return listing;}
    throw Error('unexpected write');
@@ -42,4 +43,11 @@ test('wrong SKU, pending revision and master changes stop before any Etsy mutati
 });
 test('ambiguous image upload is recorded and never automatically replayed',async()=>{
  const f=fixture({fail:true});await assert.rejects(refreshCatListing(f));assert.equal(f.writes.length,1);await assert.rejects(refreshCatListing(f),/already claimed/);assert.equal(f.writes.length,1);assert.ok([...f.uploads.data.values()].some(v=>v?.presentationRefresh?.phase==='needs_investigation'));
+});
+
+test('coast uses its own exact mapping and claim; unapproved targets fail before access',async()=>{
+ const f=fixture();const catMapping=await f.etsyStore.get('draft/'+sku);f.etsyStore.data.set('draft/SP-COAST-TO-COAST',{...catMapping});f.etsyStore.data.delete('draft/'+sku);const a=f.uploads.data.get('uploads/'+old+'/state');a.plan.identity.sku='SP-COAST-TO-COAST';f.uploads.data.set('uploads/'+old+'/state',a);
+ const original=f.client.api;f.client.api=async(path,o={})=>{if(o.method==='POST'&&path.includes('/videos?')){assert.equal(o.body.get('name'),'sp-coast-to-coast-room-scenes.mp4');o.body.set('name','sp-this-seats-taken-room-scenes.mp4');}const result=await original(path,o);if(!o.method&&path.endsWith('/inventory'))result.products.forEach(p=>p.sku='SP-COAST-TO-COAST');if(result?.title)result.title='Coast to coast Wall Art Print';return result;};
+ const result=await refreshListingPresentation({...f,sku:'SP-COAST-TO-COAST'});assert.equal(result.phase,'verified');assert.equal(f.writes.length,6);assert.equal((await f.etsyStore.get('draft/SP-COAST-TO-COAST')).listingId,listingId);assert.equal(await f.etsyStore.get('draft/'+sku),undefined);
+ const other=fixture();await assert.rejects(refreshListingPresentation({...other,sku:'SP-OTHER'}),/not authorised/);assert.equal(other.writes.length,0);
 });

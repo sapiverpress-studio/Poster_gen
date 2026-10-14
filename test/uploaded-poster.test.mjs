@@ -54,3 +54,14 @@ test('direct first-product draft uses the approved profiles and exact custom inv
  await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing'});const result=await publishUploadedPoster({...f,approvalHash:a.approvalHash});assert.equal(result.phase,'published');assert.equal(result.ordersEnabled,false);
  assert.equal(f.posts(),1);assert.equal(f.calls.filter(([p,o])=>p==='/shops/456/listings'&&o.method==='POST').length,1);
 });
+
+test('fresh physical upload publishes the four shared room-scene previews without artwork replacement',async()=>{
+ const f=await fixture({modern:true,direct:true});
+ await prepareUploadedPoster(f);const a=await f.uploads.get(assetKey(id));
+ const expected=[];for(let i=0;i<4;i++){const bytes=await f.uploads.get('uploads/'+id+'/mockups/'+i+'.jpg');const info=await sharp(bytes).metadata();assert.equal(info.width,1448);assert.equal(info.height,1186);expected.push(hashBytes(bytes));}
+ assert.deepEqual(a.plan.identity.previewHashes,expected);assert.equal(hashBytes(await f.uploads.get(a.masterKey)),hashBytes(f.bytes));
+ await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing',approvedAt:Date.now()});await f.uploads.setJSON('claims/'+id+'/publish',{approvalHash:a.approvalHash});
+ await publishUploadedPoster({...f,approvalHash:a.approvalHash});
+ const imageCalls=f.calls.filter(([p,o])=>p.endsWith('/images')&&o.method==='POST');assert.equal(imageCalls.length,4);
+ for(let i=0;i<4;i++){const form=imageCalls[i][1].body;assert.equal(form.get('rank'),String(i+1));assert.equal(hashBytes(await form.get('image').arrayBuffer()),expected[i]);}
+});
