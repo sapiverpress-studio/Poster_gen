@@ -96,6 +96,8 @@ try{
  const catSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
  if(catSettings?.catPresentationRefresh?.version!==2||catSettings?.catPresentationRefresh?.phase!=='verified'){
   if(!prepare){const {execFileSync}=await import('node:child_process');execFileSync('npm',['ci','--ignore-scripts','--no-audit','--no-fund'],{stdio:'ignore',env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR}});}
+  // Hosted runner lacks FFmpeg; install the distro package only for this pending video update.
+  {const {execFileSync}=await import('node:child_process');const options={stdio:'ignore',env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR}};try{execFileSync('ffmpeg',['-version'],{...options,timeout:15000});}catch{execFileSync('sudo',['apt-get','update','-qq'],{...options,timeout:120000});execFileSync('sudo',['apt-get','install','-y','--no-install-recommends','ffmpeg'],{...options,timeout:180000});}}
   const {refreshCatListing}=await import('../lib/cat-listing-refresh.mjs');
   const {createEtsySession}=await import('../lib/etsy-session.mjs');
   const {etsySetup}=await import('../lib/etsy-oauth.mjs');
