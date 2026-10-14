@@ -144,6 +144,12 @@ try{
   const check=await repairCatVideo({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),uploads,etsyStore});const latest=await uploads.get('template/settings',{type:'json',consistency:'strong'});await uploads.setJSON('template/settings',{...(latest||{}),catVideoPlaybackRepair:{...check,checkedAt:Date.now()},catPresentationRefresh:{...latest.catPresentationRefresh,videoId:check.videoId}});
   console.log('Cat video playback: '+JSON.stringify(check));
  }
+ // Owner-authorised section organisation: inspect the live shop before changes.
+ const sectionAuditSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
+ if(sectionAuditSettings?.shopSectionAudit?.version!==1){
+  const {auditShopSections}=await import('../lib/shop-section-audit.mjs');const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const check=await auditShopSections({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})});const latest=await uploads.get('template/settings',{type:'json',consistency:'strong'});await uploads.setJSON('template/settings',{...(latest||{}),shopSectionAudit:{...check,version:1,checkedAt:Date.now()}});console.log('Shop section audit: '+JSON.stringify(check));
+ }
  // One read-only supplier schema check for owner-requested frame mockups.
  const mockupSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
  if(mockupSettings?.supplierTemplateCheck?.version!==2){
