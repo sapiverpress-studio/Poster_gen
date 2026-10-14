@@ -207,8 +207,17 @@ test('failed task returns safe operation/status, retains draft and cannot replay
  let calls=0;const error=Object.assign(Error('Etsy request failed'),{etsyOperation:'inventory',etsyStatus:400,body:'private-token'});
  const args={jobs:[{key,...data}],queue:q,uploads:u,etsyStore:e,env,clock:()=>now,prepare:async()=>{calls++;throw error;}};
  const result=await runGithubJobs(args);
- assert.equal(result.completed,0);assert.deepEqual(result.failures,[{action:'prepare',reason:'etsy_request_failed',operation:'inventory',httpStatus:400}]);
+ assert.equal(result.completed,0);assert.deepEqual(result.failures,[{action:'prepare',reason:'etsy_request_failed',message:'Etsy request failed',operation:'inventory',httpStatus:400,stage:'starting'}]);
  assert.equal((await u.get('uploads/'+id+'/state')).listingId,123);
  const retry=await runGithubJobs(args);assert.equal(retry.skipped,1);assert.equal(calls,1);
  assert.doesNotMatch(JSON.stringify(result),/private-token/);
+});
+
+test('preparation exposes fixed reference validation reason in saved UI error and run report',async()=>{
+ const q=memory(),u=memory(),e=memory(),id='g'.repeat(32),key='jobs/'+id,data={phase:'queued',action:'prepare',id};
+ const reason='Reference must have all twelve framed and unframed combinations';
+ await q.setJSON(key,data);await u.setJSON('uploads/'+id+'/state',{phase:'preparing',stage:'checking_etsy_settings'});
+ const result=await runGithubJobs({jobs:[{key,...data}],queue:q,uploads:u,etsyStore:e,env,clock:()=>now,prepare:async()=>{throw Error(reason);}});
+ assert.equal(result.failures[0].message,reason);assert.equal(result.failures[0].stage,'checking_etsy_settings');
+ assert.equal((await u.get('uploads/'+id+'/state')).failureCode,reason);
 });

@@ -5,7 +5,7 @@ test('diagnostics reject arbitrary exception text, operation and status injectio
  for(const error of [Error('secret-provider-token'),Object.assign(Error('Etsy request failed'),{etsyOperation:'private-path\n::notice::secret',etsyStatus:'400 secret'})]){
   assert.doesNotMatch(JSON.stringify(workerFailure(error)),/secret|private-path|notice/);
  }
- assert.deepEqual(workerFailure(Object.assign(Error('Etsy request failed'),{etsyOperation:'images',etsyStatus:429})),{reason:'etsy_request_failed',operation:'images',httpStatus:429});
+ assert.deepEqual(workerFailure(Object.assign(Error('Etsy request failed'),{etsyOperation:'images',etsyStatus:429})),{reason:'etsy_request_failed',message:'Etsy request failed',operation:'images',httpStatus:429});
 });
 test('reporting fails on product errors and catalogue errors, permits empty valid queue',()=>{
  const lines=[],output={log:s=>lines.push(s),error:s=>lines.push(s)};
@@ -15,4 +15,10 @@ test('reporting fails on product errors and catalogue errors, permits empty vali
  assert.equal(reportWorkerResult({...base,cataloguePhase:'seller_consent_required'},output),1);
  assert.equal(reportWorkerResult(base,output),0);assert.ok(lines.some(s=>s.includes('does not retry')));
  assert.equal(reportWorkerResult({...base,completed:1},output),0);
+});
+
+test('reference template failures have exact useful reasons; appended secrets do not match',()=>{
+ const message='Reference must have all twelve framed and unframed combinations';
+ assert.deepEqual(workerFailure(Error(message)),{reason:'application_validation_failed',message});
+ assert.deepEqual(workerFailure(Error(message+' private-token')),{reason:'unclassified_failure'});
 });

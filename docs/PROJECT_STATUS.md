@@ -36,6 +36,11 @@
 - Retained fox draft is audited read-only on each worker execution, preserving all publication locks and reporting its unresolved state as failure. The historical rejected HTTP response was discarded by the former code and cannot be reconstructed. No merchant retry/reset is introduced.
 - Full suite: 221/221 passed locally. Worker-only release uses [skip netlify]; no website deployment or automatic publication run requested. Owner will run the existing main-branch publication workflow, whose checkout reads the updated feature/canva-oauth-callback source.
 
+### Follow-up error detail — 2026-10-14 16:25 BST investigation
+- VERIFIED run 38588959201/job 115938410659 failed: one prepare task returned unclassified_failure; catalogue available. Retained fox draft 4595277551 remains draft at etsy_draft, zero photos, one inventory product versus twelve expected, no supplier recorded. This narrows the old publication stop but does not prove its rejected HTTP request/cause.
+- Reporting coverage corrected: fixed first-party exception messages are exact-match allowlisted, returned in public worker diagnostics and retained in private UI failureCode. Safe stage enum is included. Arbitrary exception text, appended secrets, provider bodies and dynamic fields remain excluded. Native exception types have safe classifications.
+- Full suite 223/223 locally passed. Existing failures cannot be retroactively reconstructed. No merchant retry, worker run or Netlify deployment; worker-source commit skips Netlify.
+
 ### Current implementation and explicit limits
 
 Read [UNIFIED_PRODUCTS.md](UNIFIED_PRODUCTS.md) for stage-by-stage changes, Etsy limits and section design, exact tests, update semantics, storage/security, failures and remaining integration checks. Marketplace taxonomy, flat Etsy shop sections and internal types/subjects remain separate. The five owner-approved physical sections are Early Learning (nursery 2–4), Nature, Kids (4+), Wall Art and Music Learning. Older recommendations remain historical. Bundles require an actual compatible category choice rather than automatic guessing.
@@ -1004,3 +1009,9 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Verified: full npm test 221/221 passed, syntax and diff checks passed. Tests cover safe Etsy inventory HTTP 400 classification, arbitrary-message/status/operation leakage protection, nonzero reporting for task/catalogue failures, empty queue guidance, retained draft ID and no duplicate execution on repeated pickup.
 - Deploy / credit impact: worker-only [skip netlify] commit; no Netlify deploy, supplier order, merchant edit or worker dispatch performed by this task. Owner-triggered live run remains pending; no claim of resolving the underlying publication rejection.
 - Limits: HTTP operation/status identifies the rejected call, not every provider validation detail. Original fox rejection predates diagnostics, so read-only inventory/image inspection is required; do not infer the exact cause or reset its lock from a green/zero-task run.
+
+### 2026-10-14 — Correct incomplete error classification after owner rerun
+- Previous worker change correctly failed the GitHub run, but its short reason map still reported the new preparation error as unclassified. This was incomplete reporting; no claim of identifying or fixing the product rejection.
+- Added lib/worker-known-errors.mjs with exact constant first-party application errors; expanded lib/worker-diagnostics.mjs and private failureCode mapping, with fixed stage classification. Recognised validation failures now show their actual application message. Unknown arbitrary/provider text is not published.
+- Initial verification found one assertion expecting unknown_stage instead of the worker's real starting stage; corrected test expectation. Final npm test: 223/223 passed, git diff --check passed. New tests cover exact reference-combination reason in saved UI and public result, stage retention, and rejection of appended secret text.
+- Existing draft/approval/claim locks preserved. Owner screenshot still reflects a previously stored generic error. Original underlying errors discarded before this coverage cannot be reconstructed. New commit is worker-only [skip netlify]; no merchant mutation, automatic retry or new website deploy.
