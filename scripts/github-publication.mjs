@@ -94,15 +94,15 @@ try{
  }
  // Jim explicitly authorises replacing this existing cat listing's presentation.
  const catSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
- if(catSettings?.catPresentationRefresh?.phase!=='verified'){
+ if(catSettings?.catPresentationRefresh?.version!==2||catSettings?.catPresentationRefresh?.phase!=='verified'){
   if(!prepare){const {execFileSync}=await import('node:child_process');execFileSync('npm',['ci','--ignore-scripts','--no-audit','--no-fund'],{stdio:'ignore',env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR}});}
   const {refreshCatListing}=await import('../lib/cat-listing-refresh.mjs');
   const {createEtsySession}=await import('../lib/etsy-session.mjs');
   const {etsySetup}=await import('../lib/etsy-oauth.mjs');
   const check=await refreshCatListing({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),uploads,etsyStore});
   const latest=await uploads.get('template/settings',{type:'json',consistency:'strong'});
-  await uploads.setJSON('template/settings',{...(latest||{}),catPresentationRefresh:{...check,checkedAt:Date.now()}});
-  console.log('Cat presentation: '+check.phase+'; listing='+check.listingId+'; images='+check.imageIds.join(',')+'; changed='+check.changed);
+  await uploads.setJSON('template/settings',{...(latest||{}),catPresentationRefresh:{...check,version:2,checkedAt:Date.now()}});
+  console.log('Cat presentation: '+check.phase+'; listing='+check.listingId+'; images='+check.imageIds.join(',')+'; video='+check.videoId+'; changed='+check.changed);
  }
  // One read-only supplier schema check for owner-requested frame mockups.
  const mockupSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});

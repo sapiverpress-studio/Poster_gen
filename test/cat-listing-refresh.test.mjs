@@ -14,26 +14,28 @@ function fixture({wrongSku=false,fail=false,pending=false}={}){
  etsyStore.data.set('draft/'+sku,{phase:'published',listingId,uploadId:old});
  let listing={listing_id:listingId,shop_id:456,state:'active',listing_type:'physical',title:'This seats taken Wall Art Print',description:'One physical, unframed paper poster in your selected size.\nA frame, mount and hanging accessories are not included.\nAI disclosure.',price:{amount:1399,divisor:100,currency_code:'GBP'},quantity:120,should_auto_renew:true};
  const originalListing=structuredClone(listing),inventory={products:Array.from({length:12},()=>({sku:wrongSku?'other':sku,offerings:[{price:13.99,quantity:10}]}))};
- let photos=Array.from({length:4},(_,i)=>({listing_id:listingId,listing_image_id:i+10,rank:i+1}));const writes=[];
+ let photos=Array.from({length:4},(_,i)=>({listing_id:listingId,listing_image_id:i+10,rank:i+1}));let videos=[];const writes=[];
  const client={session:async()=>({shop_id:456,shop_name:'SapiverPrints'}),api:async(path,o={})=>{
   if(o.method){writes.push([path,o]);if(fail)throw Error('ambiguous response');
+   if(o.method==='POST'&&path.includes('/videos?')){assert.equal(o.body.get('name'),'this-seats-taken-room-scenes.mp4');assert.ok(o.body.get('video') instanceof Blob);videos.push({video_id:321,video_state:'active'});return {video_id:321};}
    if(o.method==='POST'){assert.ok(o.body instanceof FormData);assert.equal(o.body.get('overwrite'),'true');assert.ok(o.body.get('image') instanceof Blob);const rank=Number(o.body.get('rank'));const photo={listing_id:listingId,listing_image_id:100+rank,rank};photos[rank-1]=photo;return photo;}
    if(o.method==='PATCH'){const fields=Object.fromEntries(new URLSearchParams(o.body));assert.deepEqual(Object.keys(fields),['description']);listing={...listing,...fields};return listing;}
    throw Error('unexpected write');
   }
+  if(path.endsWith('/videos'))return {results:structuredClone(videos)};
   if(path.endsWith('/inventory'))return structuredClone(inventory);
   if(path.endsWith('/images'))return {results:structuredClone(photos)};
   if(path==='/listings/'+listingId)return structuredClone(listing);
   throw Error('unexpected endpoint');
  }};
- return {client,uploads,etsyStore,writes,originalListing,listing:()=>listing,mockups:async b=>{assert.ok(b.equals(master));return ['one','two','three','four'].map(v=>Buffer.from(v));}};
+ return {client,uploads,etsyStore,writes,videoMaker:async()=>Buffer.from('video'),originalListing,listing:()=>listing,mockups:async b=>{assert.ok(b.equals(master));return ['one','two','three','four'].map(v=>Buffer.from(v));}};
 }
 test('existing cat receives four verified overwrite photos and description only; mapping/master/history retained',async()=>{
- const f=fixture(),result=await refreshCatListing(f);assert.equal(result.phase,'verified');assert.equal(result.listingId,listingId);assert.deepEqual(result.imageIds,[101,102,103,104]);assert.equal(f.writes.length,5);
+ const f=fixture(),result=await refreshCatListing(f);assert.equal(result.phase,'verified');assert.equal(result.videoId,321);assert.equal(result.listingId,listingId);assert.deepEqual(result.imageIds,[101,102,103,104]);assert.equal(f.writes.length,6);
  const after=f.listing();assert.match(after.description,/Frame images are illustrative mockups/);assert.match(after.description,/AI disclosure/);
  const {description:_,...a}=after,{description:__,...b}=f.originalListing;assert.deepEqual(a,b);
  const record=await f.uploads.get('products/'+old+'/record');assert.notEqual(record.currentRevision,old);assert.equal(record.supplierProductId,'supplier-original');assert.equal((await f.uploads.get('uploads/'+old+'/state')).plan.body.description,'old');assert.equal((await f.etsyStore.get('draft/'+sku)).listingId,listingId);
- const again=await refreshCatListing(f);assert.equal(again.changed,false);assert.equal(f.writes.length,5);
+ const again=await refreshCatListing(f);assert.equal(again.changed,false);assert.equal(f.writes.length,6);
 });
 test('wrong SKU, pending revision and master changes stop before any Etsy mutation',async()=>{
  for(const option of [{wrongSku:true},{pending:true},{corrupt:true}]){const f=fixture(option);if(option.corrupt)f.uploads.data.set('uploads/'+old+'/master.png',Buffer.from('changed'));await assert.rejects(refreshCatListing(f));assert.equal(f.writes.length,0);}
