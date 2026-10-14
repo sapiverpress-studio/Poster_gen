@@ -803,3 +803,9 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Deploy / credit impact: worker-only change with [skip netlify]; no Netlify deploy requested. One existing GitHub worker rerun will apply the authorised boolean update; no immediate-renew/state/inventory or supplier-order request is sent. Normal Etsy automatic-renewal billing applies under the owner's instruction.
 
 - Outcome: worker-only commit `9499a4962d3adf9cec22c0deeed49a60d8a74673` applied. Live Netlify current deployment remains `6acf146c0d89b6f1d4457e98` / Ready. No Netlify deployment. Existing listing now automatic renewal; future plans default automatic renewal, but future real publications with the new default still require owner Deploy and live acceptance. Supplier order purchases remain off.
+
+### 2026-10-14 07:12 BST — PrintShrimp mockup integration investigation
+- Owner authorised continuing supplier frame/mockup work. Current previews are custom flat-colour frames composed around uploaded artwork in `lib/poster-mockups.mjs`; they do not use PrintShrimp scenes.
+- Official public Bulk Mockup page confirms downloadable mockups for external use and a paid mockup service. It does not document an API generation contract. Public API docs redirect to the portal, whose current browser session is logged out. No credentials requested, no subscription started, no bulk-list/publication/order action.
+- Added one bounded read-only GET to owner-documented `/api-get-templates` using existing GitHub-only supplier key. Returns/logs schema types/counts only, with no provider values or private URLs. This will distinguish supplier templates from an assumed mockup API. New fixture tests cover GET-only transport and private-value redaction. Live result pending.
+- Cost: [skip netlify] worker-only diagnostic; no production site deployment. Existing listings/master/SKUs unchanged. Do not invent a generation endpoint or use bulk-list to overwrite the published listing.
