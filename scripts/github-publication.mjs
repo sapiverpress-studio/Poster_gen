@@ -163,6 +163,13 @@ try{
  if(selectorSettings?.sectionSelectorCheck?.version!==2||selectorSettings?.sectionSelectorCheck?.phase!=='ready'){
   const {checkOwnerPrintSections}=await import('../lib/owner-upload-smoke.mjs');const check=await checkOwnerPrintSections({origin,secret:bootstrap.secret});const latest=await uploads.get('template/settings',{type:'json',consistency:'strong'});await uploads.setJSON('template/settings',{...(latest||{}),sectionSelectorCheck:{...check,version:2,checkedAt:Date.now()}});console.log('Live section selector: '+JSON.stringify(check));
  }
+ // Jim authorises completing the same retained fox draft, 2026-10-14.
+ {
+  const {recoverFoxPublication}=await import('../lib/fox-publication-recovery.mjs');
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const check=await recoverFoxPublication({uploads,etsyStore,client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),env:workerEnv});
+  console.log('Fox authorised recovery: '+JSON.stringify(check));if(check.phase!=='published')process.exitCode=1;
+ }
  // Owner-requested bounded read-only investigation; never replay publication.
  { // Re-read the retained draft on manual runs; never retry its publication.
   const {auditFoxDraft}=await import('../lib/fox-draft-audit.mjs');

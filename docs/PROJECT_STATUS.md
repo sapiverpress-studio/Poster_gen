@@ -41,6 +41,11 @@
 - Reporting coverage corrected: fixed first-party exception messages are exact-match allowlisted, returned in public worker diagnostics and retained in private UI failureCode. Safe stage enum is included. Arbitrary exception text, appended secrets, provider bodies and dynamic fields remain excluded. Native exception types have safe classifications.
 - Full suite 223/223 locally passed. Existing failures cannot be retroactively reconstructed. No merchant retry, worker run or Netlify deployment; worker-source commit skips Netlify.
 
+### Fox recovery authorised — 2026-10-14 16:33 BST
+- Jim explicitly requests fixing and continuing the same retained draft. Tested recovery is pinned to fox SKU, draft 4595277551 and shop 50893070, retains original approval/master/previews, checks live settings and empty default inventory/photos before one bounded attempt. No new Etsy draft or automatic orders. Existing original locks are never cleared.
+- Etsy HTTP errors now safely classify rejection fields/reasons without retaining provider bodies. This lets the controlled inventory attempt distinguish SKU-length/variation/profile/price/quantity rejection. Exact live cause remains unverified until execution.
+- Full 227 tests passed locally. Worker-source release skips Netlify; authorised recovery worker will be explicitly rerun. Completion remains PENDING until actual Etsy and supplier readbacks.
+
 ### Current implementation and explicit limits
 
 Read [UNIFIED_PRODUCTS.md](UNIFIED_PRODUCTS.md) for stage-by-stage changes, Etsy limits and section design, exact tests, update semantics, storage/security, failures and remaining integration checks. Marketplace taxonomy, flat Etsy shop sections and internal types/subjects remain separate. The five owner-approved physical sections are Early Learning (nursery 2–4), Nature, Kids (4+), Wall Art and Music Learning. Older recommendations remain historical. Bundles require an actual compatible category choice rather than automatic guessing.
@@ -1015,3 +1020,9 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Added lib/worker-known-errors.mjs with exact constant first-party application errors; expanded lib/worker-diagnostics.mjs and private failureCode mapping, with fixed stage classification. Recognised validation failures now show their actual application message. Unknown arbitrary/provider text is not published.
 - Initial verification found one assertion expecting unknown_stage instead of the worker's real starting stage; corrected test expectation. Final npm test: 223/223 passed, git diff --check passed. New tests cover exact reference-combination reason in saved UI and public result, stage retention, and rejection of appended secret text.
 - Existing draft/approval/claim locks preserved. Owner screenshot still reflects a previously stored generic error. Original underlying errors discarded before this coverage cannot be reconstructed. New commit is worker-only [skip netlify]; no merchant mutation, automatic retry or new website deploy.
+
+### 2026-10-14 — Owner-authorised retained fox draft recovery prepared
+- Authorisation: "Can we fix it and carry it on from where it left off?" Existing draft only, retain approval and all business content. Development branch fix/fox-draft-recovery based on 759b581.
+- Added one-product recovery using persisted original approval hash, unchanged bytes/previews, shop/listing/section/settings checks, absent supplier check and separate one-attempt claim. Inventory PUT precedes four approved photos, one supplier transfer/readback/revoked ticket, and final Etsy activation/readback. Verified completion is a read-only no-op on subsequent runs. Partial/uncertain progress stops rather than blindly replaying.
+- Added fixed provider-rejection classification (not raw text) and documented safe diagnostics. Full npm test 227/227 passed; syntax and diff checks passed. Recovery tests prove same listing/no create, replay prevention, approval/master/shop/image drift rejection and no activation after supplier ambiguity.
+- Release uses [skip netlify]; no website deployment authorised/needed. Live worker recovery is authorised and pending. Actual rejected field and final publication/supplier outcome not yet known.
