@@ -69,4 +69,15 @@ try{
   await uploads.setJSON('template/settings',{...(latest||{}),ownerTriggerCheck:{release:triggerRelease,...check,checkedAt:Date.now()}});
   console.log('Website catalogue trigger check: '+check.phase+'; stage four='+(check.stageFour===true?'yes':'no'));
  }
+ const activationSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
+ if(activationSettings?.publicationActivationCheck?.version!==1){
+  await uploads.setJSON('template/settings',{...(activationSettings||{}),publicationActivationCheck:{version:1,phase:'checking',checkedAt:Date.now()}});
+  const {checkAndRestartProduct}=await import('../lib/publication-activation-check.mjs');
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const check=await checkAndRestartProduct({origin,secret:bootstrap.secret,apiKey:env('SHRIMP_APIKEY'),uploads,etsyStore,client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})});
+  const latest=await uploads.get('template/settings',{type:'json',consistency:'strong'});
+  await uploads.setJSON('template/settings',{...(latest||{}),publicationActivationCheck:{version:1,...check,checkedAt:Date.now()}});
+  console.log('Publication activation preflight: '+check.phase+'; unpublished attempt archived='+(check.archived===true?'yes':'no'));
+ }
 }catch{console.error('Worker unavailable; saved tasks retained. Inspect configuration without exposing secrets.');process.exitCode=1;}
