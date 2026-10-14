@@ -1,7 +1,18 @@
 const csrf=document.querySelector('meta[name="poster-csrf"]')?.content,status=document.getElementById('upload-status'),form=document.getElementById('poster-upload-form'),configure=document.getElementById('product-configure-form');
 const SESSION_ERROR='Your product-studio session has expired. Reopen the studio, then retry. Saved uploads are retained.';
 async function api(path,options={}){
- const response=await fetch(path,{...options,credentials:'same-origin',headers:{...options.headers,'X-Poster-CSRF':csrf}});
+ const method=options.method||'GET',safe=method==='GET'||method==='PUT';
+ let response;
+ for(let attempt=0;attempt<(safe?3:1);attempt++){
+  try{response=await fetch(path,{...options,credentials:'same-origin',headers:{...options.headers,'X-Poster-CSRF':csrf}});break;}
+  catch{
+   if(safe&&attempt<2){await new Promise(resolve=>setTimeout(resolve,500*(attempt+1)));continue;}
+   const stage=path.includes('/chunks/')?'sending artwork':path.endsWith('/finish')?'submitting preparation':path==='/poster/uploads'?'starting the upload':'checking saved progress';
+   throw Error('Connection interrupted while '+stage+'. '+(path==='/poster/uploads'?'Check the product dashboard before starting again; the upload may have been created.':'Your saved upload is retained. Keep this page open and retry Prepare my product to check its status.'));
+  }
+ }
+ if(response.status===429)throw Error('Too many upload requests. Keep this page open, wait three minutes, then retry Prepare my product.');
+ if(response.status>=500)throw Error('The product service is temporarily unavailable. Your saved progress is retained. Check the product dashboard before retrying.');
  if(response.status===401||(response.redirected&&/\/poster\/workflow(?:[?#]|$)/.test(response.url||'')))throw Error(SESSION_ERROR);
  let body;try{body=await response.json();}catch{throw Error('The product service did not return upload data. Check saved progress before retrying.');}
  if(!response.ok)throw Error(body?.error||'Request failed. Check saved product status before retrying.');
@@ -11,6 +22,17 @@ async function api(path,options={}){
 function validUploadReceipt(upload){return upload&&/^[A-Za-z0-9_-]{32}$/.test(upload.id||'')&&['uploading','preparing'].includes(upload.phase)&&Number.isSafeInteger(upload.chunkBytes)&&upload.chunkBytes>0&&upload.chunkBytes<=2_000_000;}
 function metadata(f){return {useEmbeddedText:f.elements.useEmbeddedText?.checked===true,name:f.elements.name.value,description:f.elements.description?.value||'',subject:f.elements.subject.value,kind:f.elements.kind.value,sectionTitle:f.elements.sectionTitle?.value,price:f.elements.price.value,licence:f.elements.licence.value,instructions:f.elements.instructions.value,tags:f.elements.tags.value,taxonomyId:f.elements.taxonomyId.value,seamlessConfirmed:f.elements.seamlessConfirmed.checked};}
 function showType(f,type){const supplierStep=document.getElementById('physical-fulfilment-step');if(supplierStep)supplierStep.hidden=type==='digital';f.querySelectorAll('[data-digital]').forEach(e=>{e.hidden=type!=='digital';e.querySelectorAll('input,textarea').forEach(i=>i.disabled=type!=='digital');});f.querySelectorAll('[data-physical]').forEach(e=>e.hidden=type!=='physical');const options=[...f.elements.kind.options];options.forEach(o=>{o.hidden=o.dataset.type!==type;o.disabled=o.hidden;});if(f.elements.kind.selectedOptions[0]?.disabled)f.elements.kind.value=options.find(o=>!o.disabled).value;const kindLabel=document.getElementById('poster-kind-label');if(kindLabel)kindLabel.textContent=type==='physical'?'Poster type':'Product group';if(f.elements.poster)f.elements.poster.accept=type==='digital'?'.zip':'.png';}
+function bindSectionGuidance(f){
+ const select=f?.elements.sectionTitle,note=document.getElementById('print-section-description');
+ if(!select||!note)return;
+ const update=()=>{note.textContent=select.selectedOptions[0]?.dataset.description||'';};
+ select.addEventListener('change',update);update();
+}
+bindSectionGuidance(form);bindSectionGuidance(configure);
+async function readArtworkChunk(file,start,end){
+ try{return await file.slice(start,end).arrayBuffer();}
+ catch{throw Error('The phone could not read the selected file. Download it to this device, then choose it again from Downloads. Keep your product details; any saved upload is retained.');}
+}
 if(form){showType(form,form.elements.type.value);form.elements.type.addEventListener('change',()=>showType(form,form.elements.type.value));}
 const refresh=document.getElementById('refresh-etsy-catalog'),catalogStatus=document.getElementById('catalog-status'),catalogAuth=document.getElementById('catalog-auth-note');
 const catalogueMessages={
@@ -67,9 +89,15 @@ if(form)form.addEventListener('submit',async event=>{event.preventDefault();cons
  const signature=JSON.stringify({filename:file?.name,bytes:file?.size,type,updateProductId,metadata:data,referenceListingId:form.elements.referenceListingId?.value,previews:previews.map(f=>[f.name,f.size])});try{saved=JSON.parse(sessionStorage.getItem('poster-upload')||'null');}catch{}
  if(saved&&!validUploadReceipt(saved)){saved=null;try{sessionStorage.removeItem('poster-upload');}catch{}}
  if(saved?.signature===signature&&file){upload=saved;const prior=await api('/poster/uploads/'+upload.id);if(prior.phase==='cancelled'){upload=null;try{sessionStorage.removeItem('poster-upload');}catch{}}else{if(!['uploading','preparing','ready_for_approval','publishing','published','needs_investigation','superseded'].includes(prior.phase))throw Error('Saved upload status is unavailable. Check the product dashboard before retrying.');if(prior.phase!=='uploading'){location.assign('/poster/upload?id='+upload.id);return;}}}
+ // Read the file explicitly so mobile file-provider failures are not disguised as fetch errors.
+ let firstChunk;
+ if(file&&(!upload||upload.phase==='uploading')){
+  status.textContent='Reading selected file…';
+  firstChunk=await readArtworkChunk(file,0,upload?.chunkBytes||2_000_000);
+ }
  if(!upload){upload=await api('/poster/uploads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file?.name,bytes:file?.size,type,metadata:data,previewCount:previews.length,referenceListingId:form.elements.referenceListingId?.value,updateProductId,reuseOriginal:!file})});if(!validUploadReceipt(upload))throw Error('The product service did not confirm an upload ID. Check the product dashboard before retrying.');try{sessionStorage.setItem('poster-upload',JSON.stringify({...upload,signature}));}catch{}}
  if(upload.phase==='preparing'){location.assign('/poster/upload?id='+upload.id);return;}
- for(let offset=0,i=0;offset<file.size;offset+=upload.chunkBytes,i++){await api('/poster/uploads/'+upload.id+'/chunks/'+i,{method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:file.slice(offset,offset+upload.chunkBytes)});status.textContent='Uploaded '+Math.round(Math.min(offset+upload.chunkBytes,file.size)/file.size*100)+'%';}
+ for(let offset=0,i=0;offset<file.size;offset+=upload.chunkBytes,i++){await api('/poster/uploads/'+upload.id+'/chunks/'+i,{method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:offset===0&&firstChunk?.byteLength===Math.min(upload.chunkBytes,file.size)?firstChunk:await readArtworkChunk(file,offset,offset+upload.chunkBytes)});status.textContent='Uploaded '+Math.round(Math.min(offset+upload.chunkBytes,file.size)/file.size*100)+'%';}
  for(let i=0;i<previews.length;i++)await api('/poster/uploads/'+upload.id+'/preview-input/'+i,{method:'PUT',headers:{'Content-Type':'image/jpeg'},body:await previewJpeg(previews[i])});
  await api('/poster/uploads/'+upload.id+'/finish',{method:'POST'});location.assign('/poster/upload?id='+upload.id);
  }catch(error){status.textContent=error.message;button.disabled=false;}});

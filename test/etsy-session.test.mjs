@@ -14,3 +14,13 @@ test('ambiguous refresh stays locked and never leaks provider error or retries',
 test('refresh rejects changed identity or removed scopes without replacing token',async()=>{for(const token of [{...refreshed,access_token:'999.wrong'},{...refreshed,scope:'shops_r'}]){const f=fixture(async()=>Response.json(token));await assert.rejects(f.client.session());assert.equal(f.read().access_token,record.access_token);}});
 test('refresh cannot overwrite a newly connected owner token',async()=>{let f;f=fixture(async()=>{f.replace();return Response.json(refreshed);});await assert.rejects(f.client.session());assert.equal(f.read().access_token,'123.new-owner');});
 test('unexpired authenticated API pins host and credentials and refuses untrusted path',async()=>{let calls=0;const f=fixture(async(url,o)=>{calls++;assert.equal(url,'https://openapi.etsy.com/v3/application/shops/456');assert.equal(o.headers.Authorization,'Bearer 123.old-token');return Response.json({shop_id:456});},{...record,expires_at:now+3600000});await assert.rejects(f.client.api('https://evil.example.test/'));assert.equal(calls,0);assert.deepEqual(await f.client.api('/shops/456'),{shop_id:456});});
+
+test('rejected merchant requests retain safe operation/status without leaking provider body or credentials',async()=>{
+ for(const [path,operation] of [['/listings/123/inventory','inventory'],['/shops/456/listings/123/images','images'],['/listings/123?includes=Images','listing']]){
+  const f=fixture(async()=>new Response('private-provider-body 123.old-token',{status:422}),{...record,expires_at:now+3600000});
+  await assert.rejects(f.client.api(path),e=>{
+   assert.equal(e.message,'Etsy request failed');assert.equal(e.etsyStatus,422);assert.equal(e.etsyOperation,operation);
+   assert.doesNotMatch(JSON.stringify(e),/private-provider|old-token/);return true;
+  });
+ }
+});
