@@ -31,6 +31,11 @@
 - Prepared section-specific live guidance, explicit chunk reads, bounded safe GET/PUT network retries, and stage-specific failure messages. Owner listing text remains intact. No automatic replay of create/finish/publication POSTs. No production deployment, supplier order or merchant change performed in this investigation.
 - Next: one separately owner-approved production release; phone acceptance after release. Original transient failure is not claimed conclusively diagnosed.
 
+### Worker failure reporting — 2026-10-14
+- IMPLEMENTED / LOCAL TESTED: owner requests visible failure reasons and will manually rerun. Worker now returns safe classified task failures and skipped counts; script emits GitHub error annotations and nonzero exit status for task/catalogue failures. Etsy operation and numeric HTTP status from the existing safe API wrapper are included. Unknown errors remain explicitly unclassified; raw provider text is never logged.
+- Retained fox draft is audited read-only on each worker execution, preserving all publication locks and reporting its unresolved state as failure. The historical rejected HTTP response was discarded by the former code and cannot be reconstructed. No merchant retry/reset is introduced.
+- Full suite: 221/221 passed locally. Worker-only release uses [skip netlify]; no website deployment or automatic publication run requested. Owner will run the existing main-branch publication workflow, whose checkout reads the updated feature/canva-oauth-callback source.
+
 ### Current implementation and explicit limits
 
 Read [UNIFIED_PRODUCTS.md](UNIFIED_PRODUCTS.md) for stage-by-stage changes, Etsy limits and section design, exact tests, update semantics, storage/security, failures and remaining integration checks. Marketplace taxonomy, flat Etsy shop sections and internal types/subjects remain separate. The five owner-approved physical sections are Early Learning (nursery 2–4), Nature, Kids (4+), Wall Art and Music Learning. Older recommendations remain historical. Bundles require an actual compatible category choice rather than automatic guessing.
@@ -992,3 +997,10 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Jim says Proceed after explicit request for one deployment. Release combines tested responsive section guidance, chunk transfer handling and safe Etsy failure reporting. Add once-only GET-only audit of exact retained fox draft 4595277551, bound to stored SKU/claim and shop 50893070; reports state, image/inventory counts and SKU lengths, never provider bodies, tokens or artwork. No publication replay.
 - Authenticated owner-page smoke now also requires per-section descriptions, browser change binding and chunk recovery code; version 2 forces a fresh check after release.
 - Netlify deployment skill unavailable in current catalog; existing Git-driven release mechanism retained. Remote production head independently verified unchanged at 99ac19c. No additional deployment authorised.
+
+### 2026-10-14 — Visible worker failures, owner-run verification pending
+- Authorisation: Jim explicitly requested changing failure reporting and said he will rerun. Changes developed on local fix/worker-failure-reporting from b8ff485; intended worker-source release feature/canva-oauth-callback with Netlify skip marker.
+- Changed: lib/github-publication.mjs, new lib/worker-diagnostics.mjs, scripts/github-publication.mjs, focused regression tests and this handover. Failure handling preserves saved IDs and claims; no retry/publication logic changed. Existing fox audit runs read-only again so a no-task rerun explains the retained blocked draft rather than silently appearing successful.
+- Verified: full npm test 221/221 passed, syntax and diff checks passed. Tests cover safe Etsy inventory HTTP 400 classification, arbitrary-message/status/operation leakage protection, nonzero reporting for task/catalogue failures, empty queue guidance, retained draft ID and no duplicate execution on repeated pickup.
+- Deploy / credit impact: worker-only [skip netlify] commit; no Netlify deploy, supplier order, merchant edit or worker dispatch performed by this task. Owner-triggered live run remains pending; no claim of resolving the underlying publication rejection.
+- Limits: HTTP operation/status identifies the rejected call, not every provider validation detail. Original fox rejection predates diagnostics, so read-only inventory/image inspection is required; do not infer the exact cause or reset its lock from a green/zero-task run.

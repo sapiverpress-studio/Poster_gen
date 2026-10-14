@@ -1,3 +1,4 @@
+import {workerFailure,reportWorkerResult} from '../lib/worker-diagnostics.mjs';
 import {createRemoteStore} from '../lib/github-remote-store.mjs';
 // Never print provider bodies, tokens, capabilities, artwork or exception text.
 try{
@@ -27,6 +28,7 @@ try{
   ({prepareUploadedPoster:prepare,publishUploadedPoster:publish}=await import('../lib/uploaded-poster.mjs'));({prepareDigitalProduct:prepareDigital,publishDigitalProduct:publishDigital}=await import('../lib/digital-product.mjs'));
  }
  const result=await runGithubJobs({jobs,queue,uploads,etsyStore,env:workerEnv,prepare,publish,prepareDigital,publishDigital,runId:process.env.GITHUB_RUN_ID});console.log('Worker completed. Tasks completed: '+result.completed+'; read-only catalogue phase: '+(['available','empty','seller_consent_required','seller_consent_invalid','seller_refresh_error','etsy_api_unavailable'].includes(result.cataloguePhase)?result.cataloguePhase:'not_checked'));
+ if(reportWorkerResult(result))process.exitCode=1;
  // One read-only first-product diagnostic, independent of publication and no Netlify release.
  if(!bootstrap.publicationEnabled){
   const settings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
@@ -162,8 +164,7 @@ try{
   const {checkOwnerPrintSections}=await import('../lib/owner-upload-smoke.mjs');const check=await checkOwnerPrintSections({origin,secret:bootstrap.secret});const latest=await uploads.get('template/settings',{type:'json',consistency:'strong'});await uploads.setJSON('template/settings',{...(latest||{}),sectionSelectorCheck:{...check,version:2,checkedAt:Date.now()}});console.log('Live section selector: '+JSON.stringify(check));
  }
  // Owner-requested bounded read-only investigation; never replay publication.
- const foxSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
- if(!foxSettings?.foxDraftAudit){
+ { // Re-read the retained draft on manual runs; never retry its publication.
   const {auditFoxDraft}=await import('../lib/fox-draft-audit.mjs');
   const {createEtsySession}=await import('../lib/etsy-session.mjs');
   const {etsySetup}=await import('../lib/etsy-oauth.mjs');
@@ -171,6 +172,7 @@ try{
   const latest=await uploads.get('template/settings',{type:'json',consistency:'strong'});
   await uploads.setJSON('template/settings',{...latest,foxDraftAudit:check});
   console.log('Fox draft read-only audit: '+JSON.stringify(check));
+  if(check.phase==='needs_investigation'){console.error('::error::Retained fox publication is still blocked at '+(['etsy_draft','supplier','activating'].includes(check.stage)?check.stage:'saved_product_stage')+'. See the read-only audit above. Original HTTP details may predate diagnostics; no publication retry performed.');process.exitCode=1;}
  }
  // One read-only supplier schema check for owner-requested frame mockups.
  const mockupSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
@@ -181,4 +183,4 @@ try{
   await uploads.setJSON('template/settings',{...(latest||{}),supplierTemplateCheck:{version:2,...check,checkedAt:Date.now()}});
   console.log('Supplier template schema: '+JSON.stringify(check));
  }
-}catch{console.error('Worker unavailable; saved tasks retained. Inspect configuration without exposing secrets.');process.exitCode=1;}
+}catch(error){console.error('::error::Worker stopped: '+JSON.stringify(workerFailure(error))+'. Saved tasks retained; no automatic replay.');process.exitCode=1;}

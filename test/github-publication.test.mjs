@@ -199,3 +199,16 @@ test('authenticated catalogue includes saved physical drafts without publishing 
  assert.equal(result.cataloguePhase,'available');
  assert.deepEqual((await u.get('template/catalog')).listings.map(l=>[l.listing_id,l.state,l.title]),[[123,'draft','[Draft] Saved reference'],[124,'inactive','[Inactive] Saved reference']]);
 });
+
+
+test('failed task returns safe operation/status, retains draft and cannot replay',async()=>{
+ const q=memory(),u=memory(),e=memory(),id='f'.repeat(32),key='jobs/'+id,data={phase:'queued',action:'prepare',id};
+ await q.setJSON(key,data);await u.setJSON('uploads/'+id+'/state',{phase:'preparing',listingId:123});
+ let calls=0;const error=Object.assign(Error('Etsy request failed'),{etsyOperation:'inventory',etsyStatus:400,body:'private-token'});
+ const args={jobs:[{key,...data}],queue:q,uploads:u,etsyStore:e,env,clock:()=>now,prepare:async()=>{calls++;throw error;}};
+ const result=await runGithubJobs(args);
+ assert.equal(result.completed,0);assert.deepEqual(result.failures,[{action:'prepare',reason:'etsy_request_failed',operation:'inventory',httpStatus:400}]);
+ assert.equal((await u.get('uploads/'+id+'/state')).listingId,123);
+ const retry=await runGithubJobs(args);assert.equal(retry.skipped,1);assert.equal(calls,1);
+ assert.doesNotMatch(JSON.stringify(result),/private-token/);
+});
