@@ -18,7 +18,7 @@ function fixture({wrongSku=false,fail=false,pending=false}={}){
  let photos=Array.from({length:4},(_,i)=>({listing_id:listingId,listing_image_id:i+10,rank:i+1}));let videos=[];const writes=[];
  const client={session:async()=>({shop_id:456,shop_name:'SapiverPrints'}),api:async(path,o={})=>{
   if(o.method){writes.push([path,o]);if(fail)throw Error('ambiguous response');
-   if(o.method==='POST'&&path.includes('/videos?')){assert.equal(o.body.get('name'),'sp-this-seats-taken-room-scenes.mp4');assert.ok(o.body.get('video') instanceof Blob);videos.push({video_id:321,video_state:'active'});return {video_id:321};}
+   if(o.method==='POST'&&path.includes('/videos?')){assert.equal(o.body.get('name'),'sp-this-seats-taken-room-scenes.mp4');assert.ok(o.body.get('video') instanceof Blob);videos.push({video_id:321,video_state:'active',video_url:'https://v.etsystatic.com/test.mp4'});return {video_id:321};}
    if(o.method==='POST'){assert.ok(o.body instanceof FormData);assert.equal(o.body.get('overwrite'),'true');assert.ok(o.body.get('image') instanceof Blob);const rank=Number(o.body.get('rank'));const photo={listing_id:listingId,listing_image_id:100+rank,rank};photos[rank-1]=photo;return photo;}
    if(o.method==='PATCH'){const fields=Object.fromEntries(new URLSearchParams(o.body));assert.deepEqual(Object.keys(fields),['description']);listing={...listing,...fields};return listing;}
    throw Error('unexpected write');
@@ -29,7 +29,7 @@ function fixture({wrongSku=false,fail=false,pending=false}={}){
   if(path==='/listings/'+listingId)return structuredClone(listing);
   throw Error('unexpected endpoint');
  }};
- return {client,uploads,etsyStore,writes,videoMaker:async()=>Buffer.from('video'),originalListing,listing:()=>listing,mockups:async b=>{assert.ok(b.equals(master));return ['one','two','three','four'].map(v=>Buffer.from(v));}};
+ return {client,uploads,etsyStore,writes,request:async()=>new Response('processed'),inspect:async()=>({decoded:true}),videoMaker:async()=>Buffer.from('video'),originalListing,listing:()=>listing,mockups:async b=>{assert.ok(b.equals(master));return ['one','two','three','four'].map(v=>Buffer.from(v));}};
 }
 test('existing cat receives four verified overwrite photos and description only; mapping/master/history retained',async()=>{
  const f=fixture(),result=await refreshCatListing(f);assert.equal(result.phase,'verified');assert.equal(result.videoId,321);assert.equal(result.listingId,listingId);assert.deepEqual(result.imageIds,[101,102,103,104]);assert.equal(f.writes.length,6);
@@ -51,3 +51,5 @@ test('coast uses its own exact mapping and claim; unapproved targets fail before
  const result=await refreshListingPresentation({...f,sku:'SP-COAST-TO-COAST'});assert.equal(result.phase,'verified');assert.equal(f.writes.length,6);assert.equal((await f.etsyStore.get('draft/SP-COAST-TO-COAST')).listingId,listingId);assert.equal(await f.etsyStore.get('draft/'+sku),undefined);
  const other=fixture();await assert.rejects(refreshListingPresentation({...other,sku:'SP-OTHER'}),/not authorised/);assert.equal(other.writes.length,0);
 });
+
+test('generic presentation refuses success if Etsy processed video fails decode',async()=>{const f=fixture();f.inspect=async b=>{if(b.toString()==='processed')throw Error('decode failed');return {decoded:true};};await assert.rejects(refreshCatListing(f),/decode failed/);assert.equal(f.writes.some(([,o])=>o.method==='PATCH'),false);assert.ok([...f.uploads.data.values()].some(v=>v?.phase==='needs_investigation'));});

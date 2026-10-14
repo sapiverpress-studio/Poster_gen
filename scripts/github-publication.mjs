@@ -136,6 +136,14 @@ try{
   const check=await repairCoastVideo({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),uploads,etsyStore});const latest=await uploads.get('template/settings',{type:'json',consistency:'strong'});await uploads.setJSON('template/settings',{...(latest||{}),coastVideoPlaybackRepair:{...check,checkedAt:Date.now()},coastPresentationRefresh:{...latest.coastPresentationRefresh,videoId:check.videoId}});
   console.log('Coast video playback: '+JSON.stringify(check));
  }
+ // Owner reports ghosted/unplayable Cat video; repair video only once.
+ const catPlaybackSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
+ if(catPlaybackSettings?.catVideoPlaybackRepair?.phase!=='verified'){
+  {const {execFileSync}=await import('node:child_process');const options={stdio:'ignore',env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR}};if(!prepare)execFileSync('npm',['ci','--ignore-scripts','--no-audit','--no-fund'],options);try{execFileSync('ffmpeg',['-version'],{...options,timeout:15000});}catch{execFileSync('sudo',['apt-get','update','-qq'],{...options,timeout:120000});execFileSync('sudo',['apt-get','install','-y','--no-install-recommends','ffmpeg'],{...options,timeout:180000});}}
+  const {repairCatVideo}=await import('../lib/cat-video-repair.mjs');const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const check=await repairCatVideo({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),uploads,etsyStore});const latest=await uploads.get('template/settings',{type:'json',consistency:'strong'});await uploads.setJSON('template/settings',{...(latest||{}),catVideoPlaybackRepair:{...check,checkedAt:Date.now()},catPresentationRefresh:{...latest.catPresentationRefresh,videoId:check.videoId}});
+  console.log('Cat video playback: '+JSON.stringify(check));
+ }
  // One read-only supplier schema check for owner-requested frame mockups.
  const mockupSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
  if(mockupSettings?.supplierTemplateCheck?.version!==2){
