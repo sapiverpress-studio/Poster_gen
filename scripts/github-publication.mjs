@@ -99,7 +99,17 @@ try{
   const {refreshCatListing}=await import('../lib/cat-listing-refresh.mjs');
   const {createEtsySession}=await import('../lib/etsy-session.mjs');
   const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-  const check=await refreshCatListing({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),uploads,etsyStore});
+  let check;
+  try{check=await refreshCatListing({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),uploads,etsyStore});}
+  catch(error){
+   const {createHash}=await import('node:crypto');const refreshId=createHash('sha256').update('SP-THIS-SEATS-TAKEN:room-scenes-v2').digest('hex').slice(0,32);
+   const state=await uploads.get('uploads/'+refreshId+'/state',{type:'json',consistency:'strong'});
+   const safeMessages=['Published cat mapping unavailable','Published cat revision unavailable','Unexpected cat listing','Unexpected cat inventory','Expected four current cat photographs','Cat master changed','Listing video capacity unavailable','Invalid listing video','Cat refresh already claimed; inspect before retry','Cat listing changed before update','Replacement photo response mismatch','Replacement photo read-back mismatch','Listing video response mismatch','Listing video read-back mismatch','Cat listing retained-field mismatch','Etsy request failed','Video validation failed'];
+   const reason=error.code==='ENOENT'?'video_tool_unavailable':safeMessages.includes(error.message)?error.message:typeof error.code==='number'?'video_render_failed':'unclassified';
+   console.log('Cat refresh diagnostic: reason='+reason+'; saved phase='+(state?.phase||'none')+'; replaced images='+Number(state?.presentationRefresh?.imageIds?.length||0)+'; video recorded='+(state?.presentationRefresh?.videoId?'yes':'no'));
+   throw Error('Cat refresh needs checking');
+  }
+
   const latest=await uploads.get('template/settings',{type:'json',consistency:'strong'});
   await uploads.setJSON('template/settings',{...(latest||{}),catPresentationRefresh:{...check,version:2,checkedAt:Date.now()}});
   console.log('Cat presentation: '+check.phase+'; listing='+check.listingId+'; images='+check.imageIds.join(',')+'; video='+check.videoId+'; changed='+check.changed);
