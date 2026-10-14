@@ -69,6 +69,7 @@ try{
   await uploads.setJSON('template/settings',{...(latest||{}),ownerTriggerCheck:{release:triggerRelease,...check,checkedAt:Date.now()}});
   console.log('Website catalogue trigger check: '+check.phase+'; stage four='+(check.stageFour===true?'yes':'no'));
  }
+ console.log('Publication gate: '+(bootstrap.publicationEnabled?'enabled':'disabled')+'; automatic supplier orders=disabled');
  const activationSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
  if(activationSettings?.publicationActivationCheck?.version!==1){
   await uploads.setJSON('template/settings',{...(activationSettings||{}),publicationActivationCheck:{version:1,phase:'checking',checkedAt:Date.now()}});

@@ -79,6 +79,14 @@ test('malformed old saved receipt is discarded instead of requesting an undefine
  const f=fixture();selectedPng(f);await f.events.submit({preventDefault(){}});const signature=JSON.parse(f.storage.get('poster-upload')).signature;f.storage.set('poster-upload',JSON.stringify({signature}));f.calls.length=0;f.assigned.length=0;await f.events.submit({preventDefault(){}});
  assert.ok(f.calls.every(([path])=>!path.includes('undefined')));assert.equal(f.calls.filter(([path])=>path==='/poster/uploads').length,1);assert.equal(JSON.parse(f.storage.get('poster-upload')).id,'a'.repeat(32));
 });
+test('owner-cleared saved attempt starts a fresh upload instead of reopening the retired review',async()=>{
+ let created=0;const f=fixture({responseFor:async(path,o)=>{
+  if(path==='/poster/uploads')return Response.json({id:(++created===1?'a':'b').repeat(32),chunkBytes:2000000,phase:'uploading'},{status:201});
+  if(!o.method)return Response.json({phase:'cancelled'});
+  return Response.json({stored:true});
+ }});selectedPng(f);await f.events.submit({preventDefault(){}});f.calls.length=0;f.assigned.length=0;await f.events.submit({preventDefault(){}});
+ assert.equal(created,2);assert.equal(f.calls[0][0],'/poster/uploads/'+'a'.repeat(32));assert.equal(f.calls[1][0],'/poster/uploads');assert.equal(f.assigned[0],'/poster/upload?id='+'b'.repeat(32));assert.equal(JSON.parse(f.storage.get('poster-upload')).id,'b'.repeat(32));
+});
 
 
 function actualServer({expired=false}={}){
