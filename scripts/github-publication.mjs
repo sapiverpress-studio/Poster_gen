@@ -17,7 +17,8 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
- const jobs=(await rpc({op:'list',store:'sapiver-github-queue',prefix:'jobs/'})).jobs;
+ const {collectGithubJobs}=await import('../lib/github-job-poll.mjs');
+ const jobs=await collectGithubJobs({rpc,event:process.env.GITHUB_EVENT_NAME});
  const {runGithubJobs}=await import('../lib/github-publication.mjs');
  let prepare,publish,prepareDigital,publishDigital;
  if(jobs.some(j=>j.action!=='oauth')){
@@ -59,7 +60,7 @@ try{
  // One release check only. Persist its claim before calling the site so the
  // newly dispatched child cannot recursively queue another smoke task.
  const triggerSettings=await uploads.get('template/settings',{type:'json',consistency:'strong'});
- const triggerRelease='48d9bca023afaa2139408fe048c2ca3dfbdba73d';
+ const triggerRelease='48d9bca023afaa2139408fe048c2ca3dfbdba73d-visibility-v2';
  if(!bootstrap.publicationEnabled&&triggerSettings?.ownerTriggerCheck?.release!==triggerRelease){
   await uploads.setJSON('template/settings',{...(triggerSettings||{}),ownerTriggerCheck:{release:triggerRelease,phase:'checking',checkedAt:Date.now()}});
   const {checkOwnerWorkerTrigger}=await import('../lib/owner-upload-smoke.mjs');
