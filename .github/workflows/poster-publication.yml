@@ -1,8 +1,6 @@
 name: Approved poster publication
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '3-58/5 * * * *'
 permissions:
   contents: read
   id-token: write
