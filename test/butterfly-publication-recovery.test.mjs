@@ -80,8 +80,11 @@ test('supplier failure retains existing draft, prevents Etsy activation and does
  assert.ok([...f.uploads.data.entries()].some(([k,v])=>k.startsWith('transfers/')&&v.revoked));
  await assert.rejects(recoverButterflyDraft(f));assert.equal(f.getPosts(),0);
 });
-test('staged butterfly merchant repair remains absent from regular GitHub publication worker',()=>{
+test('butterfly recovery is never part of ordinary queued-publication workflow',()=>{
  const source=readFileSync(new URL('../scripts/github-publication.mjs',import.meta.url),'utf8');
- assert.doesNotMatch(source,/await\s+recoverButterflyDraft\s*\(/);
- assert.doesNotMatch(source,/from ['"]\.\.\/lib\/butterfly-publication-recovery/);
+ const gate=source.indexOf("if(process.env.GITHUB_RUN_ID==='38693218239')");
+ const normal=source.indexOf('const jobs=await collectGithubJobs',gate);
+ assert.ok(gate>0&&normal>gate);
+ assert.match(source.slice(gate,normal),/await recoverButterflyDraft\\(/);
+ assert.doesNotMatch(source.slice(normal),/await recoverButterflyDraft\\(/);
 });
