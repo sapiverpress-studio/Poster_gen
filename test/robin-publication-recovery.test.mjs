@@ -93,10 +93,9 @@ test('supplier failure retains existing draft, prevents Etsy activation and does
  assert.ok([...f.uploads.data.entries()].some(([k,v])=>k.startsWith('transfers/')&&v.revoked));
  await assert.rejects(recoverRobinDraft(f));assert.equal(f.getPosts(),0);
 });
-test('completed robin is not invoked in future generic workers',()=>{
+test('completed Robin does not run from the ordinary GitHub publication worker',()=>{
  const source=readFileSync(new URL('../scripts/github-publication.mjs',import.meta.url),'utf8');
- assert.equal(source.includes('await recoverRobinDraft('),true);
- assert.match(source,/if\(process.env.GITHUB_RUN_ATTEMPT==='5'\)/);
- assert.equal(source.includes("if(process.env.GITHUB_RUN_ID==='38723172616')"),true);
+ assert.equal(source.includes('await recoverRobinDraft('),false);
+ assert.equal(source.includes("if(process.env.GITHUB_RUN_ID==='38723172616')"),false);
  assert.equal(source.includes('await runGithubJobs('),true);
 });
