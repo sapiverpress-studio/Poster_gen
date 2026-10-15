@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {auditButterflyDraft} from '../lib/butterfly-draft-audit.mjs';
+import {auditButterflyDraft,descriptionFingerprint} from '../lib/butterfly-draft-audit.mjs';
 import {templateDraftPlan,TEMPLATE_VERSION} from '../lib/poster-template.mjs';
 import {reference,inventory} from './fixtures/poster-template.mjs';
 
@@ -58,4 +58,14 @@ test('a rerun of the failed butterfly workflow is isolated from standard queue a
  assert.ok(source.indexOf('await etsyStore.setJSON',gate)>other);
  assert.match(source.slice(gate,other),/auditButterflyDraft/);
  assert.doesNotMatch(source.slice(gate,other),/runGithubJobs|collectGithubJobs|setJSON\s*\(|\.api\('/);
+});
+
+test('fingerprint reports only numeric positions and safe normalization labels',()=>{
+ const entity=descriptionFingerprint('Café & bees','Café &amp; bees');
+ assert.deepEqual(entity.normalisations,['html_entities']);assert.equal(entity.shape,'changed_in_middle_or_multiple');
+ const truncate=descriptionFingerprint('A long original description','A long original');
+ assert.equal(truncate.shape,'truncated');assert.equal(truncate.expectedCharacters,27);
+ const altered=descriptionFingerprint('Approved words for a nature poster','A different sentence entirely');
+ assert.deepEqual(altered.normalisations,[]);
+ assert.doesNotMatch(JSON.stringify(altered),/Approved|different sentence/);
 });
