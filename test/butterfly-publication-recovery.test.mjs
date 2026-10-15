@@ -85,6 +85,6 @@ test('butterfly recovery is never part of ordinary queued-publication workflow',
  const gate=source.indexOf("if(process.env.GITHUB_RUN_ID==='38693218239')");
  const normal=source.indexOf('const jobs=await collectGithubJobs',gate);
  assert.ok(gate>0&&normal>gate);
- assert.match(source.slice(gate,normal),/await recoverButterflyDraft\\(/);
- assert.doesNotMatch(source.slice(normal),/await recoverButterflyDraft\\(/);
+ assert.match(source.slice(gate,normal),/await recoverButterflyDraft\(/);
+ assert.doesNotMatch(source.slice(normal),/await recoverButterflyDraft\(/);
 });
