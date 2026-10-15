@@ -95,7 +95,8 @@ test('supplier failure retains existing draft, prevents Etsy activation and does
 });
 test('completed robin is not invoked in future generic workers',()=>{
  const source=readFileSync(new URL('../scripts/github-publication.mjs',import.meta.url),'utf8');
- assert.equal(source.includes('await recoverRobinDraft('),false);
+ assert.equal(source.includes('await recoverRobinDraft('),true);
+ assert.match(source,/if\(process.env.GITHUB_RUN_ATTEMPT==='5'\)/);
  assert.equal(source.includes("if(process.env.GITHUB_RUN_ID==='38723172616')"),true);
  assert.equal(source.includes('await runGithubJobs('),true);
 });

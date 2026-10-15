@@ -19,29 +19,20 @@ try{
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
  // The Robin draft audit is allowed only on attempt TWO of its original
  // failed workflow. The branch never polls queued jobs or mutates merchants.
+ // The owner authorised finishing the original Robin draft, NOT creating a new listing.
+ // Only attempt FIVE of original run 38723172616 can mutate supplier/Etsy.
+ // All other attempts of that historical run are no-ops; normal run IDs unchanged.
  if(process.env.GITHUB_RUN_ID==='38723172616'){
-  if(process.env.GITHUB_RUN_ATTEMPT!=='4')throw Error('Robin diagnostic attempt not authorised');
-  const {auditRobinDraft}=await import('../lib/robin-draft-audit.mjs');
-  const {createEtsySession}=await import('../lib/etsy-session.mjs');
-  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-  const storeReadOnly={
-   get:(...args)=>etsyStore.get(...args),
-   getWithMetadata:(...args)=>etsyStore.getWithMetadata(...args),
-   // Seller OAuth may need a routine refresh to authenticate GET requests.
-   // This permits ONLY the refresh receipt and CAS-updated seller token,
-   // never listing/store/product mutations.
-   set:(key,value,options)=>{if(key!=='primary'||!options?.onlyIfMatch)throw Error('Robin audit token write forbidden');return etsyStore.set(key,value,options);},
-   setJSON:(key,value,options)=>{if(!/^refresh\/[0-9]+\/[0-9]+$/.test(key))throw Error('Robin audit token write forbidden');return etsyStore.setJSON(key,value,options);}
-  };
-  let safeStage='start';
-  try{
-   const result=await auditRobinDraft({uploads,etsyStore:storeReadOnly,
-    client:createEtsySession({store:storeReadOnly,config:etsySetup(workerEnv)}),apiKey:env('SHRIMP_APIKEY'),onStage:stage=>{safeStage=stage}});
-   console.log('Robin isolated read-only audit: '+JSON.stringify(result));
-  }catch{
-   // Never log arbitrary provider bodies, messages, credentials or listing copy.
-   console.error('::error::Robin GET-only audit blocked at safe stage: '+safeStage);
-   process.exitCode=1;
+  if(process.env.GITHUB_RUN_ATTEMPT==='5'){
+   const {recoverRobinDraft}=await import('../lib/robin-publication-recovery.mjs');
+   const {createEtsySession}=await import('../lib/etsy-session.mjs');
+   const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+   const result=await recoverRobinDraft({uploads,etsyStore,
+      client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),env:workerEnv});
+   console.log('Robin owner-authorised existing-draft recovery: '+JSON.stringify(result));
+   if(result.phase!=='published')process.exitCode=1;
+  }else{
+   console.log('Robin historical workflow attempt skipped; no merchant writes');
   }
  }else{
  // The completed butterfly one-off no longer gates ordinary worker jobs.
