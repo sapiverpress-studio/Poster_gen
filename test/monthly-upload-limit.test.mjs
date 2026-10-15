@@ -68,7 +68,7 @@ test('authenticated new-upload form and API block the forty-first product but pe
  const blocked=await handler(request('/poster/uploads','POST',json),context);
  assert.equal(blocked.status,409);assert.equal((await blocked.json()).code,'monthly_upload_limit');
  const previousId=id(60);
- await uploads.setJSON('products/'+previousId+'/record',{productId:previousId,type:'physical',createdAt:Date.parse('2026-09-10T12:00:00Z'),currentRevision:previousId});
+ await uploads.setJSON('products/'+previousId+'/record',{productId:previousId,type:'physical',metadata:{name:'Old Poster',kind:'artwork'},createdAt:Date.parse('2026-09-10T12:00:00Z'),currentRevision:previousId});
  await uploads.setJSON('uploads/'+previousId+'/state',{phase:'published',type:'physical',filename:'Old.png',sourceFilename:'Old.png',bytes:33,masterKey:'uploads/'+previousId+'/master.png',metadata:{name:'Old Poster',kind:'artwork'}});
  page=await handler(request('/poster/upload?update='+previousId),context);
  markup=await page.text();assert.doesNotMatch(markup,/<button type="submit" disabled aria-disabled="true">Prepare my product/);
