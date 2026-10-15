@@ -17,6 +17,23 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ // The Robin draft audit is allowed only on attempt TWO of its original
+ // failed workflow. The branch never polls queued jobs or mutates merchants.
+ if(process.env.GITHUB_RUN_ID==='38723172616'){
+  if(process.env.GITHUB_RUN_ATTEMPT!=='2')throw Error('Robin diagnostic attempt not authorised');
+  const {auditRobinDraft}=await import('../lib/robin-draft-audit.mjs');
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const storeReadOnly={
+   get:(...args)=>etsyStore.get(...args),
+   getWithMetadata:(...args)=>etsyStore.getWithMetadata(...args),
+   set:async()=>{throw Error('Read-only Robin seller token refresh forbidden')},
+   setJSON:async()=>{throw Error('Read-only Robin seller token refresh forbidden')}
+  };
+  const result=await auditRobinDraft({uploads,etsyStore:storeReadOnly,
+    client:createEtsySession({store:storeReadOnly,config:etsySetup(workerEnv)}),apiKey:env('SHRIMP_APIKEY')});
+  console.log('Robin isolated read-only audit: '+JSON.stringify(result));
+ }else{
  // The completed butterfly one-off no longer gates ordinary worker jobs.
  await etsyStore.setJSON('github-config',{clientId:process.env.ETSY_PRINTS_KEYSTRING});
  const {collectGithubJobs}=await import('../lib/github-job-poll.mjs');
@@ -175,4 +192,5 @@ try{
   await uploads.setJSON('template/settings',{...(latest||{}),supplierTemplateCheck:{version:2,...check,checkedAt:Date.now()}});
   console.log('Supplier template schema: '+JSON.stringify(check));
  }
+ } // original production worker unchanged for all other run IDs
 }catch(error){console.error('::error::Worker stopped: '+JSON.stringify(workerFailure(error))+'. Saved tasks retained; no automatic replay.');process.exitCode=1;}
