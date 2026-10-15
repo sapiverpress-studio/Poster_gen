@@ -58,9 +58,9 @@ test('only attempt 5 of the Robin workflow invokes original-draft recovery, with
  const routine=source.indexOf('const jobs=await collectGithubJobs(',call);
  assert.ok(gate>0&&attempt>gate&&call>attempt&&routine>call);
  const scoped=source.slice(gate,source.indexOf(' }else{',call));
- assert.equal((scoped.match(/await recoverRobinDraft\\(/g)||[]).length,1);
+ assert.equal(scoped.split('await recoverRobinDraft(').length-1,1);
  assert.doesNotMatch(scoped,/await auditRobinDraft|await runGithubJobs|await collectGithubJobs|await etsyStore.setJSON/);
- assert.doesNotMatch(source.slice(routine),/await recoverRobinDraft\\(/);
+ assert.equal(source.slice(routine).includes('await recoverRobinDraft('),false);
 });
 test('fingerprint reports only numeric positions and safe normalization labels',()=>{
  const entity=descriptionFingerprint('Café & bees','Café &amp; bees');
