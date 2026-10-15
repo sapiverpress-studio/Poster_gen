@@ -24,7 +24,15 @@ try{
   const {auditButterflyDraft}=await import('../lib/butterfly-draft-audit.mjs');
   const {createEtsySession}=await import('../lib/etsy-session.mjs');
   const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-  const audit=await auditButterflyDraft({uploads,etsyStore,client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),apiKey:env('SHRIMP_APIKEY')});
+  // OAuth refresh itself writes a token; fail safely rather than permit that
+  // mutation during this explicitly read-only run.
+  const safeStore={
+   get:(...args)=>etsyStore.get(...args),
+   getWithMetadata:(...args)=>etsyStore.getWithMetadata(...args),
+   set:async()=>{throw Error('Butterfly read-only seller session requires refresh')},
+   setJSON:async()=>{throw Error('Butterfly read-only seller session requires refresh')}
+  };
+  const audit=await auditButterflyDraft({uploads,etsyStore:safeStore,client:createEtsySession({store:safeStore,config:etsySetup(workerEnv)}),apiKey:env('SHRIMP_APIKEY')});
   console.log('Butterfly isolated GET-only audit: '+JSON.stringify(audit));
  }else{
  await etsyStore.setJSON('github-config',{clientId:process.env.ETSY_PRINTS_KEYSTRING});
