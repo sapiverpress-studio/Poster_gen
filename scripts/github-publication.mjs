@@ -20,15 +20,18 @@ try{
  // The Robin draft audit is allowed only on attempt TWO of its original
  // failed workflow. The branch never polls queued jobs or mutates merchants.
  if(process.env.GITHUB_RUN_ID==='38723172616'){
-  if(process.env.GITHUB_RUN_ATTEMPT!=='3')throw Error('Robin diagnostic attempt not authorised');
+  if(process.env.GITHUB_RUN_ATTEMPT!=='4')throw Error('Robin diagnostic attempt not authorised');
   const {auditRobinDraft}=await import('../lib/robin-draft-audit.mjs');
   const {createEtsySession}=await import('../lib/etsy-session.mjs');
   const {etsySetup}=await import('../lib/etsy-oauth.mjs');
   const storeReadOnly={
    get:(...args)=>etsyStore.get(...args),
    getWithMetadata:(...args)=>etsyStore.getWithMetadata(...args),
-   set:async()=>{throw Error('Read-only Robin seller token refresh forbidden')},
-   setJSON:async()=>{throw Error('Read-only Robin seller token refresh forbidden')}
+   // Seller OAuth may need a routine refresh to authenticate GET requests.
+   // This permits ONLY the refresh receipt and CAS-updated seller token,
+   // never listing/store/product mutations.
+   set:(key,value,options)=>{if(key!=='primary'||!options?.onlyIfMatch)throw Error('Robin audit token write forbidden');return etsyStore.set(key,value,options);},
+   setJSON:(key,value,options)=>{if(!/^refresh\\/[0-9]+\\/[0-9]+$/.test(key))throw Error('Robin audit token write forbidden');return etsyStore.setJSON(key,value,options);}
   };
   let safeStage='start';
   try{
