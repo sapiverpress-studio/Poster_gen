@@ -50,15 +50,18 @@ test('audit fails closed on changed approval, wrong draft and wrong seller befor
   assert.ok(f.calls.every(([,method])=>method==='GET'));
  }
 });
-test('specific workflow rerun is read-only and does not run normal queue',()=>{
+test('original Robin run is limited to one approved recovery attempt; queued tasks remain isolated',()=>{
  const source=readFileSync(new URL('../scripts/github-publication.mjs',import.meta.url),'utf8');
  const gate=source.indexOf("if(process.env.GITHUB_RUN_ID==='38723172616')");
- const audit=source.indexOf('await auditRobinDraft(',gate);
- const normal=source.indexOf('await etsyStore.setJSON(',audit);
- const jobs=source.indexOf('const jobs=await collectGithubJobs(',normal);
- assert.ok(gate>0&&audit>gate&&normal>audit&&jobs>normal);
- assert.match(source.slice(gate,normal),/GITHUB_RUN_ATTEMPT!==\x27\x34\x27/);
- assert.doesNotMatch(source.slice(gate,normal),/await runGithubJobs|await collectGithubJobs|await etsyStore.setJSON/);
+ const attempt=source.indexOf("if(process.env.GITHUB_RUN_ATTEMPT==='5')",gate);
+ const call=source.indexOf('await recoverRobinDraft(',attempt);
+ const skip=source.indexOf('Robin historical workflow attempt skipped',call);
+ const ordinary=source.indexOf('const jobs=await collectGithubJobs(',skip);
+ assert.ok(gate>0&&attempt>gate&&call>attempt&&skip>call&&ordinary>skip);
+ const scoped=source.slice(gate,ordinary);
+ assert.equal((scoped.match(/await recoverRobinDraft\(/g)||[]).length,1);
+ assert.doesNotMatch(scoped,/await runGithubJobs|await collectGithubJobs|await auditRobinDraft/);
+ assert.match(scoped,/if\(result.phase!=='published'\)process.exitCode=1/);
 });
 test('fingerprint reports only numeric positions and safe normalization labels',()=>{
  const entity=descriptionFingerprint('Café & bees','Café &amp; bees');
@@ -98,13 +101,11 @@ test('Robin audit uses fixed safe stage labels and makes no writes',async()=>{
  assert.ok(stages.every(s=>/^[a-z_]+$/.test(s)));
 });
 
-test('Robin fourth-attempt worker allows only credential refresh storage writes',()=>{
+test('normal new-run worker does not auto-trigger Robin one-off',()=>{
  const source=readFileSync(new URL('../scripts/github-publication.mjs',import.meta.url),'utf8');
- const gate=source.indexOf("if(process.env.GITHUB_RUN_ID==='38723172616')");
- const other=source.indexOf(' }else{\n // The completed butterfly',gate);
- const scope=source.slice(gate,other);
- assert.match(scope,/key!=='primary'/);
- assert.match(scope,/onlyIfMatch/);
- assert.match(scope,/refresh/);
- assert.doesNotMatch(scope,/await runGithubJobs|await collectGithubJobs|await etsyStore.setJSON\('draft\//);
+ const skip=source.indexOf('Robin historical workflow attempt skipped');
+ const ordinary=source.indexOf('const jobs=await collectGithubJobs(',skip);
+ assert.ok(skip>0&&ordinary>skip);
+ assert.doesNotMatch(source.slice(ordinary),/await recoverRobinDraft\(/);
+ assert.match(source.slice(ordinary),/await runGithubJobs\(/);
 });
