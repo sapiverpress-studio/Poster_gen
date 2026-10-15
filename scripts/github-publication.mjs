@@ -21,7 +21,7 @@ try{
  // attempt of the original run. Attempts 1-3 were failed/read-only investigations.
  // No ordinary queued product job is collected by this isolated branch.
  if(process.env.GITHUB_RUN_ID==='38693218239'){
-  if(process.env.GITHUB_RUN_ATTEMPT==='4'){
+  if(process.env.GITHUB_RUN_ATTEMPT==='5'){
    const {recoverButterflyDraft}=await import('../lib/butterfly-publication-recovery.mjs');
    const {createEtsySession}=await import('../lib/etsy-session.mjs');
    const {etsySetup}=await import('../lib/etsy-oauth.mjs');
