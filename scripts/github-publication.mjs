@@ -14,10 +14,20 @@ try{
  const bootstrap=await rpc({op:'bootstrap'}),queue=createRemoteStore('sapiver-github-queue',rpc),uploads=createRemoteStore('sapiver-poster-uploads',rpc),etsyStore=createRemoteStore('sapiver-etsy-private',rpc);
  if(!bootstrap.secret||bootstrap.origin!==origin)throw Error('Site unavailable');
  for(const n of ['ETSY_PRINTS_KEYSTRING','ETSY_PRINTS_SHARED_SECRET','SHRIMP_APIKEY'])if(!process.env[n])throw Error('Saved provider configuration incomplete');
- await etsyStore.setJSON('github-config',{clientId:process.env.ETSY_PRINTS_KEYSTRING});
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ // This exact failed run ID is intentionally reused for a single GET-only audit.
+ // In its rerun, bypass queue polling, claims, saved settings updates,
+ // merchant POST/PATCH/PUT and all other one-off worker operations.
+ if(process.env.GITHUB_RUN_ID==='38693218239'){
+  const {auditButterflyDraft}=await import('../lib/butterfly-draft-audit.mjs');
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const audit=await auditButterflyDraft({uploads,etsyStore,client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),apiKey:env('SHRIMP_APIKEY')});
+  console.log('Butterfly isolated GET-only audit: '+JSON.stringify(audit));
+ }else{
+ await etsyStore.setJSON('github-config',{clientId:process.env.ETSY_PRINTS_KEYSTRING});
  const {collectGithubJobs}=await import('../lib/github-job-poll.mjs');
  const jobs=await collectGithubJobs({rpc,event:process.env.GITHUB_EVENT_NAME});
  const {runGithubJobs}=await import('../lib/github-publication.mjs');
@@ -174,4 +184,5 @@ try{
   await uploads.setJSON('template/settings',{...(latest||{}),supplierTemplateCheck:{version:2,...check,checkedAt:Date.now()}});
   console.log('Supplier template schema: '+JSON.stringify(check));
  }
+ } // End normal publication route; read-only butterfly rerun never enters it.
 }catch(error){console.error('::error::Worker stopped: '+JSON.stringify(workerFailure(error))+'. Saved tasks retained; no automatic replay.');process.exitCode=1;}
