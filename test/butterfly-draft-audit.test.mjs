@@ -62,10 +62,20 @@ test('only corrective attempt five of the exact butterfly workflow run can invok
  assert.equal((scoped.match(/await recoverButterflyDraft\(/g)||[]).length,1);
  assert.doesNotMatch(scoped,/auditButterflyDraft|await runGithubJobs|await collectGithubJobs|await etsyStore.setJSON/);
  assert.match(source.slice(skip,normal),/no merchant writes/i);
+ const probe=source.indexOf("process.env.GITHUB_RUN_ATTEMPT==='6'");
+ assert.ok(probe>source.indexOf("process.env.GITHUB_RUN_ATTEMPT==='5'")&&probe<normal);
+ assert.match(source.slice(probe,normal),/auditButterflyDraft/);
+ assert.doesNotMatch(source.slice(probe,normal),/await recoverButterflyDraft/);
 });
 test('fingerprint reports only numeric positions and safe normalization labels',()=>{
  const entity=descriptionFingerprint('Café & bees','Café &amp; bees');
- assert.deepEqual(entity.normalisations,['html_entities']);assert.equal(entity.shape,'changed_in_middle_or_multiple');
+ assert.deepEqual(entity.normalisations,['html_entities']);
+ assert.equal(entity.exactSingleEntity,'ampersand_entity');
+ const quote=descriptionFingerprint("It's a woodland poem","It&#39;s a woodland poem");
+ assert.equal(quote.exactSingleEntity,'apostrophe_numeric_entity');
+ assert.equal(quote.actualCharacters-quote.expectedCharacters,4);
+ const alteredEntity=descriptionFingerprint("It's a woodland poem","It's a changed sentence");
+ assert.equal(alteredEntity.exactSingleEntity,'not_exact_known_entity');assert.equal(entity.shape,'changed_in_middle_or_multiple');
  const truncate=descriptionFingerprint('A long original description','A long original');
  assert.equal(truncate.shape,'truncated');assert.equal(truncate.expectedCharacters,27);
  const altered=descriptionFingerprint('Approved words for a nature poster','A different sentence entirely');
