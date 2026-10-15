@@ -31,7 +31,7 @@ try{
    // This permits ONLY the refresh receipt and CAS-updated seller token,
    // never listing/store/product mutations.
    set:(key,value,options)=>{if(key!=='primary'||!options?.onlyIfMatch)throw Error('Robin audit token write forbidden');return etsyStore.set(key,value,options);},
-   setJSON:(key,value,options)=>{if(!/^refresh\\/[0-9]+\\/[0-9]+$/.test(key))throw Error('Robin audit token write forbidden');return etsyStore.setJSON(key,value,options);}
+   setJSON:(key,value,options)=>{if(!/^refresh\/[0-9]+\/[0-9]+$/.test(key))throw Error('Robin audit token write forbidden');return etsyStore.setJSON(key,value,options);}
   };
   let safeStage='start';
   try{
