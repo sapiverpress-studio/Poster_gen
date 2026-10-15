@@ -19,22 +19,7 @@ try{
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
  // The Robin draft audit is allowed only on attempt TWO of its original
  // failed workflow. The branch never polls queued jobs or mutates merchants.
- // The owner authorised finishing the original Robin draft, NOT creating a new listing.
- // Only attempt FIVE of original run 38723172616 can mutate supplier/Etsy.
- // All other attempts of that historical run are no-ops; normal run IDs unchanged.
- if(process.env.GITHUB_RUN_ID==='38723172616'){
-  if(process.env.GITHUB_RUN_ATTEMPT==='5'){
-   const {recoverRobinDraft}=await import('../lib/robin-publication-recovery.mjs');
-   const {createEtsySession}=await import('../lib/etsy-session.mjs');
-   const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-   const result=await recoverRobinDraft({uploads,etsyStore,
-      client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),env:workerEnv});
-   console.log('Robin owner-authorised existing-draft recovery: '+JSON.stringify(result));
-   if(result.phase!=='published')process.exitCode=1;
-  }else{
-   console.log('Robin historical workflow attempt skipped; no merchant writes');
-  }
- }else{
+ // Historical Robin publication is complete; do not execute one-off recovery in ordinary worker.
  // The completed butterfly one-off no longer gates ordinary worker jobs.
  await etsyStore.setJSON('github-config',{clientId:process.env.ETSY_PRINTS_KEYSTRING});
  const {collectGithubJobs}=await import('../lib/github-job-poll.mjs');
@@ -193,5 +178,5 @@ try{
   await uploads.setJSON('template/settings',{...(latest||{}),supplierTemplateCheck:{version:2,...check,checkedAt:Date.now()}});
   console.log('Supplier template schema: '+JSON.stringify(check));
  }
- } // original production worker unchanged for all other run IDs
+ // End of standard publication job and read-only checks
 }catch(error){console.error('::error::Worker stopped: '+JSON.stringify(workerFailure(error))+'. Saved tasks retained; no automatic replay.');process.exitCode=1;}
