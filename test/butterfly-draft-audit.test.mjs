@@ -50,16 +50,19 @@ test('audit fails closed on changed approval, wrong draft and wrong seller befor
   assert.ok(f.calls.every(([,method])=>method==='GET'));
  }
 });
-test('a rerun of the failed butterfly workflow is isolated from standard queue and merchant operations',()=>{
+test('only attempt four of the exact butterfly workflow run can invoke recovery',()=>{
  const source=readFileSync(new URL('../scripts/github-publication.mjs',import.meta.url),'utf8');
  const gate=source.indexOf("if(process.env.GITHUB_RUN_ID==='38693218239')");
- const other=source.indexOf('}else{',gate),normal=source.indexOf('const jobs=await collectGithubJobs',other);
- assert.ok(gate>0&&other>gate&&normal>other);
- assert.ok(source.indexOf('await etsyStore.setJSON',gate)>other);
- assert.match(source.slice(gate,other),/auditButterflyDraft/);
- assert.doesNotMatch(source.slice(gate,other),/runGithubJobs|collectGithubJobs|setJSON\s*\(|\.api\('/);
+ const attempt=source.indexOf("if(process.env.GITHUB_RUN_ATTEMPT==='4')",gate);
+ const call=source.indexOf('await recoverButterflyDraft(',attempt);
+ const skip=source.indexOf('Butterfly historical worker attempt skipped',call);
+ const normal=source.indexOf('const jobs=await collectGithubJobs',skip);
+ assert.ok(gate>0&&attempt>gate&&call>attempt&&skip>call&&normal>skip);
+ const scoped=source.slice(gate,source.indexOf(" }else{\n await etsyStore.setJSON",skip));
+ assert.equal((scoped.match(/await recoverButterflyDraft\(/g)||[]).length,1);
+ assert.doesNotMatch(scoped,/auditButterflyDraft|await runGithubJobs|await collectGithubJobs|await etsyStore.setJSON/);
+ assert.match(source.slice(skip,normal),/no merchant writes/i);
 });
-
 test('fingerprint reports only numeric positions and safe normalization labels',()=>{
  const entity=descriptionFingerprint('Café & bees','Café &amp; bees');
  assert.deepEqual(entity.normalisations,['html_entities']);assert.equal(entity.shape,'changed_in_middle_or_multiple');

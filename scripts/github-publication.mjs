@@ -17,23 +17,23 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
- // This exact failed run ID is intentionally reused for a single GET-only audit.
- // In its rerun, bypass queue polling, claims, saved settings updates,
- // merchant POST/PATCH/PUT and all other one-off worker operations.
+ // The owner has authorised ONE same-draft butterfly recovery on the fourth
+ // attempt of the original run. Attempts 1-3 were failed/read-only investigations.
+ // No ordinary queued product job is collected by this isolated branch.
  if(process.env.GITHUB_RUN_ID==='38693218239'){
-  const {auditButterflyDraft}=await import('../lib/butterfly-draft-audit.mjs');
-  const {createEtsySession}=await import('../lib/etsy-session.mjs');
-  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-  // OAuth refresh itself writes a token; fail safely rather than permit that
-  // mutation during this explicitly read-only run.
-  const safeStore={
-   get:(...args)=>etsyStore.get(...args),
-   getWithMetadata:(...args)=>etsyStore.getWithMetadata(...args),
-   set:async()=>{throw Error('Butterfly read-only seller session requires refresh')},
-   setJSON:async()=>{throw Error('Butterfly read-only seller session requires refresh')}
-  };
-  const audit=await auditButterflyDraft({uploads,etsyStore:safeStore,client:createEtsySession({store:safeStore,config:etsySetup(workerEnv)}),apiKey:env('SHRIMP_APIKEY')});
-  console.log('Butterfly isolated GET-only audit: '+JSON.stringify(audit));
+  if(process.env.GITHUB_RUN_ATTEMPT==='4'){
+   const {recoverButterflyDraft}=await import('../lib/butterfly-publication-recovery.mjs');
+   const {createEtsySession}=await import('../lib/etsy-session.mjs');
+   const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+   const check=await recoverButterflyDraft({uploads,etsyStore,
+     client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),env:workerEnv});
+   console.log('Butterfly authorised single-use recovery: '+JSON.stringify(check));
+   if(check.phase!=='published')process.exitCode=1;
+  }else{
+   // All historical run attempts other than exactly 4 are terminal no-ops.
+   // They cannot replay the recovery or process an unrelated queued task.
+   console.log('Butterfly historical worker attempt skipped; no merchant writes.');
+  }
  }else{
  await etsyStore.setJSON('github-config',{clientId:process.env.ETSY_PRINTS_KEYSTRING});
  const {collectGithubJobs}=await import('../lib/github-job-poll.mjs');
