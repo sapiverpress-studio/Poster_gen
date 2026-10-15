@@ -50,6 +50,9 @@ test('ampersand-escaped approved content is equivalent; material title/descripti
  assert.equal(matchesApprovedEtsyDescription('Butterfly & meadow','Butterfly &amp; meadow altered'),false);
  assert.equal(matchesApprovedEtsyDescription('Butterfly & meadow','Butterfly &lt; meadow'),false);
  assert.equal(matchesApprovedEtsyDescription('Butterfly & meadow',null),false);
+ assert.equal(matchesApprovedEtsyDescription('One & two & three','One &amp; two & three'),true);
+ assert.equal(matchesApprovedEtsyDescription('One & two & three','One & two &amp; three'),true);
+ assert.equal(matchesApprovedEtsyDescription('One & two & three','One &amp; two & changed'),false);
 });
 test('recovery of EXISTING butterfly draft reuses all twelve variations and four images; transfers supplier and activates once',async()=>{
  const f=await fixture();const r=await recoverButterflyDraft(f);
