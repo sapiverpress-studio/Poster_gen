@@ -38,7 +38,7 @@ test('read-only butterfly audit detects a harmless line-ending difference withou
 test('audit reports genuine mismatches and inventory drift without assuming they are safe',async()=>{
  const f=fixture();f.listing.title='Changed title';f.listing.taxonomy_id=null;f.inv.products.pop();
  const report=await auditButterflyDraft(f);
- assert.deepEqual(report.modifiedFields.map(x=>x.field),['title','taxonomy_id','description']);
+ assert.deepEqual(report.modifiedFields.map(x=>x.field),['title','description','taxonomy_id']);
  assert.equal(report.inventoryStatus,'mismatch');assert.equal(report.readyForSafeRepair,false);
 });
 test('audit fails closed on changed approval, wrong draft and wrong seller before merchant writes',async()=>{
