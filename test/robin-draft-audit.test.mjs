@@ -75,7 +75,8 @@ test('fingerprint reports only numeric positions and safe normalization labels',
  assert.deepEqual(altered.normalisations,[]);
  assert.doesNotMatch(JSON.stringify(altered),/Approved|different sentence/);
 });
-\ntest('strict several-entity encoding fingerprint allows only unchanged underlying copy',()=>{
+
+test('strict several-entity encoding fingerprint allows only unchanged underlying copy',()=>{
  const original="The robin's nest & a second robin's song. \"A forest\"";
  const encoded="The robin&#39;s nest &amp; a second robin&#39;s song. &quot;A forest&quot;";
  const result=exactHtmlEntityChanges(original,encoded);
