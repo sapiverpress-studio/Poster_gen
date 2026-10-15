@@ -58,7 +58,7 @@ test('only attempt four of the exact butterfly workflow run can invoke recovery'
  const skip=source.indexOf('Butterfly historical worker attempt skipped',call);
  const normal=source.indexOf('const jobs=await collectGithubJobs',skip);
  assert.ok(gate>0&&attempt>gate&&call>attempt&&skip>call&&normal>skip);
- const scoped=source.slice(gate,normal);
+ const scoped=source.slice(gate,source.indexOf(" }else{\n await etsyStore.setJSON",skip));
  assert.equal((scoped.match(/await recoverButterflyDraft\(/g)||[]).length,1);
  assert.doesNotMatch(scoped,/auditButterflyDraft|await runGithubJobs|await collectGithubJobs|await etsyStore.setJSON/);
  assert.match(source.slice(skip,normal),/no merchant writes/i);
