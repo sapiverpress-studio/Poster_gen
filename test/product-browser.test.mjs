@@ -94,7 +94,7 @@ test('owner-cleared saved attempt starts a fresh upload instead of reopening the
 
 function actualServer({expired=false}={}){
  const origin='https://poster.example.test',secret='integration-test-owner-key-long-enough',map=new Map(),jobs=[];
- const uploads={get:async k=>map.get(k),set:async(k,v,o)=>{if(o?.onlyIfNew&&map.has(k))return {modified:false};map.set(k,v);return {modified:true};},setJSON:async(k,v,o)=>{if(o?.onlyIfNew&&map.has(k))return {modified:false};map.set(k,v);return {modified:true};},delete:async k=>map.delete(k)};
+ const uploads={get:async k=>map.get(k),set:async(k,v,o)=>{if(o?.onlyIfNew&&map.has(k))return {modified:false};map.set(k,v);return {modified:true};},setJSON:async(k,v,o)=>{if(o?.onlyIfNew&&map.has(k))return {modified:false};map.set(k,v);return {modified:true};},delete:async k=>map.delete(k),list:async function*({prefix=''}){yield {blobs:[...map.keys()].filter(key=>key.startsWith(prefix)).map(key=>({key}))};}};
  const env=n=>({CANVA_SITE_ORIGIN:origin,CANVA_CLIENT_SECRET:secret,CANVA_SETUP_PASSWORD:'test-password',ETSY_PRINTS_KEYSTRING:'app',ETSY_PRINTS_SHARED_SECRET:'shared',POSTER_PUBLICATION_ENABLED:'false'}[n]);
  const cookie='__Host-poster_owner='+seal({csrf:'csrf',expiry:Date.now()+(expired?-1000:3600000)},secret,'poster-owner');
  const handler=createPosterUploadHandler({env,uploads,dispatchJob:async(id,action)=>jobs.push({id,action})});
