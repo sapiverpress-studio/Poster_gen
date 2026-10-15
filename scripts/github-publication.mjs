@@ -29,8 +29,23 @@ try{
      client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),env:workerEnv});
    console.log('Butterfly authorised single-use recovery: '+JSON.stringify(check));
    if(check.phase!=='published')process.exitCode=1;
+  }else if(process.env.GITHUB_RUN_ATTEMPT==='6'){
+   // Read-only diagnostic after the fifth attempt also stopped before the
+   // supplier claim. Do not replay the merchant recovery.
+   const {auditButterflyDraft}=await import('../lib/butterfly-draft-audit.mjs');
+   const {createEtsySession}=await import('../lib/etsy-session.mjs');
+   const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+   const safeStore={
+    get:(...args)=>etsyStore.get(...args),
+    getWithMetadata:(...args)=>etsyStore.getWithMetadata(...args),
+    set:async()=>{throw Error('Read-only probe requires a current seller session')},
+    setJSON:async()=>{throw Error('Read-only probe requires a current seller session')}
+   };
+   const result=await auditButterflyDraft({uploads,etsyStore:safeStore,
+    client:createEtsySession({store:safeStore,config:etsySetup(workerEnv)}),apiKey:env('SHRIMP_APIKEY')});
+   console.log('Butterfly exact-entity read-only probe: '+JSON.stringify(result));
   }else{
-   // All historical run attempts other than exactly 4 are terminal no-ops.
+   // All other historical run attempts are terminal no-ops.
    // They cannot replay the recovery or process an unrelated queued task.
    console.log('Butterfly historical worker attempt skipped; no merchant writes.');
   }
