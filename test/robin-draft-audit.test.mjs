@@ -57,7 +57,7 @@ test('specific workflow rerun is read-only and does not run normal queue',()=>{
  const normal=source.indexOf('await etsyStore.setJSON(',audit);
  const jobs=source.indexOf('const jobs=await collectGithubJobs(',normal);
  assert.ok(gate>0&&audit>gate&&normal>audit&&jobs>normal);
- assert.match(source.slice(gate,normal),/GITHUB_RUN_ATTEMPT!==\x27\x32\x27/);
+ assert.match(source.slice(gate,normal),/GITHUB_RUN_ATTEMPT!==\x27\x33\x27/);
  assert.doesNotMatch(source.slice(gate,normal),/await runGithubJobs|await collectGithubJobs|await etsyStore.setJSON/);
 });
 test('fingerprint reports only numeric positions and safe normalization labels',()=>{
@@ -88,4 +88,12 @@ test('strict several-entity encoding fingerprint allows only unchanged underlyin
  assert.equal(exactHtmlEntityChanges(original,original).exact,true);
  assert.equal(exactHtmlEntityChanges(original,'The changed text').exact,false);
  assert.doesNotMatch(JSON.stringify(result),/forest|song|robin/);
+});
+
+test('Robin audit uses fixed safe stage labels and makes no writes',async()=>{
+ const f=fixture(),stages=[];
+ const report=await auditRobinDraft({...f,onStage:stage=>stages.push(stage)});
+ assert.equal(report.listingId,LISTING);
+ assert.deepEqual(stages,['draft_lock','saved_revision','approval_receipt','seller_session','etsy_listing','etsy_inventory','etsy_sections','supplier_lookup','complete']);
+ assert.ok(stages.every(s=>/^[a-z_]+$/.test(s)));
 });

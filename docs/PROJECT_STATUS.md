@@ -1179,3 +1179,8 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Not verified/blocked: audit branch GitHub CI, live readback, photo/inventory/supplier state, live repair or publication. No owner authorisation for live supplier creation or activation granted in this turn.
 - Deploy/credit impact: **no Netlify software deploy**, no Etsy or PrintShrimp writes or orders. Worker code release, if approved, uses [skip netlify].
 - Next: pass GitHub tests, execute one strictly read-only original-job diagnostic, inspect exact field differences, propose guarded same-draft repair and generic long-term validation correction without weakening owner approval.
+
+### 2026-10-15 12:00 BST — Robin read-only audit attempt two blocked with unclassified failure
+- GitHub original publication workflow run 38723172616 attempt 2, job 116385933045, FAILED before audit report; generic `unclassified_failure`, no merchant POST/PATCH/PUT or normal queue processing. Underlying fixed stage unknown. Do not infer content mismatch from this diagnostic attempt.
+- Recovery investigation continues on branch fix/robin-audit-safe-stage-20261015: audit tracks safe fixed phase labels; worker intercepts only attempt THREE and logs the current phase on an error without revealing provider/body/listing text. Any seller token refresh remains forbidden, no merchant writes, no Netlify deployment.
+- Verification: GitHub tests pending. Next: release [skip netlify], deliberately rerun same original job for GET-only diagnosis and inspect exact cause; do not rerun normal publication or create a replacement listing.

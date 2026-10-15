@@ -20,7 +20,7 @@ try{
  // The Robin draft audit is allowed only on attempt TWO of its original
  // failed workflow. The branch never polls queued jobs or mutates merchants.
  if(process.env.GITHUB_RUN_ID==='38723172616'){
-  if(process.env.GITHUB_RUN_ATTEMPT!=='2')throw Error('Robin diagnostic attempt not authorised');
+  if(process.env.GITHUB_RUN_ATTEMPT!=='3')throw Error('Robin diagnostic attempt not authorised');
   const {auditRobinDraft}=await import('../lib/robin-draft-audit.mjs');
   const {createEtsySession}=await import('../lib/etsy-session.mjs');
   const {etsySetup}=await import('../lib/etsy-oauth.mjs');
@@ -30,9 +30,16 @@ try{
    set:async()=>{throw Error('Read-only Robin seller token refresh forbidden')},
    setJSON:async()=>{throw Error('Read-only Robin seller token refresh forbidden')}
   };
-  const result=await auditRobinDraft({uploads,etsyStore:storeReadOnly,
-    client:createEtsySession({store:storeReadOnly,config:etsySetup(workerEnv)}),apiKey:env('SHRIMP_APIKEY')});
-  console.log('Robin isolated read-only audit: '+JSON.stringify(result));
+  let safeStage='start';
+  try{
+   const result=await auditRobinDraft({uploads,etsyStore:storeReadOnly,
+    client:createEtsySession({store:storeReadOnly,config:etsySetup(workerEnv)}),apiKey:env('SHRIMP_APIKEY'),onStage:stage=>{safeStage=stage}});
+   console.log('Robin isolated read-only audit: '+JSON.stringify(result));
+  }catch{
+   // Never log arbitrary provider bodies, messages, credentials or listing copy.
+   console.error('::error::Robin GET-only audit blocked at safe stage: '+safeStage);
+   process.exitCode=1;
+  }
  }else{
  // The completed butterfly one-off no longer gates ordinary worker jobs.
  await etsyStore.setJSON('github-config',{clientId:process.env.ETSY_PRINTS_KEYSTRING});
