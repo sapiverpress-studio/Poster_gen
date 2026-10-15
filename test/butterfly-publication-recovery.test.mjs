@@ -13,7 +13,7 @@ async function fixture(){
  const uploads=memory(),etsyStore=memory(),calls=[];let state='draft',supplier=null,descriptionDrift=false,posts=0;
  const plan=templateDraftPlan({filename:SKU+'.png',reference,inventory,shopId:456});
  plan.identity.sectionTitle='Nature';plan.body.production_partner_ids='55';
- plan.body.description='Butterfly & the meadow - artwork selected, arranged and prepared for print.';
+ plan.body.description="Butterfly's meadow & verse - artwork selected, arranged and prepared for print.";
  const master=Buffer.from('approved butterfly source');const previews=['one','two','three','four'].map(s=>Buffer.from(s));
  plan.identity.previewHashes=previews.map(hash);
  plan.hash=hash(JSON.stringify({version:plan.version,identity:plan.identity,referenceListingId:plan.referenceListingId,body:plan.body,inventory:plan.inventory}));
@@ -28,7 +28,7 @@ async function fixture(){
  const client={session:async()=>({shop_id:S,shop_name:'SapiverPrints'}),api:async(path,o={})=>{
   calls.push([path,o.method||'GET']);
   if(path===`/listings/${L}?includes=Images`)return {...plan.body,listing_id:L,shop_id:S,listing_type:'physical',state,is_personalizable:false,
-   shop_section_id:88,tags:plan.body.tags.split(','),description:descriptionDrift?'Really changed listing content':plan.body.description.replaceAll('&','&amp;'),
+   shop_section_id:88,tags:plan.body.tags.split(','),description:descriptionDrift?'Really changed listing content':plan.body.description.replace("'",'&#39;'),
    images:[1,2,3,4].map(n=>({listing_image_id:n,rank:n})),url:`https://www.etsy.com/listing/${L}`};
   if(path===`/listings/${L}/inventory`)return inventoryRead;
   if(path===`/shops/${S}/sections`)return {results:[{shop_section_id:88,title:'Nature'}]};
@@ -50,6 +50,9 @@ test('ampersand-escaped approved content is equivalent; material title/descripti
  assert.equal(matchesApprovedEtsyDescription('Butterfly & meadow','Butterfly &amp; meadow altered'),false);
  assert.equal(matchesApprovedEtsyDescription('Butterfly & meadow','Butterfly &lt; meadow'),false);
  assert.equal(matchesApprovedEtsyDescription('Butterfly & meadow',null),false);
+ assert.equal(matchesApprovedEtsyDescription("Butterfly's meadow & verse",'Butterfly&#39;s meadow & verse'),true);
+ assert.equal(matchesApprovedEtsyDescription("Butterfly's meadow & verse",'Butterfly&#39;s meadow & changed'),false);
+ assert.equal(matchesApprovedEtsyDescription("Butterfly's meadow & verse",'Butterfly&#39;s  meadow & verse'),false);
  assert.equal(matchesApprovedEtsyDescription('One & two & three','One &amp; two & three'),true);
  assert.equal(matchesApprovedEtsyDescription('One & two & three','One & two &amp; three'),true);
  assert.equal(matchesApprovedEtsyDescription('One & two & three','One &amp; two & changed'),false);
