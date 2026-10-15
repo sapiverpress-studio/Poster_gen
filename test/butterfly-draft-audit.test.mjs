@@ -50,10 +50,10 @@ test('audit fails closed on changed approval, wrong draft and wrong seller befor
   assert.ok(f.calls.every(([,method])=>method==='GET'));
  }
 });
-test('only corrective attempt five of the exact butterfly workflow run can invoke recovery',()=>{
+test('only exact authorised attempt seven of the butterfly workflow can invoke recovery',()=>{
  const source=readFileSync(new URL('../scripts/github-publication.mjs',import.meta.url),'utf8');
  const gate=source.indexOf("if(process.env.GITHUB_RUN_ID==='38693218239')");
- const attempt=source.indexOf("if(process.env.GITHUB_RUN_ATTEMPT==='5')",gate);
+ const attempt=source.indexOf("if(process.env.GITHUB_RUN_ATTEMPT==='7')",gate);
  const call=source.indexOf('await recoverButterflyDraft(',attempt);
  const skip=source.indexOf('Butterfly historical worker attempt skipped',call);
  const normal=source.indexOf('const jobs=await collectGithubJobs',skip);
@@ -63,7 +63,7 @@ test('only corrective attempt five of the exact butterfly workflow run can invok
  assert.doesNotMatch(scoped,/auditButterflyDraft|await runGithubJobs|await collectGithubJobs|await etsyStore.setJSON/);
  assert.match(source.slice(skip,normal),/no merchant writes/i);
  const probe=source.indexOf("process.env.GITHUB_RUN_ATTEMPT==='6'");
- assert.ok(probe>source.indexOf("process.env.GITHUB_RUN_ATTEMPT==='5'")&&probe<normal);
+ assert.ok(probe>source.indexOf("process.env.GITHUB_RUN_ATTEMPT==='7'")&&probe<normal);
  assert.match(source.slice(probe,normal),/auditButterflyDraft/);
  assert.doesNotMatch(source.slice(probe,normal),/await recoverButterflyDraft/);
 });

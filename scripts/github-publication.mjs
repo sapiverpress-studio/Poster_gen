@@ -17,11 +17,12 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
- // The owner has authorised ONE same-draft butterfly recovery on the fourth
- // attempt of the original run. Attempts 1-3 were failed/read-only investigations.
+ // The owner authorises completion of the same butterfly draft only on
+ // attempt SEVEN, after attempts 4-5 failed safely and attempt 6 proved the
+ // exact HTML-encoded numeric apostrophe without any merchant writes.
  // No ordinary queued product job is collected by this isolated branch.
  if(process.env.GITHUB_RUN_ID==='38693218239'){
-  if(process.env.GITHUB_RUN_ATTEMPT==='5'){
+  if(process.env.GITHUB_RUN_ATTEMPT==='7'){
    const {recoverButterflyDraft}=await import('../lib/butterfly-publication-recovery.mjs');
    const {createEtsySession}=await import('../lib/etsy-session.mjs');
    const {etsySetup}=await import('../lib/etsy-oauth.mjs');
