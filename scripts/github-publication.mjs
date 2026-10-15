@@ -17,25 +17,8 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
- // The Robin draft audit is allowed only on attempt TWO of its original
- // failed workflow. The branch never polls queued jobs or mutates merchants.
- // The owner authorised finishing the original Robin draft, NOT creating a new listing.
- // Only attempt FIVE of original run 38723172616 can mutate supplier/Etsy.
- // All other attempts of that historical run are no-ops; normal run IDs unchanged.
- if(process.env.GITHUB_RUN_ID==='38723172616'){
-  if(process.env.GITHUB_RUN_ATTEMPT==='5'){
-   const {recoverRobinDraft}=await import('../lib/robin-publication-recovery.mjs');
-   const {createEtsySession}=await import('../lib/etsy-session.mjs');
-   const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-   const result=await recoverRobinDraft({uploads,etsyStore,
-      client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),env:workerEnv});
-   console.log('Robin owner-authorised existing-draft recovery: '+JSON.stringify(result));
-   if(result.phase!=='published')process.exitCode=1;
-  }else{
-   console.log('Robin historical workflow attempt skipped; no merchant writes');
-  }
- }else{
- // The completed butterfly one-off no longer gates ordinary worker jobs.
+ // Robin listing 4595921846 was recovered and verified; its temporary
+ // worker invocation is retired. Ordinary queued-product flow only.
  await etsyStore.setJSON('github-config',{clientId:process.env.ETSY_PRINTS_KEYSTRING});
  const {collectGithubJobs}=await import('../lib/github-job-poll.mjs');
  const jobs=await collectGithubJobs({rpc,event:process.env.GITHUB_EVENT_NAME});
@@ -193,5 +176,4 @@ try{
   await uploads.setJSON('template/settings',{...(latest||{}),supplierTemplateCheck:{version:2,...check,checkedAt:Date.now()}});
   console.log('Supplier template schema: '+JSON.stringify(check));
  }
- } // original production worker unchanged for all other run IDs
 }catch(error){console.error('::error::Worker stopped: '+JSON.stringify(workerFailure(error))+'. Saved tasks retained; no automatic replay.');process.exitCode=1;}
