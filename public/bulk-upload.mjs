@@ -51,6 +51,13 @@ function buildCards(results=[]){
 async function inspect(){
  if(!state)return;
  const results=await Promise.all(state.items.map(i=>i.id?api('/poster/uploads/'+i.id):Promise.resolve(null)));
+ for(let n=0;n<results.length;n++){
+  const next=results[n];
+  if(next?.phase==='superseded'&&ID.test(next.supersededBy||'')){
+   state.items[n].id=next.supersededBy;save();
+   results[n]=await api('/poster/uploads/'+next.supersededBy);
+  }
+ }
  seen=results;
  const complete=results.every(r=>r&&r.phase==='ready_for_approval');
  const begun=results.every(r=>r&&['ready_for_approval','publishing','published'].includes(r.phase));
