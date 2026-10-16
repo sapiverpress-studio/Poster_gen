@@ -36,7 +36,7 @@ export async function openEightPosterZip(file){
   if(seen.has(lower))fail('Duplicate poster filename');seen.add(lower);
   const ext=/\.png$/i.test(base)?'png':/\.txt$/i.test(base)?'txt':null;
   if(!ext||expanded<(ext==='png'?33:30)||expanded>(ext==='png'?BULK_PNG_MAX:14000)||compressed>file.size||method===0&&expanded!==compressed)fail('ZIP contains unsupported or oversized files');
-  if(read32(central,cur-(46+nameLen+extraLen+commentLen)+38)!==0)fail('Multi-disk ZIP entries are unsupported');
+  if(read16(central,cur-(46+nameLen+extraLen+commentLen)+34)!==0)fail('Multi-disk ZIP entries are unsupported');
   if(read32(central,cur-(46+nameLen+extraLen+commentLen)+0)!==0x02014b50)fail('Invalid central ZIP header');
   entries.push({name,base,ext,method,start,compressed,expanded,crc:read32(central,cur-(46+nameLen+extraLen+commentLen)+16)});
  }
