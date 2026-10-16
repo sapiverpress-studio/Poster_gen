@@ -35,11 +35,13 @@ function buildCards(results=[]){
    const link=document.createElement('a');link.href='/poster/upload?id='+item.id;link.textContent='Open individual product / edit';article.append(link);
   }
   if(review){
-   const imgs=document.createElement('div');imgs.style.display='flex';imgs.style.flexWrap='wrap';imgs.style.gap='6px';
+   const imgs=document.createElement('details');
+   imgs.append(text('summary','See all four listing mockups'));
+   const grid=document.createElement('div');grid.style.display='grid';grid.style.gridTemplateColumns='repeat(2,minmax(0,1fr))';grid.style.gap='8px';
    for(const [index,url] of review.imageUrls.entries()){
-    const img=document.createElement('img');img.src=url;img.alt='Listing mockup '+(index+1);img.loading='lazy';img.width=110;imgs.append(img);
+    const img=document.createElement('img');img.src=url;img.alt='Listing mockup '+(index+1);img.loading='lazy';img.style.width='100%';img.style.margin='0';grid.append(img);
    }
-   article.append(imgs);
+   imgs.append(grid);article.append(imgs);
    const detail=document.createElement('details');const label=text('summary','Read full description and all 13 tags');detail.append(label);
    const description=text('pre',review.description);detail.append(description,text('p','Tags: '+review.tags));
    article.append(detail);
