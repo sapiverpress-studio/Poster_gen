@@ -1,4 +1,4 @@
-import {openPosterCollectionZip,BULK_COUNT} from './bulk-zip.mjs';
+import {openPosterCollectionZip,collectionUploadFilename,BULK_COUNT} from './bulk-zip.mjs';
 
 const form=document.getElementById('bulk-collection-form'),status=document.getElementById('bulk-status');
 const cards=document.getElementById('bulk-cards'),deploy=document.getElementById('bulk-deploy');
@@ -10,7 +10,7 @@ let state=null,seen=[],pollHandle=null,busy=false;
 function text(tag,value){const el=document.createElement(tag);el.textContent=value;return el;}
 function save(){try{sessionStorage.setItem(KEY,JSON.stringify(state));}catch{throw Error('Session storage unavailable. Use the single uploader to avoid duplicate products.');}}
 function read(){
- try{const v=JSON.parse(sessionStorage.getItem(KEY)||'null');return v?.version===1&&[BULK_COUNT,8].includes(v.items?.length)&&v.items.every(i=>typeof i.filename==='string'&&(!i.id||ID.test(i.id)))?v:null;}catch{return null;}
+ try{const v=JSON.parse(sessionStorage.getItem(KEY)||'null');return [1,2].includes(v?.version)&&[BULK_COUNT,8].includes(v.items?.length)&&v.items.every(i=>typeof i.filename==='string'&&(!i.id||ID.test(i.id)))?v:null;}catch{return null;}
 }
 function message(value){status.textContent=value;}
 async function api(url,{method='GET',body,headers={}}={}){
@@ -29,7 +29,10 @@ function buildCards(results=[]){
  cards.replaceChildren();
  for(let n=0;n<state.items.length;n++){
   const item=state.items[n],live=results[n],review=live?.review,article=document.createElement('article');
-  article.append(text('h3',(n+1)+'. '+(review?.title||item.title||item.filename)));
+  article.append(text('h3',(n+1)+'. '+(item.title||item.filename)));
+  article.append(text('p','Listing title: '+(review?.title||item.listingTitle||item.title)));
+  if(item.uploadFilename)article.append(text('p','SKU: '+item.uploadFilename.slice(0,-4)));
+  if(item.sectionTitle)article.append(text('p','Shop section: '+item.sectionTitle));
   article.append(text('p','Product '+(item.id?item.id:'not created')+' · '+(live?.phase||item.phase||'not started')));
   if(item.id){
    const link=document.createElement('a');link.href='/poster/upload?id='+item.id;link.textContent='Open individual product / edit';article.append(link);
@@ -93,10 +96,10 @@ async function uploadItem(item,file,index){
  if(!item.id){
   item.creating=true;save();
   message('Creating product '+(index+1)+' of six (monthly slot '+(index+1)+')…');
-  const meta={name:item.title,etsyTitle:item.title,description:item.description,tags:item.tags.join(','),
-   subject:item.title,kind:state.kind,sectionTitle:state.sectionTitle};
+  const meta={name:item.title,etsyTitle:item.listingTitle,description:item.description,tags:item.tags.join(','),
+   subject:item.title,kind:state.kind,sectionTitle:item.sectionTitle};
   const receipt=await api('/poster/uploads',{method:'POST',headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({filename:item.filename,bytes:file.size,type:'physical',metadata:meta,previewCount:0})});
+   body:JSON.stringify({filename:item.uploadFilename,bytes:file.size,type:'physical',metadata:meta,previewCount:0})});
   if(!validReceipt(receipt))throw Error('Uncertain new-product receipt. Stop and inspect the product dashboard.');
   item.id=receipt.id;item.chunkBytes=receipt.chunkBytes;item.creating=false;save();
  }
@@ -132,10 +135,10 @@ async function start(e){
    const quota=await api('/poster/bulk/status');
    if(quota.remaining<BULK_COUNT)throw Error('Not enough monthly slots. '+quota.remaining+' remain; six are required.');
    const artworkHashes=await checkAll(archive);
-   state={version:1,signature:sig,kind:form.elements.kind.value,sectionTitle:form.elements.sectionTitle.value,
-    items:archive.items.map((i,n)=>({filename:i.filename,title:i.title,description:i.description,tags:i.tags,sha256:artworkHashes[n],id:null}))};save();
+   state={version:2,signature:sig,kind:form.elements.kind.value,
+    items:archive.items.map((i,n)=>({filename:i.filename,folder:i.folder,title:i.title,listingTitle:i.listingTitle,sectionTitle:i.sectionTitle,description:i.description,tags:i.tags,sha256:artworkHashes[n],uploadFilename:collectionUploadFilename(i.title,artworkHashes[n]),id:null}))};save();
   }else{
-   if(state.items.some((v,i)=>v.filename!==archive.items[i].filename||v.title!==archive.items[i].title||v.description!==archive.items[i].description||v.tags.join(',')!==archive.items[i].tags.join(',')))
+   if(state.items.some((v,i)=>v.filename!==archive.items[i].filename||v.folder!==archive.items[i].folder||v.listingTitle!==archive.items[i].listingTitle||v.sectionTitle!==archive.items[i].sectionTitle||v.title!==archive.items[i].title||v.description!==archive.items[i].description||v.tags.join(',')!==archive.items[i].tags.join(',')))
     throw Error('This ZIP differs from the saved collection. Do not reuse existing product receipts with different descriptions.');
    const artworkHashes=await checkAll(archive);
    if(state.items.some((v,i)=>v.sha256!==artworkHashes[i]))
@@ -185,10 +188,10 @@ deploy?.addEventListener('click',async()=>{
  }
 });
 state=read();
-if(state&&state.items.length!==BULK_COUNT){
+if(state&&(state.version!==2||state.items.length!==BULK_COUNT)){
  busy=true;form.querySelector('button[type="submit"]').disabled=true;deploy.hidden=true;
  buildCards();
- message('Your saved eight-poster collection is retained. New collections use six posters. Open the individual product links below or the saved-products dashboard to finish existing work; do not upload it again.');
+ message('Your saved legacy collection is retained. New collections use six folders with poster.png and details.md. Open the individual product links below or the saved-products dashboard to finish existing work; do not upload it again.');
 }else if(state){
  message('Saved six-poster collection found. Re-select the SAME ZIP if upload is incomplete, or wait for the existing product reviews.');
  inspect().catch(e=>message('Could not load saved collection status: '+e.message));

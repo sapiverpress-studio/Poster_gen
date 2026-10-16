@@ -69,7 +69,7 @@ test('saved eight-poster sessions retain all links and cannot start duplicate bu
  await import('./public/bulk-upload.mjs');
  assert.equal(submit.disabled,true);assert.equal(nodes.get('bulk-deploy').hidden,true);
  assert.equal(links.length,8);assert.equal(nodes.get('bulk-cards').children.length,8);
- assert.match(nodes.get('bulk-status').textContent,/saved eight-poster collection is retained/);
+ assert.match(nodes.get('bulk-status').textContent,/saved legacy collection is retained/);
  await nodes.get('bulk-collection-form').listeners.submit({preventDefault(){}});
  await nodes.get('bulk-deploy').listeners.click();
  assert.equal(sessionStorage.getItem(),saved);

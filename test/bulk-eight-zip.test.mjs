@@ -2,29 +2,30 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import yazl from 'yazl';
 import {File} from 'node:buffer';
-import {openPosterCollectionZip,parsePosterText,validatePosterPng} from '../public/bulk-zip.mjs';
+import {openPosterCollectionZip,parsePosterText,validatePosterPng,collectionUploadFilename} from '../public/bulk-zip.mjs';
 import {productMetadata} from '../lib/product-metadata.mjs';
 import {bulkCollectionBody} from '../lib/product-web.mjs';
 
 const tags='jazz art, music wall art, saxophone print, jazz club, music room, saxophone, jazz poster, vintage jazz, art print, listening room, warm decor, music gift, home bar';
-const details=i=>'Title: Jazz Nocturne '+i+'\nDescription:\nA carefully designed physical jazz club wall poster.\n\nOriginal artwork, printed in A5, A4 or A3 without digital downloads.\nTags: '+tags;
+const details=i=>'Title: Jazz Nocturne '+i+'\nListing title: Nocturne Art Print '+i+'\nSection: Wall Art\nTags: '+tags+'\n\nDescription:\nA carefully designed physical jazz club wall poster.\n\nOriginal artwork, printed in A5, A4 or A3 without digital downloads.';
 function png(){
  const b=Buffer.alloc(33);b.set([137,80,78,71,13,10,26,10],0);b.writeUInt32BE(13,8);b.write('IHDR',12);b.writeUInt32BE(3394,16);b.writeUInt32BE(4800,20);b[24]=8;b[25]=2;return b;
 }
-async function zipFile({itemCount=6,folder='Jazz Collection/',badText=false,nested=false,extra=false}={}){
+async function zipFile({itemCount=6,folder='Jazz Collection/',badText=false,nested=false,extra=false,compress=true,dirs=true}={}){
  const zip=new yazl.ZipFile();
  if(folder)zip.addEmptyDirectory(folder);
  for(let i=1;i<=itemCount;i++){
   const stem=String(i).padStart(2,'0')+'-Poster';
-  const pref=nested&&i===1?folder+'nested/':folder;
-  zip.addBuffer(png(),pref+stem+'.png',{compress:true});
-  zip.addBuffer(Buffer.from(badText&&i===3?details(i).replace('home bar','jazz art'):details(i)),pref+stem+'.txt',{compress:true});
+  const pref=folder+stem+'/' +(nested&&i===1?'nested/':'');
+  if(dirs)zip.addEmptyDirectory(pref);
+  zip.addBuffer(png(),pref+'poster.png',{compress});
+  zip.addBuffer(Buffer.from(badText&&i===3?details(i).replace('home bar','jazz art'):details(i)),pref+'details.md',{compress});
  }
  if(extra)zip.addBuffer(Buffer.from('unrelated'),'other.md');
  zip.end();const parts=[];for await(const x of zip.outputStream)parts.push(x);
  return new File(parts,'Six-Posters.zip',{type:'application/zip'});
 }
-test('exactly six matching PNG/TXT pairs in one folder are read and 13 tags parsed',async()=>{
+test('exactly six poster folders are read and 13 tags parsed',async()=>{
  const file=await zipFile(),archive=await openPosterCollectionZip(file);
  assert.equal(archive.items.length,6);
  for(const [index,entry] of archive.items.entries()){
@@ -33,21 +34,21 @@ test('exactly six matching PNG/TXT pairs in one folder are read and 13 tags pars
   const img=await archive.artwork(entry);assert.equal(img.name,entry.filename);assert.equal(img.size,33);
  }
 });
-test('ZIPs in root directory also work',async()=>{
+test('Six subfolders at ZIP root also work',async()=>{
  const archive=await openPosterCollectionZip(await zipFile({folder:''}));
  assert.equal(archive.items.length,6);
 });
 test('ZIP rejects missing item, extra files and nested paths before any upload',async()=>{
- for(const itemCount of [5,7,8])await assert.rejects(openPosterCollectionZip(await zipFile({itemCount})),/exactly six|six PNG/i);
- await assert.rejects(openPosterCollectionZip(await zipFile({extra:true})),/six PNG|six TXT|unsupported|six posters/i);
- await assert.rejects(openPosterCollectionZip(await zipFile({nested:true})),/one folder|root/i);
+ for(const itemCount of [5,7,8])await assert.rejects(openPosterCollectionZip(await zipFile({itemCount})),/exactly six|six poster/i);
+ await assert.rejects(openPosterCollectionZip(await zipFile({extra:true})),/six poster|unsupported|Unexpected/i);
+ await assert.rejects(openPosterCollectionZip(await zipFile({nested:true})),/subfolders|nested|folder/i);
 });
 test('ZIP rejects bad title/description/tag files before any monthly slot',async()=>{
  await assert.rejects(openPosterCollectionZip(await zipFile({badText:true})),/13 unique Etsy tags/i);
 });
-test('TXT demands precise 13 distinct short tags and never guesses listings',()=>{
+test('details.md demands precise 13 distinct short tags and never guesses listings',()=>{
  const parsed=parsePosterText(details(2));assert.equal(parsed.tags.length,13);
- assert.throws(()=>parsePosterText(details(2).replace('Title: Jazz','Name: Jazz')),/TXT must contain/);
+ assert.throws(()=>parsePosterText(details(2).replace('Title: Jazz','Name: Jazz')),/Unknown or invalid|title/);
  assert.throws(()=>parsePosterText(details(2).replace('home bar','jazz art')),/13 unique/);
  assert.throws(()=>parsePosterText(details(2).replace('home bar','this tag is much longer than twenty characters')),/13 unique/);
 });
@@ -66,4 +67,30 @@ test('bulk form explains six-slot requirement while permitting saved collection 
  body=bulkCollectionBody({monthly:{used:46,limit:52,remaining:6,label:'October 2026'}});
  assert.doesNotMatch(body,/type="file"[^>]+disabled/);
  assert.match(body,/bulk-deploy/);assert.match(body,/bulk-upload\.mjs/);
+});
+
+test('folder ZIP supports stored files and omitted directory entries',async()=>{
+ const a=await openPosterCollectionZip(await zipFile({compress:false,dirs:false}));
+ assert.equal(a.items.length,6);assert.equal(a.items[0].sectionTitle,'Wall Art');
+ assert.equal(a.items[0].listingTitle,'Nocturne Art Print 1');
+ assert.equal((await a.artwork(a.items[0])).size,33);
+});
+test('details validate metadata before any upload and preserve complete description',()=>{
+ const source=details(1),parsed=parsePosterText(source);
+ assert.match(parsed.description,/Original artwork/);
+ assert.equal(parsePosterText(source.replace('Listing title: Nocturne Art Print 1\n','')).listingTitle,parsed.title);
+ assert.throws(()=>parsePosterText(source.replace('Section: Wall Art','Section: Unknown')),/Section/);
+ assert.throws(()=>parsePosterText(source.replace('Section: Wall Art','')),/Section/);
+ assert.throws(()=>parsePosterText(source.replace('Section: Wall Art','Section: Wall Art\nSection: Nature')),/Duplicate/);
+ assert.throws(()=>parsePosterText(source.replace('Listing title: Nocturne Art Print 1','Listing title: '+ 'a'.repeat(141))),/140/);
+ assert.throws(()=>parsePosterText(source.replace('Section: Wall Art','SKU: manual\nSection: Wall Art')),/Unknown/);
+});
+test('namesake posters get short distinct SKUs; editing the title retains saved SKU',()=>{
+ const f=collectionUploadFilename('The Puddle','a'.repeat(64)),other=collectionUploadFilename('The Puddle','b'.repeat(64));
+ const first=productMetadata({name:'The Puddle',kind:'artwork'},f,'physical');
+ const renamed=productMetadata({name:'Quiet Water',kind:'artwork'},f,'physical');
+ assert.equal(first.sku,'SP-THE-PUDDLE-AAAAAAAA');assert.equal(renamed.sku,first.sku);
+ assert.notEqual(productMetadata({name:'The Puddle'},other,'physical').sku,first.sku);
+ const longest=collectionUploadFilename('An unusually long but allowed artwork title','c'.repeat(64));
+ assert.ok(productMetadata({name:'Long name'},longest,'physical').sku.length<=32);
 });
