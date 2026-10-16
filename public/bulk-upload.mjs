@@ -23,7 +23,7 @@ async function api(url,{method='GET',body,headers={}}={}){
  if(!res.ok)throw Error(data.error||'Product request failed; check the saved dashboard.');
  return data;
 }
-const signature=file=>[file.name,file.size,file.lastModified].join('|');
+const signature=file=>[file.name,file.size].join('|');
 const validReceipt=data=>data&&ID.test(data.id)&&data.chunkBytes>0&&data.chunkBytes<=2_000_000;
 function buildCards(results=[]){
  cards.replaceChildren();
