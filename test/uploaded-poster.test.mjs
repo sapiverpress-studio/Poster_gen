@@ -71,3 +71,16 @@ test('selected Early Learning section reaches approved plan and actual physical 
  const api=f.client.api;let assigned=false;f.client.api=async(path,o={})=>{if(path==='/shops/456/sections')return {results:[{shop_section_id:44,title:'Early Learning'}]};if(path==='/shops/456/listings'&&o.method==='POST'){assert.equal(new URLSearchParams(o.body).get('shop_section_id'),'44');assigned=true;}return api(path,o);};
  await prepareUploadedPoster({...f,mockups:async()=>['1','2','3','4'].map(v=>Buffer.from(v))});const a=await f.uploads.get(assetKey(id));assert.equal(a.plan.identity.sectionTitle,'Early Learning');await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing'});await publishUploadedPoster({...f,approvalHash:a.approvalHash});assert.equal(assigned,true);
 });
+
+test('a ZIP supplied short Etsy title survives real physical preparation without an automatic suffix',async()=>{
+ const f=await fixture({modern:true}),old=await f.uploads.get(assetKey(id));
+ await f.uploads.setJSON(assetKey(id),{...old,metadata:{...old.metadata,name:'Midnight Saxophone',
+  etsyTitle:'Midnight Saxophone',description:'Atmospheric club jazz artwork for the music room.',
+  tags:['jazz art','music wall art','saxophone print'],kind:'dinosaur',sectionTitle:'Dinosaur Posters'}});
+ await prepareUploadedPoster(f);
+ const prepared=await f.uploads.get(assetKey(id));
+ assert.equal(prepared.phase,'ready_for_approval');
+ assert.equal(prepared.plan.body.title,'Midnight Saxophone');
+ assert.match(prepared.plan.body.description,/Atmospheric club jazz artwork/);
+ assert.equal(prepared.plan.inventory.products.length,12);
+});
