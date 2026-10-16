@@ -11,14 +11,14 @@ const cookie='__Host-poster_owner='+seal({csrf:'owner-csrf',expiry:Date.now()+36
 function store(){const entries=new Map();return {entries,get:async k=>entries.get(k)??null,setJSON:async(k,v,o)=>{if(o?.onlyIfNew&&entries.has(k))return {modified:false};entries.set(k,v);return {modified:true};},list:async function*({prefix=''}){yield {blobs:[...entries.keys()].filter(k=>k.startsWith(prefix)).map(key=>({key}))};}};}
 const request=(path,method='GET',body,headers={})=>new Request(origin+path,{method,body,headers:{cookie,origin,'X-Poster-CSRF':'owner-csrf',...headers}});
 const context={waitUntil:()=>{}};
-test('bulk page is authenticated and shows the 40-product quota without creating any product',async()=>{
+test('bulk page is authenticated and shows the 52-product quota without creating any product',async()=>{
  const uploads=store(),handler=createPosterUploadHandler({env,uploads});
  let res=await handler(request('/poster/bulk'),context);
  assert.equal(res.status,200);const html=await res.text();
- assert.match(html,/Bulk Collection Upload/);assert.match(html,/bulk-collection-form/);
+ assert.match(html,/0 of 52 products started/);assert.match(html,/Bulk Collection Upload/);assert.match(html,/bulk-collection-form/);
  assert.match(html,/bulk-upload\.mjs/);
  res=await handler(request('/poster/bulk/status'),context);const data=await res.json();
- assert.deepEqual({used:data.used,remaining:data.remaining,limit:data.limit},{used:0,remaining:40,limit:40});
+ assert.deepEqual({used:data.used,remaining:data.remaining,limit:data.limit},{used:0,remaining:52,limit:52});
  assert.equal(uploads.entries.size,0);
 });
 test('eight prepared upload hashes and original text are owner-visible only, never token data',async()=>{
