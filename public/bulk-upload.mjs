@@ -172,11 +172,14 @@ deploy?.addEventListener('click',async()=>{
    const result=await api('/poster/uploads/'+item.id+'/approve',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},
     body:new URLSearchParams({csrf,approvalHash:review.approvalHash})});
    if(result.phase!=='publishing')throw Error('Approval not confirmed for '+item.filename+'; inspect its individual product before retrying.');
-   item.phase='publishing';save();
+   item.phase='publishing';seen[n]={...seen[n],phase:'publishing'};save();
   }
   message('All eight exact reviews were approved. Etsy and PrintShrimp processing is queued. Check each saved product for final publication status.');
   await inspect();
- }catch(err){message('Approval stopped safely: '+err.message+' Earlier accepted approvals remain retained. Inspect existing records; do not recreate products.');}
+ }catch(err){
+  try{await inspect();}catch{/* Offline or expired session; retain all product IDs. */}
+  message('Approval stopped safely: '+err.message+' Earlier accepted approvals remain retained. Inspect current records; use Deploy remaining only for still-ready products.');
+ }
  finally{busy=false;
   if(seen.every(r=>r&&['ready_for_approval','publishing','published'].includes(r.phase))&&seen.some(r=>r.phase==='ready_for_approval')){deploy.hidden=false;deploy.disabled=false;}
  }
