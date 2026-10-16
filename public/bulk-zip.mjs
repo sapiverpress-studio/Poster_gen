@@ -1,13 +1,13 @@
 // Browser-side, bounded ZIP reader for ONE physical collection; no server-side
 // decompression, external scripts or changes to the existing Etsy/PrintShrimp worker.
 // The untrusted ZIP is fully validated before the first product is reserved.
-export const BULK_COUNT=8, BULK_ZIP_MAX=100_000_000, BULK_PNG_MAX=50_000_000;
+export const BULK_COUNT=6, BULK_ZIP_MAX=100_000_000, BULK_PNG_MAX=50_000_000;
 const read16=(v,i)=>v.getUint16(i,true),read32=(v,i)=>v.getUint32(i,true);
 const decoder=new TextDecoder('utf-8',{fatal:true});
 const fail=why=>{throw Error(why)};
 function safeName(name){
  if(name.length>180||name.includes('\\')||name.startsWith('/')||name.includes('\0')||/[\u0000-\u001f]/.test(name)||name.split('/').some(x=>x==='.'||x==='..'))fail('Unsafe archive filename');
- const pieces=name.split('/');if(pieces.length>2||pieces.some(x=>x.length===0))fail('Keep the eight posters in one folder or at ZIP root');
+ const pieces=name.split('/');if(pieces.length>2||pieces.some(x=>x.length===0))fail('Keep the six posters in one folder or at ZIP root');
  return pieces.at(-1);
 }
 const CRC_TABLE=Uint32Array.from({length:256},(_,index)=>{
@@ -19,13 +19,13 @@ function crc32(data){
  for(const byte of data)crc=(crc>>>8)^CRC_TABLE[(crc^byte)&255];
  return (crc^0xffffffff)>>>0;
 }
-export async function openEightPosterZip(file){
+export async function openPosterCollectionZip(file){
  if(!file||!Number.isSafeInteger(file.size)||file.size<22||file.size>BULK_ZIP_MAX)fail('Use a ZIP under 100 MB');
  const tailSize=Math.min(file.size,65557),tail=new DataView(await file.slice(file.size-tailSize).arrayBuffer());
  let pos=-1;for(let i=tail.byteLength-22;i>=0;i--)if(read32(tail,i)===0x06054b50&&i+22+read16(tail,i+20)===tail.byteLength){pos=i;break;}
  if(pos<0||read16(tail,pos+4)!==0||read16(tail,pos+6)!==0||read16(tail,pos+8)!==read16(tail,pos+10))fail('Invalid ZIP directory');
  const count=read16(tail,pos+10),size=read32(tail,pos+12),offset=read32(tail,pos+16);
- if(count<16||count>17||!size||size>16384||offset+size>file.size-tailSize+pos||offset===0xffffffff)fail('ZIP must contain exactly eight PNG and eight TXT files');
+ if(count<BULK_COUNT*2||count>BULK_COUNT*2+1||!size||size>16384||offset+size>file.size-tailSize+pos||offset===0xffffffff)fail('ZIP must contain exactly six PNG and six TXT files');
  const central=new DataView(await file.slice(offset,offset+size).arrayBuffer());
  const entries=[],seen=new Set();let cur=0;
  for(let n=0;n<count;n++){
@@ -46,7 +46,7 @@ export async function openEightPosterZip(file){
   if(read32(central,cur-(46+nameLen+extraLen+commentLen)+0)!==0x02014b50)fail('Invalid central ZIP header');
   entries.push({name,base,ext,method,start,compressed,expanded,crc:read32(central,cur-(46+nameLen+extraLen+commentLen)+16)});
  }
- if(cur!==central.byteLength||entries.length!==16)fail('The collection must contain eight PNG and eight TXT files');
+ if(cur!==central.byteLength||entries.length!==BULK_COUNT*2)fail('The collection must contain six PNG and six TXT files');
  const roots=new Set(entries.map(x=>x.name.includes('/')?x.name.split('/')[0]:''));
  if(roots.size!==1)fail('Keep all collection files together');
  const pairs=new Map();
