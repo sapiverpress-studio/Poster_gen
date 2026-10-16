@@ -65,10 +65,17 @@ async function inspect(){
  }
 }
 async function checkAll(archive){
+ const hashes=[],unique=new Set();
  for(let i=0;i<BULK_COUNT;i++){
-  message('Checking PNG integrity and print dimensions '+(i+1)+'/8 (nothing has been uploaded)…');
-  await archive.artwork(archive.items[i]); // Validate all eight before reserving any slots.
+  message('Checking PNG integrity, print dimensions and SHA-256 '+(i+1)+'/8 (nothing uploaded)…');
+  const file=await archive.artwork(archive.items[i]);
+  // Bind every saved upload receipt to the artwork bytes, not just its ZIP name.
+  const digest=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
+  const hash=Array.from(new Uint8Array(digest),x=>x.toString(16).padStart(2,'0')).join('');
+  if(unique.has(hash))throw Error('The ZIP repeats identical artwork. Eight different designs are required.');
+  hashes.push(hash);unique.add(hash);
  }
+ return hashes;
 }
 async function uploadItem(item,file,index){
  if(item.creating&&!item.id)throw Error('Creation of poster '+(index+1)+' had an uncertain response. Inspect the dashboard before continuing; never create it twice.');
@@ -113,12 +120,15 @@ async function start(e){
   if(!state){
    const quota=await api('/poster/bulk/status');
    if(quota.remaining<BULK_COUNT)throw Error('Not enough monthly slots. '+quota.remaining+' remain; eight are required.');
-   await checkAll(archive);
+   const artworkHashes=await checkAll(archive);
    state={version:1,signature:sig,kind:form.elements.kind.value,sectionTitle:form.elements.sectionTitle.value,
-    items:archive.items.map(i=>({filename:i.filename,title:i.title,description:i.description,tags:i.tags,id:null}))};save();
+    items:archive.items.map((i,n)=>({filename:i.filename,title:i.title,description:i.description,tags:i.tags,sha256:artworkHashes[n],id:null}))};save();
   }else{
    if(state.items.some((v,i)=>v.filename!==archive.items[i].filename||v.title!==archive.items[i].title||v.description!==archive.items[i].description||v.tags.join(',')!==archive.items[i].tags.join(',')))
-    throw Error('This ZIP differs from the saved collection. Do not reuse an existing product receipt with changed artwork or descriptions.');
+    throw Error('This ZIP differs from the saved collection. Do not reuse existing product receipts with different descriptions.');
+   const artworkHashes=await checkAll(archive);
+   if(state.items.some((v,i)=>v.sha256!==artworkHashes[i]))
+    throw Error('Artwork differs from the original saved ZIP. Do not reuse an existing upload ID with changed images.');
   }
   for(let i=0;i<BULK_COUNT;i++){
    const item=state.items[i],live=item.id?await api('/poster/uploads/'+item.id):null;
@@ -128,7 +138,9 @@ async function start(e){
   }
   message('All eight uploads were submitted. Preparing their individual Etsy reviews…');await inspect();
  }catch(err){message('Stopped safely: '+err.message+' All successfully started products are retained; check the product dashboard.');}
- finally{busy=false;form.querySelector('button[type="submit"]').disabled=false;}
+ finally{busy=false;form.querySelector('button[type="submit"]').disabled=false;
+  if(seen.every(r=>r?.phase==='ready_for_approval')){deploy.hidden=false;deploy.disabled=false;}
+ }
 }
 form?.addEventListener('submit',start);
 deploy?.addEventListener('click',async()=>{
@@ -149,7 +161,9 @@ deploy?.addEventListener('click',async()=>{
   message('All eight exact reviews were approved. Etsy and PrintShrimp processing is queued. Check each saved product for final publication status.');
   await inspect();
  }catch(err){message('Approval stopped safely: '+err.message+' Earlier accepted approvals remain retained. Inspect existing records; do not recreate products.');}
- finally{busy=false;}
+ finally{busy=false;
+  if(seen.every(r=>r?.phase==='ready_for_approval')){deploy.hidden=false;deploy.disabled=false;}
+ }
 });
 state=read();
 if(state){
