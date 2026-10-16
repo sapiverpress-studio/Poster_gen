@@ -61,15 +61,17 @@ async function inspect(){
   }
  }
  seen=results;
- const complete=results.every(r=>r&&r.phase==='ready_for_approval');
- const begun=results.every(r=>r&&['ready_for_approval','publishing','published'].includes(r.phase));
+ const ready=results.filter(r=>r?.phase==='ready_for_approval').length;
+ const allReviewed=results.every(r=>r&&['ready_for_approval','publishing','published'].includes(r.phase));
+ const canApprove=allReviewed&&ready>0;
  buildCards(results);
- deploy.hidden=!complete;deploy.disabled=!complete||busy;
- if(complete)message('All eight reviews are ready. Check every title, full description, 13 tags and mockups. Deploy all eight only when satisfied.');
- else if(begun)message('Publication is underway or complete. Check the individual listings below.');
+ deploy.hidden=!canApprove;deploy.disabled=!canApprove||busy;
+ deploy.textContent=ready===BULK_COUNT?'Deploy all eight approved posters':'Deploy remaining '+ready+' reviewed posters';
+ if(canApprove)message('Check the remaining '+ready+' approved reviews, their titles, descriptions, 13 tags and four mockups. Previously accepted approvals will not be repeated.');
+ else if(allReviewed)message('Publication is underway or complete. Check the individual listings below.');
  else if(results.some(r=>r?.phase==='needs_investigation'))message('An item needs investigation. Existing product IDs are retained. Do not re-create failed merchant listings.');
  else message('Collection saved. Preparation continues in GitHub. Keep this page open, or return to refresh progress.');
- if(!complete&&!begun&&results.some(r=>r?.phase==='preparing'||r?.phase==='publishing')){
+ if(!allReviewed&&results.some(r=>r?.phase==='preparing'||r?.phase==='publishing')){
   clearTimeout(pollHandle);pollHandle=setTimeout(()=>inspect().catch(e=>message(e.message)),8000);
  }
 }
@@ -148,7 +150,7 @@ async function start(e){
   message('All eight uploads were submitted. Preparing their individual Etsy reviews…');await inspect();
  }catch(err){message('Stopped safely: '+err.message+' All successfully started products are retained; check the product dashboard.');}
  finally{busy=false;form.querySelector('button[type="submit"]').disabled=false;
-  if(seen.every(r=>r?.phase==='ready_for_approval')){deploy.hidden=false;deploy.disabled=false;}
+  if(seen.every(r=>r&&['ready_for_approval','publishing','published'].includes(r.phase))&&seen.some(r=>r.phase==='ready_for_approval')){deploy.hidden=false;deploy.disabled=false;}
  }
 }
 form?.addEventListener('submit',start);
@@ -156,10 +158,15 @@ deploy?.addEventListener('click',async()=>{
  if(busy||!state)return;busy=true;deploy.disabled=true;
  try{
   const fresh=await Promise.all(state.items.map(i=>api('/poster/uploads/'+i.id)));
-  if(!fresh.every((r,n)=>r.phase==='ready_for_approval'&&r.review?.approvalHash===seen[n]?.review?.approvalHash))
-   throw Error('One review has changed or is no longer available. Refresh and inspect the individual products before approving.');
-  if(!confirm('Deploy all eight reviewed products to Etsy and PrintShrimp? This can incur eight listing fees. No automatic customer orders will be enabled.'))return;
+  if(!fresh.every((r,n)=>
+   r.phase==='ready_for_approval'&&r.review?.approvalHash===seen[n]?.review?.approvalHash||
+   ['publishing','published'].includes(r.phase)&&['publishing','published'].includes(seen[n]?.phase)))
+   throw Error('One review changed or is no longer available. Refresh the collection before approving.');
+  const count=fresh.filter(r=>r.phase==='ready_for_approval').length;
+  if(!count)return;
+  if(!confirm('Deploy '+count+' reviewed posters to Etsy and PrintShrimp? Up to '+count+' new listing fees may apply. Already accepted approvals will be skipped. Automatic customer orders remain off.'))return;
   for(let n=0;n<BULK_COUNT;n++){
+   if(fresh[n].phase!=='ready_for_approval')continue;
    const item=state.items[n],review=fresh[n].review;
    message('Approving product '+(n+1)+' of eight…');
    const result=await api('/poster/uploads/'+item.id+'/approve',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},
@@ -171,7 +178,7 @@ deploy?.addEventListener('click',async()=>{
   await inspect();
  }catch(err){message('Approval stopped safely: '+err.message+' Earlier accepted approvals remain retained. Inspect existing records; do not recreate products.');}
  finally{busy=false;
-  if(seen.every(r=>r?.phase==='ready_for_approval')){deploy.hidden=false;deploy.disabled=false;}
+  if(seen.every(r=>r&&['ready_for_approval','publishing','published'].includes(r.phase))&&seen.some(r=>r.phase==='ready_for_approval')){deploy.hidden=false;deploy.disabled=false;}
  }
 });
 state=read();
