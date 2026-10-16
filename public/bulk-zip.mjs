@@ -31,6 +31,8 @@ export async function openEightPosterZip(file){
   if(flags&1||flags&0x40||![0,8].includes(method)||compressed===0xffffffff||expanded===0xffffffff||start===0xffffffff||cur+46+nameLen+extraLen+commentLen>central.byteLength)fail('Unsupported ZIP encryption or entry');
   const name=decoder.decode(new Uint8Array(central.buffer,central.byteOffset+cur+46,nameLen));
   cur+=46+nameLen+extraLen+commentLen;
+  const mode=(read32(central,cur-(46+nameLen+extraLen+commentLen)+38)>>>16);
+  if((read16(central,cur-(46+nameLen+extraLen+commentLen)+4)>>>8)===3&&mode&&(mode&0xf000)!==(name.endsWith('/')?0x4000:0x8000))fail('ZIP must contain only regular files and a folder');
   if(name.endsWith('/')){if(n!==0||name.split('/').length!==2)fail('Only a single enclosing folder is allowed');continue;}
   const base=safeName(name),lower=base.normalize('NFC').toLowerCase();
   if(seen.has(lower))fail('Duplicate poster filename');seen.add(lower);
