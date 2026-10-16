@@ -62,7 +62,7 @@ test('bulk keeps the owner written short Etsy title and exact thirteen tags',()=
 });
 test('bulk form is disabled if fewer than eight unreserved monthly slots remain',()=>{
  let body=bulkCollectionBody({monthly:{used:33,limit:40,remaining:7,label:'October 2026'}});
- assert.match(body,/Eight unused slots/);assert.match(body,/type="file"[^>]+disabled/);
+ assert.match(body,/Eight unused slots/);assert.match(body,/saved collections can still be resumed/);assert.doesNotMatch(body,/type="file"[^>]+disabled/);
  body=bulkCollectionBody({monthly:{used:32,limit:40,remaining:8,label:'October 2026'}});
  assert.doesNotMatch(body,/type="file"[^>]+disabled/);
  assert.match(body,/bulk-deploy/);assert.match(body,/bulk-upload\.mjs/);
