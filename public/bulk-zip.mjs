@@ -10,9 +10,13 @@ function safeName(name){
  const pieces=name.split('/');if(pieces.length>2||pieces.some(x=>x.length===0))fail('Keep the eight posters in one folder or at ZIP root');
  return pieces.at(-1);
 }
+const CRC_TABLE=Uint32Array.from({length:256},(_,index)=>{
+ let crc=index;for(let i=0;i<8;i++)crc=(crc>>>1)^((crc&1)?0xedb88320:0);
+ return crc>>>0;
+});
 function crc32(data){
  let crc=0xffffffff;
- for(const value of data){crc^=value;for(let i=0;i<8;i++)crc=(crc>>>1)^((crc&1)?0xedb88320:0);}
+ for(const byte of data)crc=(crc>>>8)^CRC_TABLE[(crc^byte)&255];
  return (crc^0xffffffff)>>>0;
 }
 export async function openEightPosterZip(file){
