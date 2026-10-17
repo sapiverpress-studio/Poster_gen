@@ -46,37 +46,6 @@ document.querySelectorAll('.catalogue-labels').forEach(form=>{
  });
 });
 
-const repairForm=document.getElementById('legacy-shipping-fix');
-if(repairForm){
- repairForm.addEventListener('submit',async event=>{
-  event.preventDefault();
-  if(!confirm('Update only Animal Alphabet listing 4589715100 from Etsy delivery profile 316847314881 to the verified PrintShrimp — Posters profile? This does not switch on customer-order fulfilment.'))return;
-  const button=repairForm.querySelector('button[type="submit"]');
-  button.disabled=true;
-  status.textContent='Requesting the single-listing delivery correction...';
-  try{
-   const res=await fetch('/poster/catalogue/repair',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','x-poster-csrf':csrf},body:JSON.stringify({listingId:4589715100,confirm:true})});
-   const result=await res.json();
-   if(!res.ok||result.phase!=='pending')throw Error(result.error||'Correction could not be queued');
-   status.textContent='Etsy correction queued. Waiting for verified seller read-back. Do not click twice.';
-   for(let attempt=0;attempt<65;attempt++){
-    await sleep(6000);
-    const reply=await fetch('/poster/catalogue/repair/status',{credentials:'same-origin',cache:'no-store'});
-    if(!reply.ok)throw Error('Could not check correction status');
-    const check=await reply.json();
-    if(check.phase==='complete'){
-     status.textContent='Animal Alphabet delivery profile corrected and verified. Refresh the full shop audit to update counts.';
-     button.remove();
-     return;
-    }
-    if(check.phase==='needs_investigation'||check.phase==='worker_delayed')throw Error('Correction needs investigation. Do not retry until Etsy is checked.');
-   }
-   throw Error('Correction remains pending beyond the normal wait. Do not retry yet.');
-  }catch(error){status.textContent='Delivery correction not confirmed: '+error.message;}
-  finally{button.disabled=false;}
- });
-}
-
 const bulkLinkForm=document.getElementById('link-existing-bulk');
 if(bulkLinkForm){
  bulkLinkForm.addEventListener('submit',async event=>{
