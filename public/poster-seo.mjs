@@ -1,4 +1,3 @@
-const file=document.getElementById('seo-proposals');
 const auditButton=document.getElementById('seo-audit');
 const applyButton=document.getElementById('seo-apply');
 const confirmBox=document.getElementById('seo-confirm');
@@ -28,11 +27,9 @@ function render(rows){
 }
 auditButton.addEventListener('click',async()=>{
  applyButton.disabled=true;audit=null;results.replaceChildren();
- if(!file.files?.length)return message('Choose the complete JSON proposals first.');
  auditButton.disabled=true;message('Reading all current Etsy listings; no changes will be made...');
  try{
-  const f=file.files[0];if(f.size>65000)throw Error('Proposal JSON must be under 65 KB');
-  audit=await send('/poster/seo/prepare',JSON.parse(await f.text()));
+  audit=await send('/poster/seo/prepare',{});
   render(audit.rows);message('All '+audit.rows.length+' listings inspected via seller API. Review before applying changes.');
  }catch(error){message('Audit failed: '+error.message);}
  finally{auditButton.disabled=false;}
