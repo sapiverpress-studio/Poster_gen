@@ -78,7 +78,8 @@ test('folder ZIP supports stored files and omitted directory entries',async()=>{
 test('details validate metadata before any upload and preserve complete description',()=>{
  const source=details(1),parsed=parsePosterText(source);
  assert.match(parsed.description,/Original artwork/);
- assert.equal(parsePosterText(source.replace('Listing title: Nocturne Art Print 1\n','')).listingTitle,parsed.title);
+ assert.throws(()=>parsePosterText(source.replace('Listing title: Nocturne Art Print 1\n','')),/Listing title is required/);
+ assert.throws(()=>parsePosterText(source.replace('Listing title: Nocturne Art Print 1','Listing title: Jazz Nocturne')),/physical print or poster/);
  assert.throws(()=>parsePosterText(source.replace('Section: Wall Art','Section: Unknown')),/Section/);
  assert.throws(()=>parsePosterText(source.replace('Section: Wall Art','')),/Section/);
  assert.throws(()=>parsePosterText(source.replace('Section: Wall Art','Section: Wall Art\nSection: Nature')),/Duplicate/);
