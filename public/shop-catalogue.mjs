@@ -26,3 +26,20 @@ if(button&&status){
   finally{button.disabled=false;}
  });
 }
+
+document.querySelectorAll('.catalogue-labels').forEach(form=>{
+ form.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const button=form.querySelector('button[type="submit"]');
+  const id=Number(form.dataset.id);
+  const seasons=[...form.querySelectorAll('input[name="season"]:checked')].map(x=>x.value);
+  button.disabled=true;
+  try{
+   const response=await fetch('/poster/catalogue/labels',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','x-poster-csrf':csrf},body:JSON.stringify({id,seasons})});
+   const result=await response.json();
+   if(!response.ok||result.phase!=='saved')throw Error(result.error||'Seasonal labels not saved');
+   status.textContent='Seasonal labels saved for listing '+id+'. Etsy listing visibility remains unchanged.';
+  }catch(error){status.textContent='Labels not saved: '+error.message;}
+  finally{button.disabled=false;}
+ });
+});
