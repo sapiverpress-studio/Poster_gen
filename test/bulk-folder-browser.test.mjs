@@ -24,6 +24,7 @@ test('browser imports all six folder metadata records and validates every artwor
  Object.defineProperty(globalThis,'crypto',{value:webcrypto,configurable:true});
  globalThis.fetch=async(url,options={})=>{
   if(url==='/poster/bulk/status')return Response.json({remaining:52});
+  if(url==='/poster/bulk/sections')return Response.json({phase:'available',sections:[{id:123,title:'Nature'},{id:456,title:'Wall Art'}]});
   if(url==='/poster/uploads'){
    const body=JSON.parse(options.body);created.push(body);const id=String(created.length).padStart(32,'a');live.set(id,{phase:'uploading'});
    return Response.json({id,chunkBytes:2000000},{status:201});
