@@ -181,8 +181,9 @@ test('bulk-uploaded Animal Alphabet does not offer unverified delivery changes o
  await f.uploads.setJSON('catalogue/audit',audit);
  const page=await f.handler(request('/poster/catalogue'),f.context);
  assert.equal(page.status,200);
- assert.match(await page.text(),/requires delivery-profile verification/);
- assert.doesNotMatch(await page.clone().text(),/Confirm delivery profile correction/);
+ const html=await page.text();
+ assert.match(html,/requires delivery-profile verification/);
+ assert.doesNotMatch(html,/Confirm delivery profile correction/);
  const route='/poster/catalogue/repair';
  const denied=await f.handler(request(route,'POST',JSON.stringify({listingId:4589715100,confirm:true}),{'Content-Type':'application/json'}),f.context);
  assert.equal(denied.status,409);
