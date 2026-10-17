@@ -101,7 +101,7 @@ export function parsePosterText(source){
  if(!listingTitle)fail('Listing title is required for each physical poster');
  if(listingTitle.length>140||/[<>\u0000-\u001f]/.test(listingTitle))fail('Listing title must be at most 140 characters');
  if(!/\b(?:prints?|posters?|wall art)\b/i.test(listingTitle))fail('Listing title must identify a physical print or poster');
- if(!['Early Learning','Nature','Kids','Wall Art','Music Learning'].includes(sectionTitle))fail('Section must be Early Learning, Nature, Kids, Wall Art or Music Learning');
+ if(typeof sectionTitle!=='string'||sectionTitle.length>24||/[<>\u0000-\u001f\u007f]/.test(sectionTitle))fail('Section must be a valid Etsy shop section name (up to 24 characters)');
  if(tags.length!==13||tags.some(t=>!t||t.length>20||/[<>\u0000-\u001f]/.test(t))||new Set(tags.map(t=>t.toLowerCase())).size!==13)fail('Every poster needs exactly 13 unique Etsy tags, each at most 20 characters');
  return {title,listingTitle,sectionTitle,description,tags};
 }

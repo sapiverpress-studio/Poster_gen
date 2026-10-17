@@ -131,11 +131,21 @@ async function start(e){
   if(state&&state.signature!==sig)throw Error('A different collection is already saved in this browser. Finish or inspect it before starting another. To avoid duplicates, do not overwrite its receipts.');
   message('Reading ZIP and validating names, artwork and descriptions…');
   const archive=await openPosterCollectionZip(file);
+  // Never reserve monthly slots or create merchant products for an unverified section.
+  const shop=await api('/poster/bulk/sections');
+  if(shop.phase!=='available'||!Array.isArray(shop.sections)||!shop.sections.length)throw Error('Verified Etsy shop sections unavailable. Run the catalogue audit and return here.');
+  const allowed=new Set(shop.sections.map(x=>x.title));
+  const selected=form.elements.shopSection?.value||'';
+  if(selected&&!allowed.has(selected))throw Error('This shop section is no longer on Etsy. Refresh the catalogue before uploading.');
+  for(const poster of archive.items){
+   if(!allowed.has(poster.sectionTitle))throw Error('Section: '+poster.sectionTitle+' in '+poster.folder+'/details.md is not an existing Etsy shop section. Refresh the Etsy catalogue or correct the ZIP; no slots used.');
+   if(selected&&poster.sectionTitle!==selected)throw Error('You selected '+selected+', but '+poster.folder+'/details.md specifies '+poster.sectionTitle+'. Update details.md or use the per-poster selection. No products started.');
+  }
   if(!state){
    const quota=await api('/poster/bulk/status');
    if(quota.remaining<BULK_COUNT)throw Error('Not enough monthly slots. '+quota.remaining+' remain; six are required.');
    const artworkHashes=await checkAll(archive);
-   state={version:2,signature:sig,kind:form.elements.kind.value,
+   state={version:2,signature:sig,kind:form.elements.kind.value,selectedShopSection:selected,
     items:archive.items.map((i,n)=>({filename:i.filename,folder:i.folder,title:i.title,listingTitle:i.listingTitle,sectionTitle:i.sectionTitle,description:i.description,tags:i.tags,sha256:artworkHashes[n],uploadFilename:collectionUploadFilename(i.title,artworkHashes[n]),id:null}))};save();
   }else{
    if(state.items.some((v,i)=>v.filename!==archive.items[i].filename||v.folder!==archive.items[i].folder||v.listingTitle!==archive.items[i].listingTitle||v.sectionTitle!==archive.items[i].sectionTitle||v.title!==archive.items[i].title||v.description!==archive.items[i].description||v.tags.join(',')!==archive.items[i].tags.join(',')))
@@ -188,6 +198,10 @@ deploy?.addEventListener('click',async()=>{
  }
 });
 state=read();
+if(state&&form?.elements?.shopSection){
+ const chosen=state.selectedShopSection||'';
+ if([...form.elements.shopSection.options].some(x=>x.value===chosen))form.elements.shopSection.value=chosen;
+}
 if(state&&(state.version!==2||state.items.length!==BULK_COUNT)){
  busy=true;form.querySelector('button[type="submit"]').disabled=true;deploy.hidden=true;
  buildCards();
