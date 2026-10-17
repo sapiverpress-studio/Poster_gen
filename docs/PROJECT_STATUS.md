@@ -2,6 +2,25 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
+## 2026-10-17 — Entire 20-listing Etsy SEO audit and batch correction pathway (off-production)
+- User explicitly requested audit and correction of ALL active SapiverPrints listings, not only three examples. Located the full **20-listing** public catalogue in `sapiverpress-studio/SapiverForge/data/etsy-public-catalog.json`, generated **2026-10-17T04:23:46.714Z**. Includes IDs/titles/short descriptions, not private seller tags or taxonomy fields. No buyer reviews or demand metrics were used.
+- Created individually tailored **20 Etsy titles and 260 proposed tags** (13 unique tags per listing, each 20 characters max). Grounded in public descriptions; several images/content remain subject to owner's visual verification. Special holds include ambiguous Coast to Coast artwork and educational-content checks (e.g. dinosaur colours count).
+- Added `lib/seo-proposals.mjs` static public-metadata proposal manifest; `lib/catalogue-seo.mjs` full seller-OAuth read-only audit, fail-closed exact catalogue identity, backup/reservation before write, per-listing state/title/tag/taxonomy fingerprint, metadata-only Etsy PATCH and final seller read-back.
+- Added the owner-protected `/poster/seo` interface and matching `/poster/seo/prepare`, `/poster/seo/apply` endpoints through existing authenticated `poster-upload` function; reviewed proposals auto-loaded. Requires owner to review current and proposed metadata, inspect linked artwork and explicitly confirm, then can update all eligible listing IDs sequentially with stop-on-first-error. The tool doesn't change supplier, SKUs, pricing, images, stock, shipping or variants.
+- Whole-catalogue batches have a 24-hour saved audit pointer, metadata backups per listing, one-write reservations, verified already-current skips and safe owner-page resume after interruption. Suspicious/uncertain writes are not retried silently.
+- Current connected Etsy chat plugin has buyer search only, not seller read/write. **No live Etsy SEO updates have occurred**. No changes to seller tokens, authorization flags, PrintShrimp fulfilment, worker schedules, production deployment or Work credits. PR must pass Node 24 CI and merge/deploy once before owner can use UI.
+- Deliberate fail-closed behavior: if any active listing is added/removed/renamed since snapshot, full-catalogue audit rejects the manifest instead of skipping it. Regenerate proposals from current seller read-back in that case.
+- Future: display seller taxonomy paths after authorised retrieval, avoid automatically reclassifying Digital Prints, and distinguish actual keyword traffic (only Etsy stats can establish this) from hypotheses.
+
+## 2026-10-17 — Etsy discoverability preflight (off-production)
+- Branch: `fix/etsy-metadata-preflight-clean-20261017`, based on the latest production-branch head, descending from the Netlify published production commit `3cdaff0a0efa22068d0818de713226dc505bca06`. Owner requested listing metadata improvements and refreshed reusable six-poster instructions.
+- Added `lib/listing-quality.mjs`: purely advisory local checks for two-word titles mistaken for complete public Etsy titles, print/poster identity, fewer than 13 tags, excessive one-word or generic tags, and ambiguous Digital Prints taxonomy. No keyword-demand estimates and **no automatic taxonomy mutation**.
+- Render checks during existing owner approval in `lib/product-web.mjs`, alongside the current correction form. Warnings do not change live listing state or supplier mappings. Clarified the physical tags field.
+- Hardened `public/bulk-zip.mjs`: every new six-poster ZIP needs explicit `Listing title:` identifying a print/poster. Short `Title:` is still the internal artwork name. Existing ZIPs without the field need their `details.md` corrected before uploading. Existing saved products and Etsy listings are not touched.
+- Tests: parser regression adjusted and new `test/listing-quality.test.mjs` covers warnings/review. GitHub CI status must be checked; do not assume passing.
+- Future decision: consider strict 13-tag enforcement for **new** single uploads after inspecting compatibility, plus a reversible opt-in audit/metadata-only update for current listings. Existing `updatePhysicalMetadata` already issues a seller-scoped PATCH for title, description, tags, taxonomy, section after verifying original product/unchanged master; do not use it as an automatic bulk rewrite.
+- No deploy, paid supplier calls, Etsy writes, changed variations, new SKUs, Work mode or scheduled automation in this branch.
+
 ## CURRENT PROJECT SNAPSHOT — 2026-10-16 (six-folder bulk and 52/month LIVE)
 
 | Area | Current evidence-based state |
