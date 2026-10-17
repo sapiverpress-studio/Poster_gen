@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {prepareSeoAudit,applySeoUpdate,validateSeoProposals} from '../lib/catalogue-seo.mjs';
+import {prepareSeoAudit,applySeoUpdate,validateSeoProposals,latestSeoAudit} from '../lib/catalogue-seo.mjs';
 const tags=Array.from({length:13},(_,i)=>'nature print '+i);
 const proposal=(id,title)=>({listing_id:id,existing_title:title,suggested_title:'Garden Robin Art Print '+id,suggested_tags:[...tags],review_note:''});
 const manifest={shop:'SapiverPrints',data:[proposal(111,'The Robin Wall Art Print'),proposal(112,'The Fox Wall Art Print')]};
@@ -32,7 +32,7 @@ test('guarded update changes title and tags only, reads back same existing listi
  assert.deepEqual(f.records.get(111).skus,['PROTECTED-SKU']);
  assert.equal(f.records.get(111).taxonomy_id,2078);
  assert.equal(f.saved.get('seo/backup/'+r.batch+'/111').before.title,'The Robin Wall Art Print');
- await assert.rejects(applySeoUpdate({...f,batch:r.batch,id:111,clock:()=>102}),/changed after audit|already attempted/);
+ assert.equal((await applySeoUpdate({...f,batch:r.batch,id:111,clock:()=>102})).state,'already_current');
 });
 test('changing tags after read-only audit blocks patch before any Etsy write',async()=>{
  const f=fixture(),r=await prepareSeoAudit({...f,manifest,clock:()=>100});
@@ -64,4 +64,20 @@ test('bundled catalogue contains all twenty verified IDs and valid Etsy title/ta
  assert.ok(rows.some(r=>r.id===4596569132));
  assert.ok(rows.some(r=>r.id===4589715100));
  assert.ok(rows.every(r=>r.tags.length===13&&r.tags.every(t=>t.length<=20)));
+});
+
+test('latest full-catalogue audit restores safely and expires after 24 hours',async()=>{
+ const f=fixture(),r=await prepareSeoAudit({...f,manifest,clock:()=>100});
+ const recent=await latestSeoAudit({uploads:f.uploads,clock:()=>101});
+ assert.equal(recent.batch,r.batch);assert.equal(recent.rows.length,2);
+ assert.equal(await latestSeoAudit({uploads:f.uploads,clock:()=>86400200}),null);
+});
+test('resume skips completed listings yet preserves untouched listing identities',async()=>{
+ const f=fixture(),r=await prepareSeoAudit({...f,manifest,clock:()=>100});
+ await applySeoUpdate({...f,batch:r.batch,id:111,clock:()=>110});
+ const recent=await latestSeoAudit({uploads:f.uploads,clock:()=>120});
+ assert.equal(recent.rows[0].attempted,'complete');
+ assert.equal((await applySeoUpdate({...f,batch:r.batch,id:111,clock:()=>130})).state,'already_current');
+ assert.equal((await applySeoUpdate({...f,batch:r.batch,id:112,clock:()=>140})).state,'updated');
+ assert.deepEqual(f.writes,[111,112]);
 });
