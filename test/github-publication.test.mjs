@@ -260,3 +260,17 @@ test('delivery audit bridge can list safe product records and save only audited 
  assert.equal(denied.status,403);
  await assert.rejects(async()=>{for await(const page of uploads.list({prefix:'uploads/',paginate:true}))void page;},/Unapproved remote listing request/);
 });
+
+test('worker bridge can access only numeric audited bulk-product reference keys',async()=>{
+ const map=new Map(),store=name=>{if(!map.has(name))map.set(name,memory());return map.get(name);};
+ const bridge=createGithubBridge({env,store,authenticate:async()=>({})});
+ async function call(b){return bridge(new Request(origin+'/poster/github-worker',{method:'POST',body:JSON.stringify(b)}));}
+ const key='catalogue/external/4589703441';
+ const set=await call({op:'set',store:'sapiver-poster-uploads',type:'json',key,data:{etsyListingId:4589703441}});
+ assert.equal(set.status,200);
+ const read=await (await call({op:'get',store:'sapiver-poster-uploads',type:'json',key})).json();
+ assert.equal(read.data.etsyListingId,4589703441);
+ for(const bad of ['catalogue/external/abc','catalogue/external/../../primary','catalogue/external/4589703441/other']){
+  assert.equal((await call({op:'set',store:'sapiver-poster-uploads',type:'json',key:bad,data:{}})).status,403);
+ }
+});
