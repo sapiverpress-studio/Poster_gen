@@ -95,10 +95,12 @@ export function parsePosterText(source){
   if(!m)fail('Unknown or invalid details.md field');
   const key=m[1].toLowerCase();if(Object.hasOwn(fields,key))fail('Duplicate details.md field');fields[key]=m[2].trim();
  }
- const title=fields.title,listingTitle=fields['listing title']||title,sectionTitle=fields.section;
+ const title=fields.title,listingTitle=fields['listing title'],sectionTitle=fields.section;
  const description=lines.slice(split+1).join('\n').trim(),tags=(fields.tags||'').split(',').map(x=>x.trim());
  if(!title||title.length>100||/[<>\u0000-\u001f]/.test(title)||description.length<12||description.length>9000||/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(description))fail('Invalid poster title or description');
- if(!listingTitle||listingTitle.length>140||/[<>\u0000-\u001f]/.test(listingTitle))fail('Listing title must be at most 140 characters');
+ if(!listingTitle)fail('Listing title is required for each physical poster');
+ if(listingTitle.length>140||/[<>\u0000-\u001f]/.test(listingTitle))fail('Listing title must be at most 140 characters');
+ if(!/\b(?:prints?|posters?|wall art)\b/i.test(listingTitle))fail('Listing title must identify a physical print or poster');
  if(!['Early Learning','Nature','Kids','Wall Art','Music Learning'].includes(sectionTitle))fail('Section must be Early Learning, Nature, Kids, Wall Art or Music Learning');
  if(tags.length!==13||tags.some(t=>!t||t.length>20||/[<>\u0000-\u001f]/.test(t))||new Set(tags.map(t=>t.toLowerCase())).size!==13)fail('Every poster needs exactly 13 unique Etsy tags, each at most 20 characters');
  return {title,listingTitle,sectionTitle,description,tags};
