@@ -133,3 +133,18 @@ test('seasonal labels are private and cannot alter Etsy listings',async()=>{
  const again=await f.handler(request('/poster/catalogue'),f.context);
  assert.match(await again.text(),/value="Spring" checked/);
 });
+
+test('SEO comparison is queued for seller-authorised worker and never uses the limited website client',async()=>{
+ const f=fixture();
+ const result=await f.handler(request('/poster/seo/prepare','POST','{}',{'Content-Type':'application/json'}),f.context);
+ assert.equal(result.status,202);assert.equal((await result.json()).phase,'pending');
+ assert.equal((await f.uploads.get('seo/audit-status')).phase,'pending');
+ assert.equal((await f.handler(request('/poster/seo/status'),f.context)).status,200);
+ assert.equal((await f.handler(request('/poster/seo/apply','POST','{}',{'Content-Type':'application/json'}),f.context)).status,503);
+ await Promise.all(f.pending);
+ assert.equal(f.sent.length,1);
+ assert.doesNotMatch(JSON.stringify(f.sent),/openapi.etsy.com|printshrimp.com/);
+ const repeat=await f.handler(request('/poster/seo/prepare','POST','{}',{'Content-Type':'application/json'}),f.context);
+ assert.equal(repeat.status,202);
+ assert.equal(f.sent.length,1);
+});
