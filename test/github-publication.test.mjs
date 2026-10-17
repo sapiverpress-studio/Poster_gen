@@ -140,7 +140,7 @@ test('worker fetches Etsy catalogue through read-only seller API and records bou
  const q=memory(),u=memory(),e=memory(),key='jobs/'+'q'.repeat(32),job={phase:'queued',action:'catalog'};
  const session={shop_name:'SapiverPrints',shop_id:456,user_id:'1',access_token:'1.token',refresh_token:'1.refresh',scope:'shops_r shops_w listings_r listings_w',expires_at:now+3600000,connected_at:now};
  await e.set('primary',seal(session,secret,'etsy-stored-tokens'));await q.setJSON(key,job);
- const calls=[];const request=async url=>{calls.push(url);if(url.includes('/seller-taxonomy/nodes'))return Response.json({results:[]});if(url.includes('/shops/456/listings?'))return Response.json({results:[]});if(url.includes('/shops/456/listings/active'))return Response.json({results:[{listing_id:123,shop_id:456,listing_type:'physical',state:'active',title:'Poster reference'},{listing_id:124,shop_id:456,listing_type:'digital',title:'Not a physical product'}]});return new Response('',{status:500});};
+ const calls=[];const request=async url=>{calls.push(url);if(url.includes('/seller-taxonomy/nodes'))return Response.json({results:[]});if(url.endsWith('/shops/456/sections'))return Response.json({results:[{shop_section_id:11,title:'Nature'},{shop_section_id:12,title:'Wall Art'}]});if(url.includes('/shops/456/listings?'))return Response.json({results:[]});if(url.includes('/shops/456/listings/active'))return Response.json({results:[{listing_id:123,shop_id:456,listing_type:'physical',state:'active',title:'Poster reference'},{listing_id:124,shop_id:456,listing_type:'digital',title:'Not a physical product'}]});return new Response('',{status:500});};
  await runGithubJobs({jobs:[{key,...job}],queue:q,uploads:u,etsyStore:e,env,clock:()=>now,request});
  assert.equal((await u.get('template/catalog-status')).phase,'available');
  assert.equal((await u.get('template/catalog-status')).count,1);
@@ -157,7 +157,7 @@ test('catalogue fetch handles more than 100 active listings and rejects a partia
  await e.set('primary',seal(saved,secret,'etsy-stored-tokens'));
  const seen=[];
  const request=async url=>{
-  if(url.includes('/seller-taxonomy/nodes'))return Response.json({results:[]});
+  if(url.includes('/seller-taxonomy/nodes'))return Response.json({results:[]});if(url.endsWith('/shops/456/sections'))return Response.json({results:[{shop_section_id:11,title:'Nature'},{shop_section_id:12,title:'Wall Art'}]});
   const target=new URL(url);if(target.pathname.endsWith('/shops/456/listings'))return Response.json({results:[]});if(!target.pathname.endsWith('/shops/456/listings/active'))return new Response('',{status:404});
   seen.push(target.searchParams.get('offset'));
   const offset=Number(target.searchParams.get('offset'));
@@ -191,7 +191,7 @@ test('authenticated catalogue includes saved physical drafts without publishing 
  await e.set('primary',seal({shop_name:'SapiverPrints',shop_id:456,user_id:'1',access_token:'1.token',refresh_token:'1.refresh',scope:'shops_r shops_w listings_r listings_w',expires_at:now+3600000,connected_at:now},secret,'etsy-stored-tokens'));
  const request=async(url,options)=>{
   assert.equal(options.method,undefined);const target=new URL(url);
-  if(target.pathname.endsWith('/seller-taxonomy/nodes')||target.pathname.endsWith('/listings/active'))return Response.json({results:[]});
+  if(target.pathname.endsWith('/seller-taxonomy/nodes')||target.pathname.endsWith('/listings/active'))return Response.json({results:[]});if(target.pathname.endsWith('/shops/456/sections'))return Response.json({results:[{shop_section_id:11,title:'Nature'}]});
   const state=target.searchParams.get('state');assert.ok(['draft','inactive'].includes(state));
   return Response.json({results:[{listing_id:state==='draft'?123:124,shop_id:456,state,listing_type:'physical',title:'Saved reference'},{listing_id:125,shop_id:999,state,listing_type:'physical',title:'Foreign shop'},{listing_id:126,shop_id:456,state,listing_type:'download',title:'Digital'}]});
  };
