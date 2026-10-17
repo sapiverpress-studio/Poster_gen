@@ -55,3 +55,13 @@ test('proposals reject duplicate listing IDs and short one-word tags',()=>{
  assert.throws(()=>validateSeoProposals({...manifest,data:[manifest.data[0],manifest.data[0]]}),/invalid/);
  assert.throws(()=>validateSeoProposals({...manifest,data:[{...manifest.data[0],suggested_tags:['fox']}] }),/invalid/);
 });
+
+test('bundled catalogue contains all twenty verified IDs and valid Etsy title/tag proposals',async()=>{
+ const {seoProposals}=await import('../lib/seo-proposals.mjs');
+ const rows=validateSeoProposals(seoProposals);
+ assert.equal(rows.length,20);
+ assert.equal(new Set(rows.map(r=>r.id)).size,20);
+ assert.ok(rows.some(r=>r.id===4596569132));
+ assert.ok(rows.some(r=>r.id===4589715100));
+ assert.ok(rows.every(r=>r.tags.length===13&&r.tags.every(t=>t.length<=20)));
+});
