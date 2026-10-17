@@ -148,3 +148,28 @@ test('SEO comparison is queued for seller-authorised worker and never uses the l
  assert.equal(repeat.status,202);
  assert.equal(f.sent.length,1);
 });
+
+test('stalled delivery audits are reported and repeated button presses do not double queue work',async()=>{
+ const f=fixture();
+ await f.uploads.setJSON('catalogue/audit-status',{phase:'pending',checkedAt:Date.now()-20*60*1000});
+ const stalled=await f.handler(request('/poster/catalogue/status'),f.context);
+ assert.equal((await stalled.json()).phase,'worker_delayed');
+ const page=await f.handler(request('/poster/catalogue'),f.context);
+ assert.match(await page.text(),/not finished after four minutes/);
+ const retry=await f.handler(request('/poster/catalog/refresh','POST'),f.context);
+ assert.equal(retry.status,202);
+ assert.equal((await retry.json()).phase,'pending');
+ const current=await f.handler(request('/poster/catalogue/status'),f.context);
+ assert.equal((await current.json()).phase,'pending');
+ const duplicate=await f.handler(request('/poster/catalog/refresh','POST'),f.context);
+ assert.equal(duplicate.status,202);
+ await Promise.all(f.pending);
+ assert.equal(f.sent.length,1);
+});
+test('a delivery audit dispatch error is not left in a pending state',async()=>{
+ const f=fixture();
+ const handler=createPosterUploadHandler({env,uploads:f.uploads,dispatchJob:async()=>{throw Error('simulated dispatch failure');}});
+ const res=await handler(request('/poster/catalog/refresh','POST'),f.context);
+ assert.equal(res.status,503);
+ assert.equal((await f.uploads.get('catalogue/audit-status')).phase,'needs_investigation');
+});

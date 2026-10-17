@@ -235,3 +235,28 @@ test('seller SEO audit bridge permits only the required records, not merchant wr
   assert.equal((await call({op:'set',store:'sapiver-poster-uploads',key,type:'json',data:{}})).status,403);
  }
 });
+
+test('delivery audit bridge can list safe product records and save only audited catalogue keys',async()=>{
+ const stores=new Map(),store=n=>{if(!stores.has(n))stores.set(n,memory());return stores.get(n);};
+ const bridge=createGithubBridge({env,store,authenticate:async()=>({})});
+ const rpc=async input=>{
+  const res=await bridge(new Request(origin+'/poster/github-worker',{method:'POST',body:JSON.stringify(input)}));
+  assert.equal(res.status,200,'authenticated bridge denied '+input.op+' '+input.key);
+  return res.json();
+ };
+ const uploads=createRemoteStore('sapiver-poster-uploads',rpc),product='p'.repeat(32);
+ await uploads.setJSON('products/'+product+'/record',{productId:product,etsyListingId:567,supplierProductId:'supplier-1',type:'physical'});
+ await uploads.setJSON('products/'+product+'/revisions/'+'r'.repeat(32),{ignored:true});
+ const entries=[];
+ for await(const page of uploads.list({prefix:'products/',paginate:true}))entries.push(...page.blobs.map(b=>b.key));
+ assert.deepEqual(entries,['products/'+product+'/record']);
+ const read=await uploads.get(entries[0],{type:'json'});
+ assert.equal(read.supplierProductId,'supplier-1');
+ await uploads.setJSON('catalogue/audit',{version:1,listings:[{id:567,shippingProfileId:11}]});
+ await uploads.setJSON('catalogue/audit-status',{phase:'available',checkedAt:123});
+ assert.equal((await uploads.get('catalogue/audit-status',{type:'json'})).phase,'available');
+ assert.equal((await uploads.get('catalogue/audit',{type:'json'})).listings[0].id,567);
+ const denied=await bridge(new Request(origin+'/poster/github-worker',{method:'POST',body:JSON.stringify({op:'list',store:'sapiver-etsy-private',prefix:'products/'})}));
+ assert.equal(denied.status,403);
+ await assert.rejects(async()=>{for await(const page of uploads.list({prefix:'uploads/',paginate:true}))void page;},/Unapproved remote listing request/);
+});
