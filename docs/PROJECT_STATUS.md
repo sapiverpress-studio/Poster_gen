@@ -2,6 +2,15 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
+## 2026-10-17 — Etsy discoverability preflight (off-production)
+- Branch: `fix/etsy-metadata-preflight-20261017`, based on the Netlify published production commit `3cdaff0a0efa22068d0818de713226dc505bca06`. Owner requested listing metadata improvements and refreshed reusable six-poster instructions.
+- Added `lib/listing-quality.mjs`: purely advisory local checks for two-word titles mistaken for complete public Etsy titles, print/poster identity, fewer than 13 tags, excessive one-word or generic tags, and ambiguous Digital Prints taxonomy. No keyword-demand estimates and **no automatic taxonomy mutation**.
+- Render checks during existing owner approval in `lib/product-web.mjs`, alongside the current correction form. Warnings do not change live listing state or supplier mappings. Clarified the physical tags field.
+- Hardened `public/bulk-zip.mjs`: every new six-poster ZIP needs explicit `Listing title:` identifying a print/poster. Short `Title:` is still the internal artwork name. Existing ZIPs without the field need their `details.md` corrected before uploading. Existing saved products and Etsy listings are not touched.
+- Tests: parser regression adjusted and new `test/listing-quality.test.mjs` covers warnings/review. GitHub CI status must be checked; do not assume passing.
+- Future decision: consider strict 13-tag enforcement for **new** single uploads after inspecting compatibility, plus a reversible opt-in audit/metadata-only update for current listings. Existing `updatePhysicalMetadata` already issues a seller-scoped PATCH for title, description, tags, taxonomy, section after verifying original product/unchanged master; do not use it as an automatic bulk rewrite.
+- No deploy, paid supplier calls, Etsy writes, changed variations, new SKUs, Work mode or scheduled automation in this branch.
+
 ## CURRENT PROJECT SNAPSHOT — 2026-10-16 (eight-poster bulk live; six-poster standard and 52/month staged)
 
 | Area | Current evidence-based state |
