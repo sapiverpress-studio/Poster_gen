@@ -112,3 +112,24 @@ test('expired API session returns a typed JSON error while normal studio navigat
  assert.equal(api.status,401);assert.match(api.headers.get('Content-Type'),/application\/json/);assert.equal((await api.json()).code,'studio_session_required');assert.equal(api.headers.get('Location'),null);assert.equal(f.uploads.map.size,0);
  const page=await f.handler(new Request(origin+'/poster/upload'),f.context);assert.equal(page.status,303);assert.equal(page.headers.get('Location'),'/poster/workflow');
 });
+
+test('seasonal labels are private and cannot alter Etsy listings',async()=>{
+ const f=fixture(),now=Date.now();
+ const audit={version:1,shopId:456,checkedAt:now,intendedProfile:{id:11},summary:{activePhysical:1,activeCorrectDelivery:1,activeOtherDelivery:0,unverifiedSupplier:0},listings:[{id:123,title:'Robin',section:'Nature',state:'active',deliveryMatches:true,shippingProfileId:11,supplierMapping:'recorded',sku:['SP-ROBIN']}]};
+ await f.uploads.setJSON('catalogue/audit-status',{phase:'available',checkedAt:now,summary:audit.summary});
+ await f.uploads.setJSON('catalogue/audit',audit);
+ const page=await f.handler(request('/poster/catalogue'),f.context);
+ assert.equal(page.status,200);
+ assert.match(await page.text(),/Seasonal group labels/);
+ const path='/poster/catalogue/labels';
+ const bad=await f.handler(request(path,'POST',JSON.stringify({id:123,seasons:['All year','Christmas']})),f.context);
+ assert.equal(bad.status,409);
+ assert.equal((await f.handler(request(path,'POST',JSON.stringify({id:124,seasons:['Spring']})),f.context)).status,409);
+ assert.equal((await f.handler(request(path,'POST',JSON.stringify({id:123,seasons:['Spring']}),{'X-Poster-CSRF':'wrong'}),f.context)).status,403);
+ const saved=await f.handler(request(path,'POST',JSON.stringify({id:123,seasons:['Spring','Easter']})),f.context);
+ assert.equal(saved.status,200);
+ assert.deepEqual((await f.uploads.get('catalogue/labels/123')).seasons,['Spring','Easter']);
+ assert.equal(f.sent.length,0);
+ const again=await f.handler(request('/poster/catalogue'),f.context);
+ assert.match(await again.text(),/value="Spring" checked/);
+});
