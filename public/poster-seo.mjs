@@ -16,7 +16,7 @@ function render(rows){
  results.append(line('p','Seller read-back complete: '+rows.length+' listings. Each current tag set is shown for comparison; do not assume proposed phrases have proven search traffic.'));
  for(const row of rows){
   const article=document.createElement('article');
-  article.append(line('h3',row.title),line('p','Listing '+row.id+' · '+row.state));
+  article.append(line('h3',row.title),line('p','Listing '+row.id+' · '+row.state+(row.attempted?' · previous attempt: '+row.attempted:'')));
   const link=document.createElement('a');link.href='https://www.etsy.com/listing/'+row.id;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Inspect actual Etsy artwork';article.append(link);
   article.append(line('p','Current title: '+row.before.title),line('p','Proposed title: '+row.title),line('p','Current tags ('+row.before.tags.length+'): '+row.before.tags.join(', ')),line('p','Proposed tags ('+row.tags.length+'): '+row.tags.join(', ')));
   if(row.note)article.append(line('p','Artwork check: '+row.note));
@@ -48,3 +48,8 @@ applyButton.addEventListener('click',async()=>{
  }catch(error){message('STOPPED after '+completed+' completed listing(s): '+error.message+'. Do not retry the entire batch. Inspect the affected listing and saved audit status.');}
  finally{auditButton.disabled=false;}
 });
+
+// Previously reviewed batches can be resumed after a browser refresh. Every Etsy write still verifies the live listing fingerprint.
+fetch('/poster/seo/status',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(saved=>{
+ if(saved?.batch&&saved.rows?.length){audit=saved;render(saved.rows);message('Restored the latest audit ('+saved.rows.length+' listings). Review and confirm before continuing. Completed records are skipped after live verification.');}
+}).catch(()=>{});
