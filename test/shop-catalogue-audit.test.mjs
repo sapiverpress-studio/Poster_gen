@@ -43,6 +43,6 @@ test('a wrong seller cannot be audited and delivery mismatch is visible',async()
  assert.equal(a.summary.activeOtherDelivery,2);
  const html=cataloguePage({audit:a,status:{phase:'available'}});
  assert.match(html,/OTHER OR MISSING/);
- assert.match(html,/Not verified in Sapiver uploader/);
+ assert.match(html,/Not yet linked in Sapiver uploader/);
  assert.doesNotMatch(cataloguePage({audit:a,status:{phase:'needs_investigation'}}),/Robin/);
 });

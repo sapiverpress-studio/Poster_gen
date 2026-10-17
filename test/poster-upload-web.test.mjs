@@ -194,3 +194,24 @@ test('Animal Alphabet shipping correction is single-confirmation and dispatched 
  assert.equal((await f.handler(request(endpoint,'POST',JSON.stringify({listingId:4589715100,confirm:true}),{'Content-Type':'application/json'}),f.context)).status,409);
  assert.equal((await f.handler(request('/poster/catalogue/repair/status'),f.context)).status,200);
 });
+
+test('link existing bulk products requires owner approval and a recent matching catalogue',async()=>{
+ const f=fixture(),time=Date.now();
+ const ids=[4589703441,4589703919];
+ const audit={version:1,shopId:456,checkedAt:time,intendedProfile:{id:316400055692},summary:{activePhysical:2,activeCorrectDelivery:2,activeOtherDelivery:0,unverifiedSupplier:2},listings:ids.map((id,i)=>({id,state:'active',supplierMapping:'not_verified',supplierCheck:'product_found',supplierProductId:'Supplier-'+i,sku:['SP-EL-'+i]}))};
+ await f.uploads.setJSON('catalogue/audit-status',{phase:'available',checkedAt:time,summary:audit.summary});
+ await f.uploads.setJSON('catalogue/audit',audit);
+ await f.uploads.setJSON('template/catalog',{shopId:456});
+ const p='/poster/catalogue/link-existing';
+ assert.equal((await f.handler(request(p,'POST',JSON.stringify({confirm:false,ids})),f.context)).status,409);
+ assert.equal((await f.handler(request(p,'POST',JSON.stringify({confirm:true,ids:[9999999999]})),f.context)).status,409);
+ assert.equal((await f.handler(request(p,'POST',JSON.stringify({confirm:true,ids}),{'X-Poster-CSRF':'bad'}),f.context)).status,403);
+ const page=await f.handler(request('/poster/catalogue'),f.context);
+ assert.match(await page.text(),/Save verified existing product references/);
+ const r=await f.handler(request(p,'POST',JSON.stringify({confirm:true,ids})),f.context);
+ assert.equal(r.status,200);
+ assert.equal((await r.json()).linked.length,2);
+ assert.equal((await f.uploads.get('catalogue/external/'+ids[0])).source,'printshrimp_bulk');
+ assert.equal(f.sent.length,0);
+ assert.equal(f.pending.length,0);
+});

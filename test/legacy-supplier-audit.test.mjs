@@ -32,3 +32,13 @@ test('ambiguous Etsy SKUs are not guessed and API failures are not misreported a
  assert.equal(result[0].supplierCheck,'sku_ambiguous');
  assert.equal(result[1].supplierCheck,'lookup_unavailable');
 });
+
+test('a saved bulk product reference is checked against the current PrintShrimp product ID',async()=>{
+ const rows=[{id:123,state:'active',supplierMapping:'existing_bulk_linked',supplierProductId:'Saved-ID',sku:['SP-BULK-001']}];
+ const request=async(url)=>Response.json({success:true,product:{sku:new URL(url).searchParams.get('sku'),product_id:'Different-ID',variants:['A3','A4','A5'].map(size=>({size,image_url:'https://example.com/master.png'}))}});
+ const result=await checkLegacySupplier({listings:rows,apiKey:'private',request});
+ assert.equal(result[0].supplierCheck,'link_conflict');
+ assert.equal(result[0].supplierProductId,'Saved-ID');
+ const verified=await checkLegacySupplier({listings:rows,apiKey:'private',request:async(url)=>Response.json({success:true,product:{sku:new URL(url).searchParams.get('sku'),product_id:'Saved-ID',variants:['A3','A4','A5'].map(size=>({size,image_url:'https://example.com/master.png'}))}})});
+ assert.equal(verified[0].supplierCheck,'link_verified');
+});

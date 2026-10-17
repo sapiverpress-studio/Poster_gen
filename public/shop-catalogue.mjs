@@ -76,3 +76,23 @@ if(repairForm){
   finally{button.disabled=false;}
  });
 }
+
+const bulkLinkForm=document.getElementById('link-existing-bulk');
+if(bulkLinkForm){
+ bulkLinkForm.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const ids=String(bulkLinkForm.dataset.ids||'').split(',').map(Number);
+  if(!ids.length||ids.some(id=>!Number.isSafeInteger(id)))return;
+  if(!confirm('Save existing PrintShrimp product references for '+ids.length+' verified listings? This will NOT change Etsy, create supplier products or enable automatic orders.'))return;
+  const button=bulkLinkForm.querySelector('button[type="submit"]');
+  button.disabled=true;
+  try{
+   const res=await fetch('/poster/catalogue/link-existing',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','x-poster-csrf':csrf},body:JSON.stringify({confirm:true,ids})});
+   const body=await res.json();
+   if(!res.ok||body.phase!=='linked')throw Error(body.error||'Could not save supplier references');
+   status.textContent='Saved '+body.linked.length+' existing supplier references. No marketplace settings changed. Run the audit again to confirm linked records.';
+   bulkLinkForm.remove();
+  }catch(error){status.textContent='Supplier links not saved: '+error.message;}
+  finally{button.disabled=false;}
+ });
+}
