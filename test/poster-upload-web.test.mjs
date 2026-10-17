@@ -174,25 +174,21 @@ test('a delivery audit dispatch error is not left in a pending state',async()=>{
  assert.equal((await f.uploads.get('catalogue/audit-status')).phase,'needs_investigation');
 });
 
-test('Animal Alphabet shipping correction is single-confirmation and dispatched only to seller worker',async()=>{
+test('bulk-uploaded Animal Alphabet does not offer unverified delivery changes or queue seller writes',async()=>{
  const f=fixture(),now=Date.now();
  const audit={version:1,shopId:456,checkedAt:now,intendedProfile:{id:316400055692},summary:{activePhysical:1,activeCorrectDelivery:0,activeOtherDelivery:1,unverifiedSupplier:1},listings:[{id:4589715100,title:'Animal Alphabet',section:'Early Learning',state:'active',deliveryMatches:false,shippingProfileId:316847314881,supplierMapping:'not_verified',sku:['SP-EL-005-ANIMAL-ALPHABET']}]};
  await f.uploads.setJSON('catalogue/audit-status',{phase:'available',checkedAt:now,summary:audit.summary});
  await f.uploads.setJSON('catalogue/audit',audit);
  const page=await f.handler(request('/poster/catalogue'),f.context);
- assert.equal(page.status,200);assert.match(await page.text(),/Confirm delivery profile correction/);
- const endpoint='/poster/catalogue/repair';
- assert.equal((await f.handler(request(endpoint,'POST',JSON.stringify({listingId:4589715100,confirm:false}),{'Content-Type':'application/json'}),f.context)).status,409);
- assert.equal((await f.handler(request(endpoint,'POST',JSON.stringify({listingId:4589715101,confirm:true}),{'Content-Type':'application/json'}),f.context)).status,409);
- assert.equal((await f.handler(request(endpoint,'POST',JSON.stringify({listingId:4589715100,confirm:true}),{'Content-Type':'application/json','X-Poster-CSRF':'bad'}),f.context)).status,403);
+ assert.equal(page.status,200);
+ assert.match(await page.text(),/requires delivery-profile verification/);
+ assert.doesNotMatch(await page.clone().text(),/Confirm delivery profile correction/);
+ const route='/poster/catalogue/repair';
+ const denied=await f.handler(request(route,'POST',JSON.stringify({listingId:4589715100,confirm:true}),{'Content-Type':'application/json'}),f.context);
+ assert.equal(denied.status,409);
+ assert.match((await denied.json()).error,/suspended/);
  assert.equal(f.sent.length,0);
- const accepted=await f.handler(request(endpoint,'POST',JSON.stringify({listingId:4589715100,confirm:true}),{'Content-Type':'application/json'}),f.context);
- assert.equal(accepted.status,202);assert.equal((await accepted.json()).phase,'pending');
- assert.equal((await f.uploads.get('catalogue/repair-status')).phase,'pending');
- await Promise.all(f.pending);
- assert.equal(f.sent.length,1);
- assert.equal((await f.handler(request(endpoint,'POST',JSON.stringify({listingId:4589715100,confirm:true}),{'Content-Type':'application/json'}),f.context)).status,409);
- assert.equal((await f.handler(request('/poster/catalogue/repair/status'),f.context)).status,200);
+ assert.equal(f.uploads.map.has('catalogue/repair-status'),false);
 });
 
 test('link existing bulk products requires owner approval and a recent matching catalogue',async()=>{
