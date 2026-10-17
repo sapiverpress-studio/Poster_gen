@@ -19,7 +19,9 @@ if(button&&status){
     await sleep(8000);
     const check=await state();
     if(check.phase==='available'){location.reload();return;}
-    if(check.phase==='needs_investigation')throw Error('The seller audit failed. No listings were changed.');
+    if(check.phase==='needs_investigation')throw Error('The GitHub audit failed. No listings were changed. You can retry.');
+    if(check.phase==='worker_finished_no_result')throw Error('The worker ended without a complete audit. No listings were changed.');
+    if(check.phase==='worker_delayed')throw Error('The GitHub worker has not finished after four minutes. Review the worker run before retrying.');
    }
    status.textContent='Audit is still queued. Return to this page later; do not queue duplicates.';
   }catch(error){status.textContent='Audit not completed: '+error.message;}
