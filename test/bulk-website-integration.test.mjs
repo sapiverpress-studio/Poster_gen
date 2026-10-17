@@ -76,3 +76,21 @@ test('saved eight-poster sessions retain all links and cannot start duplicate bu
  `;
  execFileSync(process.execPath,['--input-type=module','-e',script],{cwd:fileURLToPath(new URL('../',import.meta.url)),timeout:10000});
 });
+
+test('bulk section API serves every verified shop section without client-side fixed lists',async()=>{
+ const uploads=store(),handler=createPosterUploadHandler({env,uploads});
+ uploads.entries.set('template/catalog',{shopId:456,listings:[],updatedAt:Date.now()});
+ uploads.entries.set('catalogue/audit',{shopId:456,checkedAt:Date.now(),sections:[{id:11,title:'Nature'},{id:12,title:'Christmas'},{id:13,title:'Wall Art'}]});
+ let r=await handler(request('/poster/bulk'),context),html=await r.text();
+ assert.match(html,/<option value="Nature">Nature<\/option>/);
+ assert.match(html,/<option value="Christmas">Christmas<\/option>/);
+ assert.doesNotMatch(html,/name="shopSection" disabled/);
+ r=await handler(request('/poster/bulk/sections'),context);
+ assert.equal(r.status,200);const data=await r.json();
+ assert.deepEqual(data.sections.map(x=>x.title),['Christmas','Nature','Wall Art']);
+ const outsider=await handler(new Request(origin+'/poster/bulk/sections'),context);
+ assert.notEqual(outsider.status,200);
+ uploads.entries.set('catalogue/audit',{shopId:456,checkedAt:Date.now()-90000000,sections:[{id:11,title:'Nature'}]});
+ r=await handler(request('/poster/bulk/sections'),context);
+ assert.equal(r.status,409);
+});
