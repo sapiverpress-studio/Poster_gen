@@ -80,7 +80,8 @@ test('details validate metadata before any upload and preserve complete descript
  assert.match(parsed.description,/Original artwork/);
  assert.throws(()=>parsePosterText(source.replace('Listing title: Nocturne Art Print 1\n','')),/Listing title is required/);
  assert.throws(()=>parsePosterText(source.replace('Listing title: Nocturne Art Print 1','Listing title: Jazz Nocturne')),/physical print or poster/);
- assert.throws(()=>parsePosterText(source.replace('Section: Wall Art','Section: Unknown')),/Section/);
+ assert.equal(parsePosterText(source.replace('Section: Wall Art','Section: Spring Gifts')).sectionTitle,'Spring Gifts');
+ assert.throws(()=>parsePosterText(source.replace('Section: Wall Art','Section: <Unknown>')),/Section/);
  assert.throws(()=>parsePosterText(source.replace('Section: Wall Art','')),/Section/);
  assert.throws(()=>parsePosterText(source.replace('Section: Wall Art','Section: Wall Art\nSection: Nature')),/Duplicate/);
  assert.throws(()=>parsePosterText(source.replace('Listing title: Nocturne Art Print 1','Listing title: '+ 'a'.repeat(141))),/140/);
