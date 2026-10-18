@@ -94,3 +94,25 @@ test('bulk section API serves every verified shop section without client-side fi
  r=await handler(request('/poster/bulk/sections'),context);
  assert.equal(r.status,409);
 });
+
+test('catalogue is directly navigable from every authenticated uploader page, including mobile header',async()=>{
+ const uploads=store(),handler=createPosterUploadHandler({env,uploads});
+ const destinations=[
+  {path:'/poster/products',active:'products'},
+  {path:'/poster/upload',active:'upload'},
+  {path:'/poster/bulk',active:'bulk'},
+  {path:'/poster/catalogue',active:'catalogue'}
+ ];
+ for(const {path,active} of destinations){
+  const res=await handler(request(path),context);
+  assert.equal(res.status,200,path);
+  const body=await res.text();
+  for(const [label,href] of [['Products','/poster/products'],['New product','/poster/upload'],['Bulk upload','/poster/bulk'],['Catalogue','/poster/catalogue']]){
+   assert.match(body,new RegExp('<a[^>]*href="'+href.replaceAll('/','\\/')+'"[^>]*>'+label+'<\\/a>'),path+' missing '+label);
+  }
+  assert.match(body,new RegExp('href="'+path.replaceAll('/','\\/')+'" aria-current="page"'),path+' not highlighted');
+  assert.match(body,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/,'mobile navigation missing');
+ }
+ const guest=await handler(new Request(origin+'/poster/catalogue'),context);
+ assert.notEqual(guest.status,200,'owner-only catalogue must not become public');
+});
