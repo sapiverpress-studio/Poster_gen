@@ -49,7 +49,7 @@ test('a new UK calendar month opens new reservations while earlier month remains
  assert.equal((await reserveMonthlyUpload({uploads,productId:id(53),clock:()=>november})).accepted,true);
  assert.equal((await monthlyUploadStatus({uploads,clock:()=>monthStart})).used,52);
 });
-test('authenticated new-upload form and API block the fifty-third product but permit editing saved products',async()=>{
+test('authenticated uploads store the fifty-third physical poster privately and still permit editing',async()=>{
  const uploads=memory(),origin='https://poster.example.test',secret='a-test-encryption-key-of-sufficient-length';
  const env=n=>({CANVA_SITE_ORIGIN:origin,CANVA_CLIENT_SECRET:secret,CANVA_SETUP_PASSWORD:'test-password',
   ETSY_PRINTS_KEYSTRING:'app',ETSY_PRINTS_SHARED_SECRET:'shared',POSTER_PUBLICATION_ENABLED:'true'}[n]);
@@ -63,15 +63,15 @@ test('authenticated new-upload form and API block the fifty-third product but pe
  let markup=await page.text();
  assert.match(markup,/52 of 52 new products/);
  assert.match(markup,/Monthly limit reached/);
- assert.match(markup,/<button type="submit" disabled aria-disabled="true">Prepare my product/);
+ assert.match(markup,/name="storeOnly" checked/);assert.match(markup,/>Upload poster<\/button>/);
  const json=JSON.stringify({type:'physical',filename:'Another.png',bytes:33});
  const blocked=await handler(request('/poster/uploads','POST',json),context);
- assert.equal(blocked.status,409);assert.equal((await blocked.json()).code,'monthly_upload_limit');
+ assert.equal(blocked.status,201);const storageReceipt=await blocked.json();assert.equal((await uploads.get('uploads/'+storageReceipt.id+'/state')).storeOnly,true);
  const previousId=id(60);
  await uploads.setJSON('products/'+previousId+'/record',{productId:previousId,type:'physical',metadata:{name:'Old Poster',kind:'artwork'},createdAt:Date.parse('2026-09-10T12:00:00Z'),currentRevision:previousId});
  await uploads.setJSON('uploads/'+previousId+'/state',{phase:'published',type:'physical',filename:'Old.png',sourceFilename:'Old.png',bytes:33,masterKey:'uploads/'+previousId+'/master.png',metadata:{name:'Old Poster',kind:'artwork'}});
  page=await handler(request('/poster/upload?update='+previousId),context);
- markup=await page.text();assert.doesNotMatch(markup,/<button type="submit" disabled aria-disabled="true">Prepare my product/);
+ markup=await page.text();assert.match(markup,/>Upload poster<\/button>/);
  const edit=await handler(request('/poster/uploads','POST',JSON.stringify({type:'physical',updateProductId:previousId,reuseOriginal:true})),context);
  assert.equal(edit.status,201);
  assert.equal((await monthlyUploadStatus({uploads,clock:()=>monthStart})).used,52);
