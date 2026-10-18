@@ -110,7 +110,7 @@ test('folder-based studio has four permanent mobile navigation links and protect
   for(const [label,href] of [['Dashboard','/poster/home'],['New poster','/poster/upload'],['Bulk upload','/poster/bulk'],['Catalogue','/poster/catalogue']])
    assert.ok(body.includes('href="'+href+'"'),path+' missing '+label);
   assert.ok(body.includes('href="'+path+'" aria-current="page"'),path+' not highlighted');
-  assert.match(body,/grid-template-columns:repeat\\(2,minmax\\(0,1fr\\)\\)/);
+  assert.ok(body.includes('grid-template-columns:repeat(2,minmax(0,1fr))'));
  }
  const guest=await handler(new Request(origin+'/poster/catalogue'),context);
  assert.notEqual(guest.status,200);
