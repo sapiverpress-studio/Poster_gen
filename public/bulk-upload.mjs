@@ -66,11 +66,13 @@ async function inspect(){
  seen=results;
  const ready=results.filter(r=>r?.phase==='ready_for_approval').length;
  const allReviewed=results.every(r=>r&&['ready_for_approval','publishing','published'].includes(r.phase));
+ const allStored=results.every(r=>r?.phase==='stored');
  const canApprove=allReviewed&&ready>0;
  buildCards(results);
  deploy.hidden=!canApprove;deploy.disabled=!canApprove||busy;
  deploy.textContent=ready===BULK_COUNT?'Deploy all six approved posters':'Deploy remaining '+ready+' reviewed posters';
- if(canApprove)message('Check the remaining '+ready+' approved reviews, their titles, descriptions, 13 tags and four mockups. Previously accepted approvals will not be repeated.');
+ if(allStored)message('All six posters are stored privately. No Etsy listings were created or monthly slots used. Open Catalogue to publish later.');
+ else if(canApprove)message('Check the remaining '+ready+' approved reviews, their titles, descriptions, 13 tags and four mockups. Previously accepted approvals will not be repeated.');
  else if(allReviewed)message('Publication is underway or complete. Check the individual listings below.');
  else if(results.some(r=>r?.phase==='needs_investigation'))message('An item needs investigation. Existing product IDs are retained. Do not re-create failed merchant listings.');
  else message('Collection saved. Preparation continues in GitHub. Keep this page open, or return to refresh progress.');
@@ -95,17 +97,17 @@ async function uploadItem(item,file,index){
  if(item.creating&&!item.id)throw Error('Creation of poster '+(index+1)+' had an uncertain response. Inspect the dashboard before continuing; never create it twice.');
  if(!item.id){
   item.creating=true;save();
-  message('Creating product '+(index+1)+' of six (monthly slot '+(index+1)+')…');
+  message((state.storeOnly?'Storing':'Preparing')+' poster '+(index+1)+' of six…');
   const meta={name:item.title,etsyTitle:item.listingTitle,description:item.description,tags:item.tags.join(','),
    subject:item.title,kind:state.kind,sectionTitle:item.sectionTitle};
   const receipt=await api('/poster/uploads',{method:'POST',headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({filename:item.uploadFilename,bytes:file.size,type:'physical',metadata:meta,previewCount:0})});
+   body:JSON.stringify({filename:item.uploadFilename,bytes:file.size,type:'physical',metadata:meta,previewCount:0,storeOnly:state.storeOnly===true})});
   if(!validReceipt(receipt))throw Error('Uncertain new-product receipt. Stop and inspect the product dashboard.');
   item.id=receipt.id;item.chunkBytes=receipt.chunkBytes;item.creating=false;save();
  }
  const live=await api('/poster/uploads/'+item.id);
  if(live.phase!=='uploading'){
-  if(['preparing','ready_for_approval','publishing','published','needs_investigation'].includes(live.phase))return;
+  if(['preparing','ready_for_approval','publishing','published','stored','needs_investigation'].includes(live.phase))return;
   throw Error('Product '+(index+1)+' has an unexpected state. Stop and inspect its individual page.');
  }
  const chunk=item.chunkBytes||2_000_000;
@@ -116,9 +118,9 @@ async function uploadItem(item,file,index){
  try{await api('/poster/uploads/'+item.id+'/finish',{method:'POST'});}
  catch(error){
   const status=await api('/poster/uploads/'+item.id);
-  if(!['preparing','ready_for_approval','publishing','published'].includes(status.phase))throw error;
+  if(!['preparing','stored','ready_for_approval','publishing','published'].includes(status.phase))throw error;
  }
- item.phase='preparing';save();
+ item.phase=state.storeOnly?'stored':'preparing';save();
 }
 async function start(e){
  e.preventDefault();
@@ -143,9 +145,9 @@ async function start(e){
   }
   if(!state){
    const quota=await api('/poster/bulk/status');
-   if(quota.remaining<BULK_COUNT)throw Error('Not enough monthly slots. '+quota.remaining+' remain; six are required.');
+   const storeOnly=form.elements.storeOnly?.checked===true||quota.remaining<BULK_COUNT;
    const artworkHashes=await checkAll(archive);
-   state={version:2,signature:sig,kind:form.elements.kind.value,selectedShopSection:selected,
+   state={version:2,signature:sig,kind:form.elements.kind.value,selectedShopSection:selected,storeOnly,
     items:archive.items.map((i,n)=>({filename:i.filename,folder:i.folder,title:i.title,listingTitle:i.listingTitle,sectionTitle:i.sectionTitle,description:i.description,tags:i.tags,sha256:artworkHashes[n],uploadFilename:collectionUploadFilename(i.title,artworkHashes[n]),id:null}))};save();
   }else{
    if(state.items.some((v,i)=>v.filename!==archive.items[i].filename||v.folder!==archive.items[i].folder||v.listingTitle!==archive.items[i].listingTitle||v.sectionTitle!==archive.items[i].sectionTitle||v.title!==archive.items[i].title||v.description!==archive.items[i].description||v.tags.join(',')!==archive.items[i].tags.join(',')))
@@ -160,7 +162,7 @@ async function start(e){
    const artwork=await archive.artwork(archive.items[i]);
    await uploadItem(item,artwork,i);
   }
-  message('All six uploads were submitted. Preparing their individual Etsy reviews…');await inspect();
+  message(state.storeOnly?'All six posters uploaded to private storage.':'All six uploads submitted for Etsy reviews.');await inspect();
  }catch(err){message('Stopped safely: '+err.message+' All successfully started products are retained; check the product dashboard.');}
  finally{busy=false;form.querySelector('button[type="submit"]').disabled=false;
   if(seen.every(r=>r&&['ready_for_approval','publishing','published'].includes(r.phase))&&seen.some(r=>r.phase==='ready_for_approval')){deploy.hidden=false;deploy.disabled=false;}
@@ -198,6 +200,7 @@ deploy?.addEventListener('click',async()=>{
  }
 });
 state=read();
+if(state&&form?.elements?.storeOnly)form.elements.storeOnly.checked=state.storeOnly===true;
 if(state&&form?.elements?.shopSection){
  const chosen=state.selectedShopSection||'';
  if([...form.elements.shopSection.options].some(x=>x.value===chosen))form.elements.shopSection.value=chosen;

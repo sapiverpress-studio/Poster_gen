@@ -61,9 +61,9 @@ test('bulk keeps the owner written short Etsy title and exact thirteen tags',()=
  assert.equal(m.etsyTitle,'Midnight Saxophone');assert.equal(m.tags.length,13);
  assert.throws(()=>productMetadata({name:'Jazz Nocturne',etsyTitle:'x'.repeat(141)},'01-Poster.png','physical'),/140/);
 });
-test('bulk form explains six-slot requirement while permitting saved collection resume',()=>{
+test('bulk form stages the full collection privately when fewer than six monthly slots remain',()=>{
  let body=bulkCollectionBody({monthly:{used:47,limit:52,remaining:5,label:'October 2026'}});
- assert.match(body,/Six unused slots/);assert.match(body,/saved collections can still be resumed/);assert.doesNotMatch(body,/type="file"[^>]+disabled/);
+ assert.match(body,/fewer than six slots/);assert.match(body,/name="storeOnly" type="checkbox" checked/);assert.doesNotMatch(body,/type="file"[^>]+disabled/);
  body=bulkCollectionBody({monthly:{used:46,limit:52,remaining:6,label:'October 2026'}});
  assert.doesNotMatch(body,/type="file"[^>]+disabled/);
  assert.match(body,/bulk-deploy/);assert.match(body,/bulk-upload\.mjs/);
