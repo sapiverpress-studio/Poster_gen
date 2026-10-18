@@ -118,7 +118,7 @@ test('seasonal labels are private and cannot alter Etsy listings',async()=>{
  const audit={version:1,shopId:456,checkedAt:now,intendedProfile:{id:11},summary:{activePhysical:1,activeCorrectDelivery:1,activeOtherDelivery:0,unverifiedSupplier:0},listings:[{id:123,title:'Robin',section:'Nature',state:'active',deliveryMatches:true,shippingProfileId:11,supplierMapping:'recorded',sku:['SP-ROBIN']}]};
  await f.uploads.setJSON('catalogue/audit-status',{phase:'available',checkedAt:now,summary:audit.summary});
  await f.uploads.setJSON('catalogue/audit',audit);
- const page=await f.handler(request('/poster/catalogue'),f.context);
+ const page=await f.handler(request('/poster/catalogue/audit'),f.context);
  assert.equal(page.status,200);
  assert.match(await page.text(),/Seasonal group labels/);
  const path='/poster/catalogue/labels';
@@ -130,7 +130,7 @@ test('seasonal labels are private and cannot alter Etsy listings',async()=>{
  assert.equal(saved.status,200);
  assert.deepEqual((await f.uploads.get('catalogue/labels/123')).seasons,['Spring','Easter']);
  assert.equal(f.sent.length,0);
- const again=await f.handler(request('/poster/catalogue'),f.context);
+ const again=await f.handler(request('/poster/catalogue/audit'),f.context);
  assert.match(await again.text(),/value="Spring" checked/);
 });
 
@@ -154,7 +154,7 @@ test('stalled delivery audits are reported and repeated button presses do not do
  await f.uploads.setJSON('catalogue/audit-status',{phase:'pending',checkedAt:Date.now()-20*60*1000});
  const stalled=await f.handler(request('/poster/catalogue/status'),f.context);
  assert.equal((await stalled.json()).phase,'worker_delayed');
- const page=await f.handler(request('/poster/catalogue'),f.context);
+ const page=await f.handler(request('/poster/catalogue/audit'),f.context);
  assert.match(await page.text(),/not finished after four minutes/);
  const retry=await f.handler(request('/poster/catalog/refresh','POST'),f.context);
  assert.equal(retry.status,202);
@@ -179,7 +179,7 @@ test('bulk-uploaded Animal Alphabet does not offer unverified delivery changes o
  const audit={version:1,shopId:456,checkedAt:now,intendedProfile:{id:316400055692},summary:{activePhysical:1,activeCorrectDelivery:0,activeOtherDelivery:1,unverifiedSupplier:1},listings:[{id:4589715100,title:'Animal Alphabet',section:'Early Learning',state:'active',deliveryMatches:false,shippingProfileId:316847314881,supplierMapping:'not_verified',sku:['SP-EL-005-ANIMAL-ALPHABET']}]};
  await f.uploads.setJSON('catalogue/audit-status',{phase:'available',checkedAt:now,summary:audit.summary});
  await f.uploads.setJSON('catalogue/audit',audit);
- const page=await f.handler(request('/poster/catalogue'),f.context);
+ const page=await f.handler(request('/poster/catalogue/audit'),f.context);
  assert.equal(page.status,200);
  const html=await page.text();
  assert.match(html,/requires delivery-profile verification/);
@@ -203,7 +203,7 @@ test('link existing bulk products requires owner approval and a recent matching 
  assert.equal((await f.handler(request(p,'POST',JSON.stringify({confirm:false,ids})),f.context)).status,409);
  assert.equal((await f.handler(request(p,'POST',JSON.stringify({confirm:true,ids:[9999999999]})),f.context)).status,409);
  assert.equal((await f.handler(request(p,'POST',JSON.stringify({confirm:true,ids}),{'X-Poster-CSRF':'bad'}),f.context)).status,403);
- const page=await f.handler(request('/poster/catalogue'),f.context);
+ const page=await f.handler(request('/poster/catalogue/audit'),f.context);
  assert.match(await page.text(),/Save verified existing product references/);
  const r=await f.handler(request(p,'POST',JSON.stringify({confirm:true,ids})),f.context);
  assert.equal(r.status,200);
@@ -211,4 +211,28 @@ test('link existing bulk products requires owner approval and a recent matching 
  assert.equal((await f.uploads.get('catalogue/external/'+ids[0])).source,'printshrimp_bulk');
  assert.equal(f.sent.length,0);
  assert.equal(f.pending.length,0);
+});
+
+test('visibility action requires owner confirmation, current Etsy audit, CSRF and dispatches no seller writes in site',async()=>{
+ const f=fixture(),now=Date.now(),jobs=[];
+ const rows=[{id:101,title:'Robin',section:'Nature',sectionId:11,sku:['SP-ROBIN'],state:'active'},{id:102,title:'Hedgehog',section:'Nature',sectionId:11,sku:['SP-HEDGEHOG'],state:'inactive'},{id:103,title:'Fox',section:'Nature',sectionId:11,sku:['SP-FOX'],state:'draft'}];
+ const audit={version:1,shopId:456,checkedAt:now,summary:{physicalTotal:3,activePhysical:1},sections:[{id:11,title:'Nature'}],listings:rows};
+ await f.uploads.setJSON('catalogue/audit-status',{phase:'available',checkedAt:now});
+ await f.uploads.setJSON('catalogue/audit',audit);
+ await f.uploads.setJSON('template/catalog',{shopId:456});
+ const handler=createPosterUploadHandler({env,uploads:f.uploads,dispatchJob:async(id,action)=>{jobs.push({id,action});return 'jobs/'+'a'.repeat(32);}});
+ const path='/poster/catalogue/visibility',body=(target,ids,confirm=true)=>JSON.stringify({target,ids,confirm});
+ assert.equal((await handler(request(path,'POST',body('inactive',[101],false)),f.context)).status,409);
+ assert.equal((await handler(request(path,'POST',body('inactive',[101]),{'X-Poster-CSRF':'wrong'}),f.context)).status,403);
+ assert.equal((await handler(request(path,'POST',body('inactive',[103])),f.context)).status,409);
+ assert.equal((await handler(request(path,'POST',body('inactive',[101,101])),f.context)).status,409);
+ assert.equal((await handler(request(path,'POST',body('inactive',[101]),{origin:'https://evil.test'}),f.context)).status,403);
+ assert.equal(jobs.length,0);
+ const res=await handler(request(path,'POST',body('inactive',[101])),f.context);
+ assert.equal(res.status,202);const data=await res.json();assert.equal(jobs.length,1);assert.equal(jobs[0].action,'visibility');
+ assert.equal((await f.uploads.get('catalogue/visibility/'+data.id)).plan.items[0].id,101);
+ assert.equal((await handler(request(path,'POST',body('inactive',[101])),f.context)).status,409);
+ const status=await handler(request('/poster/catalogue/visibility/status?id='+data.id),f.context);
+ assert.equal((await status.json()).phase,'queued');
+ assert.equal(f.sent.length,0);
 });

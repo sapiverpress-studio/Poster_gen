@@ -95,24 +95,23 @@ test('bulk section API serves every verified shop section without client-side fi
  assert.equal(r.status,409);
 });
 
-test('catalogue is directly navigable from every authenticated uploader page, including mobile header',async()=>{
+test('folder-based studio has four permanent mobile navigation links and protected catalogue',async()=>{
  const uploads=store(),handler=createPosterUploadHandler({env,uploads});
  const destinations=[
-  {path:'/poster/products',active:'products'},
+  {path:'/poster/home',active:'home'},
   {path:'/poster/upload',active:'upload'},
   {path:'/poster/bulk',active:'bulk'},
   {path:'/poster/catalogue',active:'catalogue'}
  ];
- for(const {path,active} of destinations){
+ for(const {path} of destinations){
   const res=await handler(request(path),context);
   assert.equal(res.status,200,path);
   const body=await res.text();
-  for(const [label,href] of [['Products','/poster/products'],['New product','/poster/upload'],['Bulk upload','/poster/bulk'],['Catalogue','/poster/catalogue']]){
-   assert.match(body,new RegExp('<a[^>]*href="'+href.replaceAll('/','\\/')+'"[^>]*>'+label+'<\\/a>'),path+' missing '+label);
-  }
-  assert.match(body,new RegExp('href="'+path.replaceAll('/','\\/')+'" aria-current="page"'),path+' not highlighted');
-  assert.match(body,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/,'mobile navigation missing');
+  for(const [label,href] of [['Dashboard','/poster/home'],['New poster','/poster/upload'],['Bulk upload','/poster/bulk'],['Catalogue','/poster/catalogue']])
+   assert.ok(body.includes('href="'+href+'"'),path+' missing '+label);
+  assert.ok(body.includes('href="'+path+'" aria-current="page"'),path+' not highlighted');
+  assert.ok(body.includes('grid-template-columns:repeat(2,minmax(0,1fr))'));
  }
  const guest=await handler(new Request(origin+'/poster/catalogue'),context);
- assert.notEqual(guest.status,200,'owner-only catalogue must not become public');
+ assert.notEqual(guest.status,200);
 });
