@@ -7,6 +7,22 @@ const allSwitches=[...document.querySelectorAll('.poster-toggle')];
 let busy=false;
 const tell=s=>{if(status)status.textContent=s;};
 const buttons=[...document.querySelectorAll('#batch-on,#batch-off')];
+const refresh=document.getElementById('manager-refresh');
+refresh?.addEventListener('click',async()=>{
+ if(busy)return;busy=true;refresh.disabled=true;tell('Refreshing Etsy listing status…');
+ try{
+  const res=await fetch('/poster/catalog/refresh',{method:'POST',credentials:'same-origin',headers:{'x-poster-csrf':csrf},cache:'no-store'});
+  const data=await res.json();if(!res.ok)throw Error(data.error||'Refresh was not accepted');
+  for(let i=0;i<45;i++){
+   await sleep(6000);
+   const check=await fetch('/poster/catalogue/status',{credentials:'same-origin',cache:'no-store'});
+   const result=await check.json();if(!check.ok)throw Error('Audit status unavailable');
+   if(result.phase==='available'){location.reload();return;}
+   if(result.phase==='needs_investigation'||result.phase==='worker_finished_no_result'||result.phase==='worker_delayed')throw Error('Etsy audit failed or delayed. Inspect worker before retry.');
+  }
+  tell('Audit is still pending. Return later; do not start duplicate refreshes.');
+ }catch(error){tell('Refresh not confirmed: '+error.message);}finally{busy=false;refresh.disabled=false;}
+});
 function disableAll(yes){for(const control of [...allSwitches,...document.querySelectorAll('.poster-choose'),...buttons,document.getElementById('select-visible')].filter(Boolean))control.disabled=yes||root?.dataset.fresh!=='true';}
 async function plan(target,ids){
  if(busy||root?.dataset.fresh!=='true')return;
