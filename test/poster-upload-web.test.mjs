@@ -212,3 +212,27 @@ test('link existing bulk products requires owner approval and a recent matching 
  assert.equal(f.sent.length,0);
  assert.equal(f.pending.length,0);
 });
+
+test('visibility action requires owner confirmation, current Etsy audit, CSRF and dispatches no seller writes in site',async()=>{
+ const f=fixture(),now=Date.now(),jobs=[];
+ const rows=[{id:101,title:'Robin',section:'Nature',sectionId:11,sku:['SP-ROBIN'],state:'active'},{id:102,title:'Hedgehog',section:'Nature',sectionId:11,sku:['SP-HEDGEHOG'],state:'inactive'},{id:103,title:'Fox',section:'Nature',sectionId:11,sku:['SP-FOX'],state:'draft'}];
+ const audit={version:1,shopId:456,checkedAt:now,summary:{physicalTotal:3,activePhysical:1},sections:[{id:11,title:'Nature'}],listings:rows};
+ await f.uploads.setJSON('catalogue/audit-status',{phase:'available',checkedAt:now});
+ await f.uploads.setJSON('catalogue/audit',audit);
+ await f.uploads.setJSON('template/catalog',{shopId:456});
+ const handler=createPosterUploadHandler({env,uploads:f.uploads,dispatchJob:async(id,action)=>{jobs.push({id,action});return 'jobs/'+'a'.repeat(32);}});
+ const path='/poster/catalogue/visibility',body=(target,ids,confirm=true)=>JSON.stringify({target,ids,confirm});
+ assert.equal((await handler(request(path,'POST',body('inactive',[101],false)),f.context)).status,409);
+ assert.equal((await handler(request(path,'POST',body('inactive',[101]),{'X-Poster-CSRF':'wrong'}),f.context)).status,403);
+ assert.equal((await handler(request(path,'POST',body('inactive',[103])),f.context)).status,409);
+ assert.equal((await handler(request(path,'POST',body('inactive',[101,101])),f.context)).status,409);
+ assert.equal((await handler(request(path,'POST',body('inactive',[101]),{origin:'https://evil.test'}),f.context)).status,403);
+ assert.equal(jobs.length,0);
+ const res=await handler(request(path,'POST',body('inactive',[101])),f.context);
+ assert.equal(res.status,202);const data=await res.json();assert.equal(jobs.length,1);assert.equal(jobs[0].action,'visibility');
+ assert.equal((await f.uploads.get('catalogue/visibility/'+data.id)).plan.items[0].id,101);
+ assert.equal((await handler(request(path,'POST',body('inactive',[101])),f.context)).status,409);
+ const status=await handler(request('/poster/catalogue/visibility/status?id='+data.id),f.context);
+ assert.equal((await status.json()).phase,'queued');
+ assert.equal(f.sent.length,0);
+});
