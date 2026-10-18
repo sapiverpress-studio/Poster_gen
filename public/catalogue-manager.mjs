@@ -74,3 +74,14 @@ document.getElementById('poster-filter')?.addEventListener('input',event=>{
  const q=event.target.value.toLocaleLowerCase().trim();
  for(const card of cards){card.hidden=!!q&&!card.dataset.title.includes(q);if(card.hidden){const check=card.querySelector('.poster-choose');if(check)check.checked=false;}}
 });
+
+document.getElementById('create-website-folder')?.addEventListener('submit',async event=>{
+ event.preventDefault();const f=event.currentTarget,button=f.querySelector('button');button.disabled=true;
+ try{
+  const response=await fetch('/poster/catalogue/website-folders',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','x-poster-csrf':csrf},body:JSON.stringify({title:f.elements.title.value})});
+  const body=await response.json();
+  if(!response.ok)throw Error(body.error||'Website folder not saved');
+  location.reload();
+ }catch(error){tell('Folder not created: '+error.message);button.disabled=false;}
+});
+if(document.querySelector('.stored-first-on'))import('/stored-poster.mjs');
