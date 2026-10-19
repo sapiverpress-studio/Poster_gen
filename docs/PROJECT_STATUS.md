@@ -1392,3 +1392,10 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Unverified: no Pinterest API live test or storage deletion yet; owner confirmation of original YouTube video URL is required to avoid duplicate upload.
 - Deploy impact: one already-completed production build; this documentation-only status update is [skip netlify].
 - Next: owner resumes saved video to Pinterest only, then inspect Pin and Blob cleanup.
+
+
+## 2026-10-19 18:49 BST — Pinterest video recovery checkpoint PRODUCTION LIVE, Pin pending
+- Production release: Comic PR #42 merged as 36d5cabe88f16f3d832aec0b35f08ff91d4edc01 with 26/26 passing tests (run 39296934429). Poster_gen PR #52 merged as 55de0232e5449eca006d522c5bf7f19b26dec8ac with 346/346 passing tests (run 39297113838); Netlify production deploy 6ad65809677aa503cbde2a81 READY, exact code commit, published at 2026-10-19T17:49:16.803Z. video-publisher function and expected owner paths included.
+- Preserves an uploaded Pinterest media ID in signed owner state distinct from Pin ID, and reuses it in future protected, manually confirmed recovery. Original MP4 is not deleted unless BOTH YouTube video receipt and Pinterest Pin receipt confirmed. Comic logs bounded safe processing status and Pin creation IDs for diagnosis.
+- No live Pinterest Pin creation or original media storage deletion verified from this release; earlier 7-minute failed run 39294243767 lost the media ID before patch. Owner must explicitly reconfirm existing YouTube Short in SAME protected uploader job and retry Pinterest only; new media may need one re-upload to Pinterest, but no second YouTube post. Do not rerun failed GitHub Action.
+- Deployment impact: one verified production Netlify build. This doc-only status commit uses [skip netlify] to avoid second production build. Etsy/PrintShrimp/scheduled image Pins unchanged.
