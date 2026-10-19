@@ -115,3 +115,109 @@ test('private media transfer uses segments under 2 MB, not a single oversized fu
  assert.equal(Buffer.from(await first.arrayBuffer()).length,VIDEO_CHUNK_BYTES);
  assert.equal(Buffer.from(await second.arrayBuffer()).length,9);
 });
+
+
+test('recovery re-dispatches the retained MP4 to Pinterest only, never a second YouTube upload',async()=>{
+ const s=store(),dispatches=[];
+ const handler=createVideoPublisher({
+  store:s,
+  env:n=>n==='CANVA_CLIENT_SECRET'?secret:n==='POSTER_GITHUB_ACTIONS_TOKEN'?'stub':undefined,
+  request:async(url,opts)=>{
+   assert.match(url,/sapiverprints-video\.yml\/dispatches/);
+   dispatches.push(JSON.parse(opts.body).inputs);
+   return new Response(null,{status:204});
+  }
+ });
+ const {id}=await createUploaded(handler);
+ assert.equal((await handler(ownerRequest('/poster/video/'+id+'/deploy','POST'))).status,202);
+ assert.equal(dispatches.length,1);
+ assert.equal((await handler(workerRequest('/poster/video/'+id+'/fail',dispatches[0].ticket,'POST','{}'))).status,200);
+ const before=await handler(ownerRequest('/poster/video/'+id+'/status'));
+ assert.equal((await before.json()).phase,'needs_attention');
+ assert.equal(s.contains('videos/'+id+'/video.mp4'),true);
+ const confirm=JSON.stringify({youtubeId:'abcdefghijk',confirmExisting:true});
+ const resumed=await handler(ownerRequest('/poster/video/'+id+'/recover','POST',confirm));
+ assert.equal(resumed.status,202);
+ assert.equal((await resumed.json()).pinterestOnly,true);
+ assert.equal(dispatches.length,2);
+ assert.equal(dispatches[1].video_id,id);
+ const job=await handler(workerRequest('/poster/video/'+id+'/job',dispatches[1].ticket));
+ assert.equal(job.status,200);
+ const data=await job.json();
+ assert.equal(data.platforms.youtube.id,'abcdefghijk');
+ assert.equal(data.platforms.pinterest,undefined);
+ assert.equal(data.platforms.youtube.source,'owner-confirmed');
+ const downloaded=await handler(workerRequest('/poster/video/'+id+'/source/0',dispatches[1].ticket));
+ assert.equal(downloaded.status,200);
+ assert.equal((await handler(ownerRequest('/poster/video/'+id+'/recover','POST',confirm))).status,409);
+ const done=await handler(workerRequest('/poster/video/'+id+'/report',dispatches[1].ticket,'POST',JSON.stringify({platform:'pinterest',id:'1234567890123'})));
+ assert.equal(done.status,200);
+ assert.equal((await done.json()).complete,true);
+ assert.equal(s.contains('videos/'+id+'/video.mp4'),false);
+ const status=await (await handler(ownerRequest('/poster/video/'+id+'/status'))).json();
+ assert.equal(status.phase,'published');
+ assert.equal(status.cleaned,true);
+});
+test('Pinterest-only recovery requires owner session, CSRF and a confirmed existing YouTube ID',async()=>{
+ const s=store();let dispatches=0,ticket='';
+ const handler=createVideoPublisher({
+  store:s,
+  env:n=>n==='CANVA_CLIENT_SECRET'?secret:n==='POSTER_GITHUB_ACTIONS_TOKEN'?'stub':undefined,
+  request:async(_url,opts)=>{dispatches++;ticket=JSON.parse(opts.body).inputs.ticket;return new Response(null,{status:204});}
+ });
+ const {id}=await createUploaded(handler);
+ const path='/poster/video/'+id+'/recover';
+ const confirmed=JSON.stringify({youtubeId:'abcdefghijk',confirmExisting:true});
+ assert.equal((await handler(ownerRequest(path,'POST',confirmed))).status,409);
+ assert.equal((await handler(ownerRequest('/poster/video/'+id+'/deploy','POST'))).status,202);
+ assert.equal((await handler(workerRequest('/poster/video/'+id+'/fail',ticket,'POST','{}'))).status,200);
+ assert.equal((await handler(new Request(origin+path,{method:'POST',body:confirmed}))).status,303);
+ assert.equal((await handler(ownerRequest(path,'POST',confirmed,'incorrect'))).status,403);
+ assert.equal((await handler(ownerRequest(path,'POST',JSON.stringify({youtubeId:'abcdefghijk',confirmExisting:false})))).status,400);
+ assert.equal((await handler(ownerRequest(path,'POST',JSON.stringify({youtubeId:'bad',confirmExisting:true})))).status,400);
+ assert.equal(dispatches,1);
+ assert.equal(s.contains('videos/'+id+'/video.mp4'),true);
+ assert.equal((await handler(ownerRequest(path,'POST',confirmed))).status,202);
+ assert.equal(dispatches,2);
+});
+test('recovery rejects conflicting YouTube IDs and missing source; failed dispatch retains video',async()=>{
+ const s=store(),dispatches=[];
+ const handler=createVideoPublisher({
+  store:s,
+  env:n=>n==='CANVA_CLIENT_SECRET'?secret:n==='POSTER_GITHUB_ACTIONS_TOKEN'?'stub':undefined,
+  request:async(_url,opts)=>{dispatches.push(JSON.parse(opts.body).inputs);return new Response(null,{status:dispatches.length===1?204:403});}
+ });
+ const {id}=await createUploaded(handler);
+ assert.equal((await handler(ownerRequest('/poster/video/'+id+'/deploy','POST'))).status,202);
+ const originalTicket=dispatches[0].ticket;
+ assert.equal((await handler(workerRequest('/poster/video/'+id+'/report',originalTicket,'POST',JSON.stringify({platform:'youtube',id:'abcdefghijk'})))).status,200);
+ assert.equal((await handler(workerRequest('/poster/video/'+id+'/fail',originalTicket,'POST','{}'))).status,200);
+ const path='/poster/video/'+id+'/recover';
+ assert.equal((await handler(ownerRequest(path,'POST',JSON.stringify({youtubeId:'zzzzzzzzzzz',confirmExisting:true})))).status,409);
+ assert.equal((await handler(ownerRequest(path,'POST',JSON.stringify({youtubeId:'abcdefghijk',confirmExisting:true})))).status,503);
+ const status=await (await handler(ownerRequest('/poster/video/'+id+'/status'))).json();
+ assert.equal(status.phase,'needs_attention');
+ assert.equal(status.platforms.youtube.id,'abcdefghijk');
+ assert.equal(s.contains('videos/'+id+'/video.mp4'),true);
+ await s.delete('videos/'+id+'/video.mp4');
+ assert.equal((await handler(ownerRequest(path,'POST',JSON.stringify({youtubeId:'abcdefghijk',confirmExisting:true})))).status,409);
+ assert.equal(dispatches.length,2);
+});
+test('uncertain GitHub recovery dispatch blocks blind retries',async()=>{
+ const s=store();let dispatches=0,ticket='';
+ const handler=createVideoPublisher({
+  store:s,
+  env:n=>n==='CANVA_CLIENT_SECRET'?secret:n==='POSTER_GITHUB_ACTIONS_TOKEN'?'stub':undefined,
+  request:async(_url,opts)=>{dispatches++;ticket=JSON.parse(opts.body).inputs.ticket;if(dispatches>1)throw Error('Network timeout');return new Response(null,{status:204});}
+ });
+ const {id}=await createUploaded(handler);
+ assert.equal((await handler(ownerRequest('/poster/video/'+id+'/deploy','POST'))).status,202);
+ assert.equal((await handler(workerRequest('/poster/video/'+id+'/fail',ticket,'POST','{}'))).status,200);
+ const body=JSON.stringify({youtubeId:'abcdefghijk',confirmExisting:true});
+ assert.equal((await handler(ownerRequest('/poster/video/'+id+'/recover','POST',body))).status,503);
+ const status=await (await handler(ownerRequest('/poster/video/'+id+'/status'))).json();
+ assert.equal(status.phase,'dispatch_unknown');
+ assert.equal(s.contains('videos/'+id+'/video.mp4'),true);
+ assert.equal((await handler(ownerRequest('/poster/video/'+id+'/recover','POST',body))).status,409);
+ assert.equal(dispatches,2);
+});
