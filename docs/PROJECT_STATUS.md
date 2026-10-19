@@ -2,6 +2,15 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
+
+## 2026-10-19 — Android MP4 preview rejection (FIX STAGED, NOT DEPLOYED)
+- Screenshot at 14:34 BST confirms the Video Upload page is now visible on the existing password-protected uploader, using Netlify production deploy 6ad61c17abe8fd14739d63cc (commit adc01dfab9f8097438610cae0ccc9fc4ae662a3d). A chosen MP4 displayed "Cannot read the video" before transfer.
+- **ROOT CAUSE IN SOURCE:** public/video-publisher.mjs required HTML video element metadata decoding, throwing on video.onerror. Mobile Chrome may be unable to preview a usable MP4 depending on codec or file provider; the actual file bytes have not been inspected.
+- **FIX STAGED:** Branch fix/video-mobile-mp4-read-20261019 replaces browser preview decoding with 12-byte MP4 signature validation in public/video-validation.mjs. Invalid containers are blocked before upload; unreadable file-provider bytes receive actionable guidance. Existing Comic ffprobe validation enforces vertical 8–12-second video before either social API submission.
+- **UNCHANGED:** Existing owner authentication, Etsy poster uploader, monthly product quota, PrintShrimp, daily Comic jobs and video social API publisher.
+- **VERIFIED CI:** PR #50 full GitHub Actions Verify Poster_gen run 39262468015 completed SUCCESS, including new browser-independent MP4 tests and existing poster regression suite. No paid Netlify deploy, social upload, or live website change attempted by this fix. The browser-side failure preceded any private upload request.
+- **RISK / NEXT:** Actual device support and video format remain unverified until a controlled release and one real phone test. Honour owner release approval and avoid deployment churn.
+
 ## 2026-10-19 — Sapiver Prints video publisher (OFF-PRODUCTION)
 - **IMPLEMENTED BUT NOT DEPLOYED / NOT LIVE-TESTED:** Standalone Video upload link uses the existing Poster Gen owner login and CSRF. No new login, password, new Etsy listing, product quota, or supplier order.
 - The owner uploads a 10-second vertical MP4 up to 25 MB, title and description and presses **Deploy**. The video goes into a separate private Netlify Blob store, chunks are removed after assembly, and Comic receives only a short-lived encrypted read/report ticket via one workflow dispatch. The video is never committed to Git.
