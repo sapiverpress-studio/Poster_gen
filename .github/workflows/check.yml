@@ -39,4 +39,7 @@ jobs:
       - run: node --check scripts/github-publication.mjs
       - run: node -e "import('./netlify/functions/github-worker.mjs')"
       - run: node -e "Promise.all(['./lib/digital-archive.mjs','./lib/digital-product.mjs','./lib/product-web.mjs'].map(p=>import(p)))"
+      - run: node --check lib/video-publisher.mjs
+      - run: node --check netlify/functions/video-publisher.mjs
+      - run: node --check public/video-publisher.mjs
       - run: npm test

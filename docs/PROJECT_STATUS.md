@@ -2,6 +2,21 @@
 
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
+## 2026-10-19 — Sapiver Prints video publisher (OFF-PRODUCTION)
+- **IMPLEMENTED BUT NOT DEPLOYED / NOT LIVE-TESTED:** Standalone Video upload link uses the existing Poster Gen owner login and CSRF. No new login, password, new Etsy listing, product quota, or supplier order.
+- The owner uploads a 10-second vertical MP4 up to 25 MB, title and description and presses **Deploy**. The video goes into a separate private Netlify Blob store, chunks are removed after assembly, and Comic receives only a short-lived encrypted read/report ticket via one workflow dispatch. The video is never committed to Git.
+- The dedicated Comic workflow posts to existing YouTube and the separate Sapiver Prints Pinterest board, returns platform IDs to private video status, and only deletes the original MP4 after both receipts. A failure/unknown outcome retains the source and stops automatic reposts. Successful receipts retain IDs but not video bytes.
+- **DEPENDENCY / UNVERIFIED:** The existing site POSTER_GITHUB_ACTIONS_TOKEN or COMIC_GITHUB_TOKEN must have actions:write on the Comic repo; existing Comic YouTube/Pinterest secrets and video API permissions must be functional. A credential on one repo is not automatically usable by another. The video handoff is staged for one reviewed release after two PRs merge in the correct order (Comic first).
+- **DEPLOY / CREDIT IMPACT:** None in this development branch; no production branch, settings, workflows, or live providers altered. Do not release or click Deploy until Comic workflow is on its default branch and staged CI passes.
+- **NEXT:** Run local/PR Node checks and isolated handoff tests; inspect one real test video and confirm Pinterest/YouTube receipts and storage cleanup. Existing poster upload and PrintShrimp routines must remain untouched.
+
+
+### Verification update (2026-10-19)
+- **VERIFIED CI:** Poster_gen PR #49, latest full test/syntax workflow run 39254699127 completed SUCCESS after adding media segmentation. Earlier run 39253766221 failed only the existing literal-deployment-origin guard; corrected in source and tests, then green. Local mocked integration covers inherited owner session, CSRF rejection, one-time dispatch, authenticated media download, both receipts, upload deletion, dispatch failure and bounded 2 MB media chunks.
+- **VERIFIED CI:** Comic PR #39 passed video publisher check run 39254486345 and existing Pinterest tests run 39254486328.
+- **VERIFIED CONFIG:** Netlify project has POSTER_GITHUB_ACTIONS_TOKEN in its environment with Functions access; NO Comic-specific GitHub token configured at the uploader. Cross-repository Actions write permission remains unknown until controlled release.
+- **UNVERIFIED LIVE:** No YouTube/Pinterest test post, no actual Comic workflow dispatch, no Netlify deploy of these branches, and no live Blob deletion. The two draft PRs remain unmerged.
+
 ## 2026-10-17 — Entire 20-listing Etsy SEO audit and batch correction pathway (off-production)
 - User explicitly requested audit and correction of ALL active SapiverPrints listings, not only three examples. Located the full **20-listing** public catalogue in `sapiverpress-studio/SapiverForge/data/etsy-public-catalog.json`, generated **2026-10-17T04:23:46.714Z**. Includes IDs/titles/short descriptions, not private seller tags or taxonomy fields. No buyer reviews or demand metrics were used.
 - Created individually tailored **20 Etsy titles and 260 proposed tags** (13 unique tags per listing, each 20 characters max). Grounded in public descriptions; several images/content remain subject to owner's visual verification. Special holds include ambiguous Coast to Coast artwork and educational-content checks (e.g. dinosaur colours count).
@@ -1320,3 +1335,12 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Limits: authenticated live monthly counter and owner-phone acceptance not exercised; deployed identity and automated quota checks verified. No real upload slots consumed, Etsy listings created, PrintShrimp products/orders created or merchant workflow run by release verification. Real six-poster publication/readback and customer-order fulfilment remain unverified.
 - Documentation: this follow-up uses [skip netlify] to avoid a second production build. Current snapshot updated; earlier staged entries retained as history.
 - Next: owner opens the bulk route, uploads a genuine six-folder ZIP, reviews imported metadata and mockups, and chooses Deploy all only when satisfied.
+
+### 2026-10-19 — Video promotion implementation checkpoint
+- Stage / purpose: Add manual Sapiver Prints video publishing in the existing protected website.
+- Changed: feature/sapiverprints-video-publisher-20261019 in Poster_gen; new lib/video-publisher.mjs, netlify/functions/video-publisher.mjs, public/video-publisher.mjs, test/video-publisher.test.mjs; one extra owner-page navigation link. Paired Comic feature branch adds its isolated workflow and publisher.
+- Verified: GitHub file-write receipts only; automated tests and live provider publications remain pending.
+- Not yet verified / blocked: Cross-repository GitHub dispatch rights, workflow secret reach, accurate YouTube channel, API media handling, delayed-report behaviour, and actual Blob deletion.
+- Deploy / credit impact: none (off-production branch).
+- Risks / decisions: Short-lived signed ticket is carried in workflow inputs and must never be logged. Failures retain media for human investigation; never retry blind posts.
+- Next authorised action: Review PR CI, release Comic first, then one deliberate owner-approved Netlify release for Poster_gen and one test ten-second video.
