@@ -221,3 +221,56 @@ test('uncertain GitHub recovery dispatch blocks blind retries',async()=>{
  assert.equal((await handler(ownerRequest('/poster/video/'+id+'/recover','POST',body))).status,409);
  assert.equal(dispatches,2);
 });
+
+test('Pinterest uploaded-media checkpoint survives timeout and a recovered worker reuses it without deleting MP4',async()=>{
+ const s=store(),tickets=[];
+ const handler=createVideoPublisher({
+  store:s,
+  env:n=>n==='CANVA_CLIENT_SECRET'?secret:n==='POSTER_GITHUB_ACTIONS_TOKEN'?'stub':undefined,
+  request:async(_url,opts)=>{tickets.push(JSON.parse(opts.body).inputs.ticket);return new Response(null,{status:204});}
+ });
+ const {id}=await createUploaded(handler);
+ assert.equal((await handler(ownerRequest('/poster/video/'+id+'/deploy','POST'))).status,202);
+ const report=(ticket,platform,postedId)=>workerRequest('/poster/video/'+id+'/report',ticket,'POST',JSON.stringify({platform,id:postedId}));
+ assert.equal((await handler(report(tickets[0],'youtube','abcdefghijk'))).status,200);
+ const checkpoint=await handler(report(tickets[0],'pinterest_media','1234500'));
+ assert.equal(checkpoint.status,200);
+ assert.equal((await checkpoint.json()).complete,false);
+ const firstStatus=await (await handler(ownerRequest('/poster/video/'+id+'/status'))).json();
+ assert.equal(firstStatus.pinterestMediaUploaded,true);
+ assert.equal(firstStatus.platforms.pinterest,undefined);
+ assert.equal(s.contains('videos/'+id+'/video.mp4'),true);
+ assert.equal((await handler(workerRequest('/poster/video/'+id+'/fail',tickets[0],'POST','{}'))).status,200);
+ assert.equal((await handler(ownerRequest('/poster/video/'+id+'/recover','POST',JSON.stringify({youtubeId:'abcdefghijk',confirmExisting:true})))).status,202);
+ const queued=await (await handler(workerRequest('/poster/video/'+id+'/job',tickets[1]))).json();
+ assert.equal(queued.pinterestMedia.id,'1234500');
+ assert.equal(queued.platforms.youtube.id,'abcdefghijk');
+ assert.equal(queued.platforms.pinterest,undefined);
+ assert.equal(s.contains('videos/'+id+'/video.mp4'),true);
+ const final=await handler(report(tickets[1],'pinterest','9876543210'));
+ assert.equal(final.status,200);
+ assert.equal((await final.json()).complete,true);
+ assert.equal(s.contains('videos/'+id+'/video.mp4'),false);
+ const done=await (await handler(ownerRequest('/poster/video/'+id+'/status'))).json();
+ assert.equal(done.cleaned,true);
+ assert.equal(done.platforms.pinterest.id,'9876543210');
+});
+test('Pinterest media IDs cannot be changed after an upload checkpoint or marked as a Pin',async()=>{
+ const s=store();let ticket='';
+ const handler=createVideoPublisher({
+  store:s,
+  env:n=>n==='CANVA_CLIENT_SECRET'?secret:n==='POSTER_GITHUB_ACTIONS_TOKEN'?'stub':undefined,
+  request:async(_url,opts)=>{ticket=JSON.parse(opts.body).inputs.ticket;return new Response(null,{status:204});}
+ });
+ const {id}=await createUploaded(handler);
+ assert.equal((await handler(ownerRequest('/poster/video/'+id+'/deploy','POST'))).status,202);
+ const media=val=>workerRequest('/poster/video/'+id+'/report',ticket,'POST',JSON.stringify({platform:'pinterest_media',id:val}));
+ assert.equal((await handler(media('x-invalid-id'))).status,409);
+ assert.equal((await handler(media('1234500'))).status,200);
+ assert.equal((await handler(media('1234500'))).status,200);
+ assert.equal((await handler(media('9999999'))).status,409);
+ let status=await (await handler(ownerRequest('/poster/video/'+id+'/status'))).json();
+ assert.equal(status.pinterestMediaUploaded,true);
+ assert.equal(status.platforms.pinterest,undefined);
+ assert.equal(s.contains('videos/'+id+'/video.mp4'),true);
+});
