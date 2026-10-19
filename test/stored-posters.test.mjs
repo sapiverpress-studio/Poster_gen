@@ -63,7 +63,7 @@ test('first ON cannot use a 53rd slot; next UK calendar month consumes exactly o
  assert.equal((await monthlyUploadStatus({uploads,clock:()=>october})).used,52);
  assert.equal((await monthlyUploadStatus({uploads,clock:()=>november})).used,1);
  assert.deepEqual(dispatches,[{id,action:'prepare'}]);
- const updated=await uploads.get(assetKey(id);
+ const updated=await uploads.get(assetKey(id));
  assert.equal(updated.phase,'preparing');assert.equal(updated.reuseMasterKey,'uploads/'+id+'/master.png');
  assert.equal(updated.storeOnly,false);assert.ok(Number.isFinite(updated.publicationSlotAt));
  assert.equal((await uploads.get('products/'+id+'/record')).etsyListingId,null);
