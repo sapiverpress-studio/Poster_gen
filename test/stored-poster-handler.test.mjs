@@ -4,7 +4,7 @@ import {createPosterUploadHandler} from '../lib/poster-upload-web.mjs';
 import {seal} from '../lib/oauth.mjs';
 
 const origin='https://poster.example.test',secret='a-test-encryption-key-of-sufficient-length';
-const env=n=>({CANVA_SITE_ORIGIN:origin,CANVA_CLIENT_SECRET:secret,CANVA_SETUP_PASSWORD:'owner-password',POSTER_PUBLICATION_ENABLED:'true'}[n]);
+const env=n=>({CANVA_SITE_ORIGIN:origin,CANVA_CLIENT_SECRET:secret,CANVA_SETUP_PASSWORD:'owner-password',POSTER_PUBLICATION_ENABLED:'true',ETSY_PRINTS_KEYSTRING:'app',ETSY_PRINTS_SHARED_SECRET:'shared'}[n]);
 function store(){
  const db=new Map();
  return {db,get:async key=>db.get(key)??null,set:async(k,v,o)=>{if(o?.onlyIfNew&&db.has(k))return {modified:false};db.set(k,v);return {modified:true};},
