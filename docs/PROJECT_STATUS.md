@@ -11,6 +11,12 @@
 - **NEXT:** Run local/PR Node checks and isolated handoff tests; inspect one real test video and confirm Pinterest/YouTube receipts and storage cleanup. Existing poster upload and PrintShrimp routines must remain untouched.
 
 
+### Verification update (2026-10-19)
+- **VERIFIED CI:** Poster_gen PR #49, latest full test/syntax workflow run 39254699127 completed SUCCESS after adding media segmentation. Earlier run 39253766221 failed only the existing literal-deployment-origin guard; corrected in source and tests, then green. Local mocked integration covers inherited owner session, CSRF rejection, one-time dispatch, authenticated media download, both receipts, upload deletion, dispatch failure and bounded 2 MB media chunks.
+- **VERIFIED CI:** Comic PR #39 passed video publisher check run 39254486345 and existing Pinterest tests run 39254486328.
+- **VERIFIED CONFIG:** Netlify project has POSTER_GITHUB_ACTIONS_TOKEN in its environment with Functions access; NO Comic-specific GitHub token configured at the uploader. Cross-repository Actions write permission remains unknown until controlled release.
+- **UNVERIFIED LIVE:** No YouTube/Pinterest test post, no actual Comic workflow dispatch, no Netlify deploy of these branches, and no live Blob deletion. The two draft PRs remain unmerged.
+
 ## 2026-10-17 — Entire 20-listing Etsy SEO audit and batch correction pathway (off-production)
 - User explicitly requested audit and correction of ALL active SapiverPrints listings, not only three examples. Located the full **20-listing** public catalogue in `sapiverpress-studio/SapiverForge/data/etsy-public-catalog.json`, generated **2026-10-17T04:23:46.714Z**. Includes IDs/titles/short descriptions, not private seller tags or taxonomy fields. No buyer reviews or demand metrics were used.
 - Created individually tailored **20 Etsy titles and 260 proposed tags** (13 unique tags per listing, each 20 characters max). Grounded in public descriptions; several images/content remain subject to owner's visual verification. Special holds include ambiguous Coast to Coast artwork and educational-content checks (e.g. dinosaur colours count).
