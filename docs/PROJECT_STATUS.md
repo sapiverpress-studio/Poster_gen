@@ -3,6 +3,13 @@
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
 
+## 2026-10-19 — Pinterest-only recovery for partially published videos (STAGED; CI PENDING)
+- **LIVE EVIDENCE:** Comic production runs 39277137372 and 39281324315 failed. Second run passed ffprobe, reached YouTube, then hit HTTP 403 on a videos.list read-back. Original upload may already be public; Pinterest never ran. Netlify video endpoints handled both real uploads, dispatches and failure receipts (200). Comic PR #41 merged the YouTube upload-scope fix. No later live video dispatch verified.
+- **IMPLEMENTED ON ISOLATED BRANCH:** fix/video-pinterest-only-recovery-20261019, based on Netlify-deployed feature/canva-oauth-callback (production commit ce96a87e). Adds owner-authenticated, CSRF-protected /poster/video/{id}/recover accepting published YouTube ID with explicit confirmation, strong-store etag compare-and-swap, MP4 SHA-256/size validation, and fresh scoped Comic ticket. Comic already skips YouTube when a YouTube ID exists in job; recovery proceeds to Pinterest only. Require HTTP 204 GitHub dispatch acknowledgement; lock uncertain outcomes. Two platform IDs required before MP4 deletion.
+- **UI:** Saved prior video ID reopens status in existing password-protected studio. For needs_attention, page offers Publish to Pinterest only and requires validated YouTube Shorts URL/ID and explicit confirmation. No new password, original media upload or automatic repost.
+- **STATUS / SAFETY:** Code and four regression tests committed; CI, real Pinterest API posting, private deletion, and full Netlify production deployment NOT YET VERIFIED. Existing runner failed before persisting YouTube ID; live Neo-Deco Short recovery requires its existing video URL/ID. No new social post initiated here. Preserve poster uploader, quota, Etsy and PrintShrimp.
+- **NEXT:** Green PR checks on deployed branch, then one deliberate production release if available; owner resumes Pinterest once using published YouTube URL; verify Pinterest Pin ID and Blob deletion.
+
 ## 2026-10-19 — Android MP4 preview rejection (FIX STAGED, NOT DEPLOYED)
 - Screenshot at 14:34 BST confirms the Video Upload page is now visible on the existing password-protected uploader, using Netlify production deploy 6ad61c17abe8fd14739d63cc (commit adc01dfab9f8097438610cae0ccc9fc4ae662a3d). A chosen MP4 displayed "Cannot read the video" before transfer.
 - **ROOT CAUSE IN SOURCE:** public/video-publisher.mjs required HTML video element metadata decoding, throwing on video.onerror. Mobile Chrome may be unable to preview a usable MP4 depending on codec or file provider; the actual file bytes have not been inspected.
@@ -1353,3 +1360,12 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Deploy / credit impact: none (off-production branch).
 - Risks / decisions: Short-lived signed ticket is carried in workflow inputs and must never be logged. Failures retain media for human investigation; never retry blind posts.
 - Next authorised action: Review PR CI, release Comic first, then one deliberate owner-approved Netlify release for Poster_gen and one test ten-second video.
+
+### 2026-10-19 — Owner-approved safe Pinterest-only video recovery development
+- Stage / purpose: recover real Neo-Deco Jazz video after partial publication, avoid duplicate YouTube Shorts.
+- Changed: fix/video-pinterest-only-recovery-20261019 (based on feature/canva-oauth-callback): lib/video-publisher.mjs, public/video-publisher.mjs, test/video-publisher.test.mjs, docs/PROJECT_STATUS.md.
+- Verified: code reviewed against current live Netlify commit and Comic runner workflow; real 403 observed after successful ffprobe. Four positive/negative mock regression scenarios added; GitHub CI pending.
+- Not yet verified: private video present in Blob store on actual recovery, published video ID (current YouTube grant cannot read list), Pinterest media handling, Pin ID, storage deletion.
+- Deploy / credit impact: No production deployment from isolated branch intended; one full production Netlify release required for new recovery feature. No Work credits.
+- Risk: owner confirms correct video ID; wrong/missing/duplicate/unknown state is rejected; ambiguous GitHub timeout locks retry rather than risking duplicate Pin.
+- Next action: CI, release on correct production branch, enter published YouTube Shorts link into recovery form, inspect Pinterest ID and Blob deletion.
