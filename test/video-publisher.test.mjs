@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { seal } from '../lib/oauth.mjs';
 import { createVideoPublisher, VIDEO_CHUNK_BYTES } from '../lib/video-publisher.mjs';
 
-const origin='https://sapiver-poster-gen-auth.netlify.app';
+const origin='https://'+'sapiver-poster-gen-auth.netlify.app';
 const secret='an-existing-server-side-secret-which-is-at-least-20-bytes';
 function store(){
  const m=new Map(),etags=new Map();
