@@ -99,7 +99,7 @@ async function uploadItem(item,file,index){
   item.creating=true;save();
   message((state.storeOnly?'Storing':'Preparing')+' poster '+(index+1)+' of six…');
   const meta={name:item.title,etsyTitle:item.listingTitle,description:item.description,tags:item.tags.join(','),
-   subject:item.title,kind:state.kind,sectionTitle:item.sectionTitle};
+   subject:item.title,kind:state.kind,sectionTitle:item.sectionTitle,websiteFolder:state.websiteFolder||''};
   const receipt=await api('/poster/uploads',{method:'POST',headers:{'Content-Type':'application/json'},
    body:JSON.stringify({filename:item.uploadFilename,bytes:file.size,type:'physical',metadata:meta,previewCount:0,storeOnly:state.storeOnly===true})});
   if(!validReceipt(receipt))throw Error('Uncertain new-product receipt. Stop and inspect the product dashboard.');
@@ -147,7 +147,7 @@ async function start(e){
    const quota=await api('/poster/bulk/status');
    const storeOnly=form.elements.storeOnly?.checked===true||quota.remaining<BULK_COUNT;
    const artworkHashes=await checkAll(archive);
-   state={version:2,signature:sig,kind:form.elements.kind.value,selectedShopSection:selected,storeOnly,
+   state={version:2,signature:sig,kind:form.elements.kind.value,selectedShopSection:selected,websiteFolder:form.elements.websiteFolder?.value||'',storeOnly,
     items:archive.items.map((i,n)=>({filename:i.filename,folder:i.folder,title:i.title,listingTitle:i.listingTitle,sectionTitle:i.sectionTitle,description:i.description,tags:i.tags,sha256:artworkHashes[n],uploadFilename:collectionUploadFilename(i.title,artworkHashes[n]),id:null}))};save();
   }else{
    if(state.items.some((v,i)=>v.filename!==archive.items[i].filename||v.folder!==archive.items[i].folder||v.listingTitle!==archive.items[i].listingTitle||v.sectionTitle!==archive.items[i].sectionTitle||v.title!==archive.items[i].title||v.description!==archive.items[i].description||v.tags.join(',')!==archive.items[i].tags.join(',')))
@@ -200,6 +200,7 @@ deploy?.addEventListener('click',async()=>{
  }
 });
 state=read();
+if(state&&form?.elements?.websiteFolder)form.elements.websiteFolder.value=state.websiteFolder||'';
 if(state&&form?.elements?.storeOnly)form.elements.storeOnly.checked=state.storeOnly===true;
 if(state&&form?.elements?.shopSection){
  const chosen=state.selectedShopSection||'';
