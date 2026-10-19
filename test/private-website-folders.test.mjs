@@ -24,5 +24,5 @@ test('six-poster bulk uploader offers local private folders without changing Ets
  assert.match(html,/<option value="Winter Woodland">Winter Woodland<\/option>/);
  assert.match(html,/<option value="Nature">Nature<\/option>/);
  assert.match(html,/name="storeOnly" type="checkbox" checked/);
- assert.match(html,/If fewer than six slots remain/);
+ assert.match(html,/When fewer than six slots remain/);
 });
