@@ -98,3 +98,20 @@ test('failed dispatch retains original MP4 and never claims publication',async()
  const status=await handler(ownerRequest('/poster/video/'+id+'/status'));
  assert.equal((await status.json()).phase,'dispatch_failed');
 });
+
+test('private media transfer uses segments under 2 MB, not a single oversized function response',async()=>{
+ const s=store();let ticket='';
+ const handler=createVideoPublisher({store:s,env:n=>n==='CANVA_CLIENT_SECRET'?secret:n==='POSTER_GITHUB_ACTIONS_TOKEN'?'stub':undefined,request:async(_url,opts)=>{ticket=JSON.parse(opts.body).inputs.ticket;return new Response(null,{status:204});}});
+ const video=Buffer.alloc(VIDEO_CHUNK_BYTES+9,2);video.write('ftyp',4,'ascii');
+ const res=await handler(ownerRequest('/poster/video/start','POST',JSON.stringify({title:'Jazz',description:'Video print collection',filename:'jazz.mp4',bytes:video.length})));
+ const {id}=await res.json();
+ for(let n=0;n<2;n++){
+  const part=video.subarray(n*VIDEO_CHUNK_BYTES,Math.min(video.length,(n+1)*VIDEO_CHUNK_BYTES));
+  assert.equal((await handler(ownerRequest('/poster/video/'+id+'/chunk/'+n,'PUT',part))).status,200);
+ }
+ assert.equal((await handler(ownerRequest('/poster/video/'+id+'/deploy','POST'))).status,202);
+ const first=await handler(workerRequest('/poster/video/'+id+'/source/0',ticket));
+ const second=await handler(workerRequest('/poster/video/'+id+'/source/1',ticket));
+ assert.equal(Buffer.from(await first.arrayBuffer()).length,VIDEO_CHUNK_BYTES);
+ assert.equal(Buffer.from(await second.arrayBuffer()).length,9);
+});
