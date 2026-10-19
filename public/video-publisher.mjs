@@ -11,16 +11,64 @@ async function call(url,opts={}){
  if(!res.ok)throw Error(data.error||'Request failed');
  return data;
 }
+
+function existingYouTubeId(raw){
+ const value=raw.trim();
+ if(/^[A-Za-z0-9_-]{11}$/.test(value))return value;
+ try{
+  const u=new URL(value),host=u.hostname.toLowerCase();
+  if(host==='youtu.be')return /^[A-Za-z0-9_-]{11}$/.test(u.pathname.slice(1))?u.pathname.slice(1):null;
+  if(host==='youtube.com'||host==='www.youtube.com'||host==='m.youtube.com'){
+   const candidate=u.pathname.startsWith('/shorts/')?u.pathname.split('/')[2]:u.searchParams.get('v');
+   return /^[A-Za-z0-9_-]{11}$/.test(candidate||'')?candidate:null;
+  }
+ }catch{}
+ return null;
+}
+function showPinterestRecovery(id,s){
+ if(s.phase!=='needs_attention'||s.platforms?.pinterest?.id)return;
+ const panel=document.createElement('form');
+ panel.setAttribute('aria-label','Pinterest-only recovery');
+ const h=document.createElement('h3');h.textContent='Finish this video on Pinterest';
+ const p=document.createElement('p');p.textContent='The previous attempt may already have posted to YouTube. Paste the published YouTube video link or its 11-character ID. This recovery will publish ONLY to Pinterest.';
+ const input=document.createElement('input');input.type='text';input.required=true;input.autocomplete='off';input.placeholder='YouTube Shorts link or video ID';input.value=s.platforms?.youtube?.id||'';
+ input.setAttribute('aria-label','Existing published YouTube video');
+ const label=document.createElement('label');const confirm=document.createElement('input');confirm.type='checkbox';confirm.required=true;
+ label.append(confirm,document.createTextNode(' I confirm this is the YouTube video already published for this upload.'));
+ const button=document.createElement('button');button.type='submit';button.textContent='Publish to Pinterest only';
+ const msg=document.createElement('p');msg.setAttribute('role','status');
+ panel.append(h,p,input,label,button,msg);
+ panel.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const youtubeId=existingYouTubeId(input.value);
+  if(!youtubeId){msg.textContent='Enter a valid YouTube Shorts link or 11-character video ID.';return;}
+  if(!confirm.checked){msg.textContent='Confirm the existing YouTube upload first.';return;}
+  button.disabled=true;
+  try{
+   const done=await call('/poster/video/'+id+'/recover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({youtubeId,confirmExisting:true})});
+   if(done.pinterestOnly!==true)throw Error('Publisher did not confirm Pinterest-only recovery');
+   panel.remove();
+   state.textContent='Pinterest-only recovery submitted. No new YouTube upload will be attempted.';
+   await poll(id);
+  }catch(e){
+   msg.textContent=String(e.message||e)+' — inspect GitHub Actions before another attempt.';
+   button.disabled=false;
+  }
+ });
+ results.append(panel);
+}
+
 async function poll(id){
  for(let attempt=0;attempt<180;attempt++){
   await sleep(5000);
   const s=await call('/poster/video/'+id+'/status');
   const youtube=s.platforms?.youtube?.id,pinterest=s.platforms?.pinterest?.id;
-  state.textContent=s.phase==='published'?'Published to both platforms. Temporary MP4 deleted.':s.phase==='cleanup_failed'?'Both published, but cleanup needs attention.':s.phase==='needs_attention'||s.phase==='dispatch_failed'?'Publication needs attention: '+(s.error||'Check GitHub Actions'):'Publishing: '+s.phase+'…';
+  state.textContent=s.phase==='published'?'Published to both platforms. Temporary MP4 deleted.':s.phase==='cleanup_failed'?'Both published, but cleanup needs attention.':s.phase==='needs_attention'||s.phase==='dispatch_failed'||s.phase==='dispatch_unknown'?'Publication needs attention: '+(s.error||'Check GitHub Actions'):'Publishing: '+s.phase+'…';
   results.replaceChildren();
   if(youtube){const a=document.createElement('a');a.href='https://www.youtube.com/watch?v='+encodeURIComponent(youtube);a.target='_blank';a.rel='noopener noreferrer';a.textContent='View YouTube video';results.append(a,document.createTextNode(' '));}
   if(pinterest){const a=document.createElement('a');a.href='https://www.pinterest.com/pin/'+encodeURIComponent(pinterest)+'/';a.target='_blank';a.rel='noopener noreferrer';a.textContent='View Pinterest video';results.append(a);}
-  if(['published','cleanup_failed','needs_attention','dispatch_failed'].includes(s.phase))return;
+  showPinterestRecovery(id,s);
+  if(['published','cleanup_failed','needs_attention','dispatch_failed','dispatch_unknown'].includes(s.phase))return;
  }
  state.textContent='Still processing. Check this page or the GitHub workflow before uploading again.';
 }
