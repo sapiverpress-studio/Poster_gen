@@ -37,5 +37,5 @@ test('private folder creation and first listing require authenticated owner, CSR
  assert.equal(page.status,200);
  assert.doesNotMatch(await page.text(),/Stored privately:/);
  const stranger=await handler(new Request(origin+'/poster/catalogue/website-folders',{method:'POST',body:'{}'}),context);
- assert.equal(stranger.status,401);
+ assert.equal(stranger.status,303);assert.equal(stranger.headers.get('Location'),'/poster/workflow');
 });
