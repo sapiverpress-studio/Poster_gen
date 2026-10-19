@@ -1,5 +1,13 @@
 # Sapiver Poster Gen — living status, decisions and handover
 
+## 2026-10-19 — Pinterest media processing checkpoint (STAGED — LIVE POST PENDING)
+- VERIFIED: Comic live run 39294243767 failed after processing 7 minutes. YouTube correctly skipped, Pinterest video registered and uploaded, but GET /media poll never observed succeeded during its five-minute window. Failure recorded at Netlify /poster/video/{id}/fail (200). No successful Pin receipt. Existing workflow did not save media ID or response statuses; cannot yet know if Pinterest is still processing.
+- IMPLEMENTED ON ISOLATED BRANCH: fix/video-pinterest-media-resume-20261019 based on Netlify production branch feature/canva-oauth-callback. Adds scoped idempotent pinterest_media upload checkpoint (NOT a Pin receipt) to private owner state. GET /job exposes previously checked media ID only to signed Comic worker; owner status shows boolean pinterestMediaUploaded. A failure/recovery keeps original MP4 and media ID; successful future Pin receipt plus existing YouTube receipt still required for cleanup.
+- PAIRED COMIC: fix/video-pinterest-processing-checkpoint-20261019 adds a bounded media-processing poller that resumes existing Pinterest media ID without new registration, safe progress logs and regression tests. The previous run's old Pinterest media ID is NOT saved, so next owner-approved recovery may need one fresh media transfer before later resumable checks.
+- UNVERIFIED: CI, producer/publisher integration with live Pinterest API, specific old media ID, eventual Pin creation, Blob cleanup. No automatic GitHub retry or new Pinterest/YouTube post is authorised by this code change.
+- SAFETY: Existing owner login, CSRF, source MP4 preservation, Etsy products, fulfilment, daily Pinterest listing posts, and 52/month quota unchanged. Merge Comic code first; release this Netlify branch only after both checks pass.
+
+
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
 
