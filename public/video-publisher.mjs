@@ -49,10 +49,13 @@ form?.addEventListener('submit',async event=>{
    state.textContent='Uploading '+Math.round((n+1)/count*100)+'%…';
   }
   state.textContent='Handing over to Comic…';
+  try{localStorage.setItem('sapiver-video-job',started.id);}catch{}
   try{await call('/poster/video/'+started.id+'/deploy',{method:'POST'});}
-  catch(e){state.textContent=e.message+' — video ID: '+started.id;return;}
+  catch(e){state.textContent=e.message+' — checking saved job '+started.id;await poll(started.id);return;}
   state.textContent='Publishing to Pinterest and YouTube…';
   await poll(started.id);
  }catch(e){state.textContent=String(e.message||e);}
  finally{button.disabled=false;}
 });
+
+try{const previous=localStorage.getItem('sapiver-video-job');if(/^[A-Za-z0-9_-]{32}$/.test(previous||''))poll(previous).catch(()=>{state.textContent='Saved video status unavailable. Reopen the protected studio.';});}catch{}
