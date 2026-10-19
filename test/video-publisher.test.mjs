@@ -71,10 +71,10 @@ test('one deploy dispatches to Comic, both receipts publish, then MP4 is deleted
  assert.equal(dispatchCount,1);
  const job=await handler(workerRequest('/poster/video/'+upload.id+'/job',ticket));
  assert.equal(job.status,200);
- const file=await handler(workerRequest('/poster/video/'+upload.id+'/source',ticket));
+ const file=await handler(workerRequest('/poster/video/'+upload.id+'/source/0',ticket));
  assert.equal(file.status,200);
  assert.deepEqual(Buffer.from(await file.arrayBuffer()),upload.fake);
- const unauthorised=await handler(workerRequest('/poster/video/'+upload.id+'/source','bad'));
+ const unauthorised=await handler(workerRequest('/poster/video/'+upload.id+'/source/0','bad'));
  assert.equal(unauthorised.status,403);
  const again=await handler(ownerRequest('/poster/video/'+upload.id+'/deploy','POST'));
  assert.equal(again.status,409);
