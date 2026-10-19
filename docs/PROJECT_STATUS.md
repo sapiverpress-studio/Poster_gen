@@ -8,7 +8,7 @@
 - **ROOT CAUSE IN SOURCE:** public/video-publisher.mjs required HTML video element metadata decoding, throwing on video.onerror. Mobile Chrome may be unable to preview a usable MP4 depending on codec or file provider; the actual file bytes have not been inspected.
 - **FIX STAGED:** Branch fix/video-mobile-mp4-read-20261019 replaces browser preview decoding with 12-byte MP4 signature validation in public/video-validation.mjs. Invalid containers are blocked before upload; unreadable file-provider bytes receive actionable guidance. Existing Comic ffprobe validation enforces vertical 8–12-second video before either social API submission.
 - **UNCHANGED:** Existing owner authentication, Etsy poster uploader, monthly product quota, PrintShrimp, daily Comic jobs and video social API publisher.
-- **TEST STATUS:** Source and tests staged, CI pending. No paid Netlify deploy, social upload, or live website change attempted by this fix. The browser-side failure preceded any private upload request.
+- **VERIFIED CI:** PR #50 full GitHub Actions Verify Poster_gen run 39262468015 completed SUCCESS, including new browser-independent MP4 tests and existing poster regression suite. No paid Netlify deploy, social upload, or live website change attempted by this fix. The browser-side failure preceded any private upload request.
 - **RISK / NEXT:** Actual device support and video format remain unverified until a controlled release and one real phone test. Honour owner release approval and avoid deployment churn.
 
 ## 2026-10-19 — Sapiver Prints video publisher (OFF-PRODUCTION)
