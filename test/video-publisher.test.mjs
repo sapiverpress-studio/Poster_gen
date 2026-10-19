@@ -231,7 +231,7 @@ test('Pinterest uploaded-media checkpoint survives timeout and a recovered worke
  });
  const {id}=await createUploaded(handler);
  assert.equal((await handler(ownerRequest('/poster/video/'+id+'/deploy','POST'))).status,202);
- const report=(ticket,platform,id)=>workerRequest('/poster/video/'+id+'/report',ticket,'POST',JSON.stringify({platform,id}));
+ const report=(ticket,platform,postedId)=>workerRequest('/poster/video/'+id+'/report',ticket,'POST',JSON.stringify({platform,id:postedId}));
  assert.equal((await handler(report(tickets[0],'youtube','abcdefghijk'))).status,200);
  const checkpoint=await handler(report(tickets[0],'pinterest_media','1234500'));
  assert.equal(checkpoint.status,200);
