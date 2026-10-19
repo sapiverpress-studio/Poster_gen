@@ -42,4 +42,5 @@ jobs:
       - run: node --check lib/video-publisher.mjs
       - run: node --check netlify/functions/video-publisher.mjs
       - run: node --check public/video-publisher.mjs
+      - run: node --check public/video-validation.mjs
       - run: npm test
