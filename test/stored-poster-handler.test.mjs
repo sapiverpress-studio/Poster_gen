@@ -15,7 +15,7 @@ const auth='__Host-poster_owner='+seal({csrf:'token',expiry:Date.now()+3600000},
 const req=(path,method='GET',body,csrf='token')=>new Request(origin+path,{method,body,headers:{cookie:auth,origin,'X-Poster-CSRF':csrf,'Content-Type':'application/json'}});
 test('private folder creation and first listing require authenticated owner, CSRF, and review worker',async()=>{
  const uploads=store(),work=[];
- const clock=()=>Date.parse('2026-10-19T11:00:00Z');
+ const clock=()=>Date.now();
  const handler=createPosterUploadHandler({env,uploads,clock,dispatchJob:async(id,action)=>{work.push({id,action});return 'jobs/'+'a'.repeat(32);}});
  const context={waitUntil(){}};
  assert.equal((await handler(req('/poster/catalogue/website-folders','POST',JSON.stringify({title:'Christmas Woodland'}),'wrong'),context)).status,403);
