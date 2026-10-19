@@ -3,6 +3,14 @@
 > **MANDATORY:** Read root [AGENTS.md](../AGENTS.md) before modifying this project. Every change or significant development must update this file. The snapshot below is authoritative for the **current stage**; later sections contain dated **historical** entries that may describe earlier incomplete stages.
 
 
+## 2026-10-19 18:21 BST — Pinterest-only video recovery LIVE (Pinterest POST STILL UNVERIFIED)
+- **VERIFIED PRODUCTION RELEASE:** PR #51 merged into Netlify-connected feature/canva-oauth-callback branch, code commit da6ad8e5e19e8e7200f22346eac27a28d3e66ada. Netlify production deploy 6ad6516d7d58668aadee3d86 reports READY, context production, matching commit and video-publisher function with /poster/video/* route, published 2026-10-19T17:21:10Z. Only one functional production release for this recovery.
+- **VERIFIED TESTS:** PR run 39292984914 and final documented run 39293207732 both passed; initial complete 344/344 test suite (0 failures). Netlify deploy preview 6ad650e4fd5cfeab2a5e4660 READY for code before documentation-only update.
+- **FEATURE:** The existing password-protected owner uploader now presents Pinterest-only recovery for saved needs_attention video jobs, subject to explicit confirmation of a published YouTube ID/link. Same MP4 is sent securely to Comic with a fresh ticket; Comic skips YouTube because existing ID is supplied; recovery rejects duplicates and unknown outcomes. Both platform receipts required for video deletion.
+- **NOT YET VERIFIED:** Real recovered Pinterest Pin, Pinterest API video processing, final stored media deletion, and presence of specific prior video in private Netlify Blob store. No new Pinterest dispatch run was performed by the code release. Actual owner login/session and existing published YouTube video URL are required to complete that step; do not re-upload the original MP4 to both platforms.
+- **NEXT USER ACTION:** Sign into existing poster uploader on original browser/device, navigate to Video upload, use the recovered saved job, paste the already-public YouTube Shorts link, tick the confirmation, and select Publish to Pinterest only. Capture confirmed Pin ID and verify cleaned=true in authenticated status. If prior job not shown, investigate original private job without creating a new YouTube post.
+- **DEPLOY CREDIT IMPACT:** One completed Netlify production deployment. This post-release documentation entry uses [skip netlify] and is intentionally not a second functional release.
+
 ## 2026-10-19 — Pinterest-only recovery for partially published videos (STAGED; CI GREEN)
 - **LIVE EVIDENCE:** Comic production runs 39277137372 and 39281324315 failed. Second run passed ffprobe, reached YouTube, then hit HTTP 403 on a videos.list read-back. Original upload may already be public; Pinterest never ran. Netlify video endpoints handled both real uploads, dispatches and failure receipts (200). Comic PR #41 merged the YouTube upload-scope fix. No later live video dispatch verified.
 - **IMPLEMENTED ON ISOLATED BRANCH:** fix/video-pinterest-only-recovery-20261019, based on Netlify-deployed feature/canva-oauth-callback (production commit ce96a87e). Adds owner-authenticated, CSRF-protected /poster/video/{id}/recover accepting published YouTube ID with explicit confirmation, strong-store etag compare-and-swap, MP4 SHA-256/size validation, and fresh scoped Comic ticket. Comic already skips YouTube when a YouTube ID exists in job; recovery proceeds to Pinterest only. Require HTTP 204 GitHub dispatch acknowledgement; lock uncertain outcomes. Two platform IDs required before MP4 deletion.
@@ -1369,3 +1377,10 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Deploy / credit impact: No production deployment from isolated branch intended; one full production Netlify release required for new recovery feature. No Work credits.
 - Risk: owner confirms correct video ID; wrong/missing/duplicate/unknown state is rejected; ambiguous GitHub timeout locks retry rather than risking duplicate Pin.
 - Next action: CI, release on correct production branch, enter published YouTube Shorts link into recovery form, inspect Pinterest ID and Blob deletion.
+
+### 2026-10-19 18:21 BST — Production release verification after recovery PR #51
+- Changed: squash merged PR #51 as da6ad8e5e19e8e7200f22346eac27a28d3e66ada on branch feature/canva-oauth-callback; Netlify deploy 6ad6516d7d58668aadee3d86 is READY production at exact code commit.
+- Verified: GitHub PR checks 344/344 passing and Netlify deploy functions include video-publisher with matching routes. No Etsy/PrintShrimp or existing uploader code outside four reviewed files changed.
+- Unverified: no Pinterest API live test or storage deletion yet; owner confirmation of original YouTube video URL is required to avoid duplicate upload.
+- Deploy impact: one already-completed production build; this documentation-only status update is [skip netlify].
+- Next: owner resumes saved video to Pinterest only, then inspect Pin and Blob cleanup.
