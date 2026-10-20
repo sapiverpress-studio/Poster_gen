@@ -38,9 +38,17 @@ test('Six subfolders at ZIP root also work',async()=>{
  const archive=await openPosterCollectionZip(await zipFile({folder:''}));
  assert.equal(archive.items.length,6);
 });
-test('ZIP rejects missing item, extra files and nested paths before any upload',async()=>{
- for(const itemCount of [5,7,8])await assert.rejects(openPosterCollectionZip(await zipFile({itemCount})),/exactly six|six poster/i);
- await assert.rejects(openPosterCollectionZip(await zipFile({extra:true})),/six poster|unsupported|Unexpected/i);
+test('ZIP accepts every batch size from two to six, at root or in a collection folder',async()=>{
+ for(const itemCount of [2,3,4,5,6]){
+  const file=await zipFile({itemCount,folder:itemCount%2?'':'Collection/'});
+  const archive=await openPosterCollectionZip(file);
+  assert.equal(archive.items.length,itemCount);
+  assert.equal((await archive.artwork(archive.items.at(-1))).size,33);
+ }
+});
+test('ZIP rejects one item, seven or more, extra files and nested paths before any upload',async()=>{
+ for(const itemCount of [1,7,8])await assert.rejects(openPosterCollectionZip(await zipFile({itemCount})),/2 to 6|poster folders/i);
+ await assert.rejects(openPosterCollectionZip(await zipFile({extra:true})),/2 to 6|unsupported|Unexpected/i);
  await assert.rejects(openPosterCollectionZip(await zipFile({nested:true})),/subfolders|nested|folder/i);
 });
 test('ZIP rejects bad title/description/tag files before any monthly slot',async()=>{
@@ -61,11 +69,12 @@ test('bulk keeps the owner written short Etsy title and exact thirteen tags',()=
  assert.equal(m.etsyTitle,'Midnight Saxophone');assert.equal(m.tags.length,13);
  assert.throws(()=>productMetadata({name:'Jazz Nocturne',etsyTitle:'x'.repeat(141)},'01-Poster.png','physical'),/140/);
 });
-test('bulk form stages the full collection privately when fewer than six monthly slots remain',()=>{
+test('bulk form uses dynamic batch quota guidance, not a blanket six-slot storage rule',()=>{
  let body=bulkCollectionBody({monthly:{used:47,limit:52,remaining:5,label:'October 2026'}});
- assert.match(body,/fewer than six slots/);assert.match(body,/name="storeOnly" type="checkbox" checked/);assert.doesNotMatch(body,/type="file"[^>]+disabled/);
+ assert.match(body,/ZIP size determines/);assert.doesNotMatch(body,/name="storeOnly" type="checkbox" checked/);assert.doesNotMatch(body,/type="file"[^>]+disabled/);
  body=bulkCollectionBody({monthly:{used:46,limit:52,remaining:6,label:'October 2026'}});
  assert.doesNotMatch(body,/type="file"[^>]+disabled/);
+ assert.match(body,/2 to 6 posters/);
  assert.match(body,/bulk-deploy/);assert.match(body,/bulk-upload\.mjs/);
 });
 
