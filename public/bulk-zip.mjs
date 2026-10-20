@@ -82,7 +82,7 @@ export async function openPosterCollectionZip(file){
   const details=parsePosterText(decoder.decode(await readEntry(pair.md)));
   items.push({...details,folder:pair.folder,filename:pair.png.base,bytes:pair.png.expanded,entry:pair.png});
  }
- return {items,async artwork(item){const bytes=await readEntry(item.entry);validatePosterPng(bytes);return new File([bytes],item.filename,{type:'image/png'});}};
+ return {items,async artwork(item){const bytes=await readEntry(item.entry);validatePosterPng(bytes,item.printSizes);return new File([bytes],item.filename,{type:'image/png'});}};
 }
 export function parsePosterText(source){
  if(typeof source!=='string'||source.length>12000||source.includes('\0'))fail('Invalid details.md file');
@@ -114,10 +114,12 @@ export function collectionUploadFilename(title,sha256){
  const stem=title.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,18).replace(/-$/,'')||'POSTER';
  return 'SP-'+stem.toUpperCase()+'-'+sha256.slice(0,8).toUpperCase()+'.png';
 }
-export function validatePosterPng(b){
+export function validatePosterPng(b,printSizes=['A5','A4','A3']){
+ if(!['A5|A4','A5|A4|A3'].includes(printSizes.join('|')))fail('Unsupported print-size selection');
  const sig=[137,80,78,71,13,10,26,10];
  if(b.length<33||sig.some((n,i)=>b[i]!==n)||b[12]!==73||b[13]!==72||b[14]!==68||b[15]!==82)fail('Not a valid PNG');
  const view=new DataView(b.buffer,b.byteOffset,b.byteLength),width=view.getUint32(16),height=view.getUint32(20);
- if(width<3160||height<4470||width*height>100_000_000||Math.abs(height/width-Math.SQRT2)/Math.SQRT2>0.02)fail('Poster must be A-series portrait at 270 PPI or above at A3');
+ const a4Only=printSizes.length===2,minWidth=a4Only?2480:3160,minHeight=a4Only?3508:4470;
+ if(width<minWidth||height<minHeight||width*height>100_000_000||Math.abs(height/width-Math.SQRT2)/Math.SQRT2>0.02)fail(a4Only?'Poster must be A-series portrait at 300 PPI at A4 or above':'Poster must be A-series portrait at 270 PPI or above at A3');
  return {width,height};
 }
