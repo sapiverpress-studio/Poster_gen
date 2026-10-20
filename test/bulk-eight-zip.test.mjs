@@ -117,3 +117,11 @@ test('Nature and verse ZIP metadata selects A4/A5; older three-size ZIPs stay co
  assert.deepEqual(m.printSizes,['A5','A4']);
  assert.throws(()=>productMetadata({name:'River Whisper',kind:'artwork',printSizes:['A5','A3']},'Nature.png','physical'),/print sizes/);
 });
+
+test('A4/A5 ZIPs accept genuine 300 PPI A4 artwork without requiring A3 enlargement',()=>{
+ const b=png();b.writeUInt32BE(2480,16);b.writeUInt32BE(3508,20);
+ assert.deepEqual(validatePosterPng(b,['A5','A4']),{width:2480,height:3508});
+ assert.throws(()=>validatePosterPng(b),/270 PPI or above at A3/);
+ const low=Buffer.from(b);low.writeUInt32BE(1200,16);low.writeUInt32BE(1700,20);
+ assert.throws(()=>validatePosterPng(low,['A5','A4']),/300 PPI at A4/);
+});
