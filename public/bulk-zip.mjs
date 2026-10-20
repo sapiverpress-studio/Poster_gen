@@ -91,7 +91,7 @@ export function parsePosterText(source){
  if(split<0)fail('details.md needs Description: on its own line after the metadata fields');
  for(const line of lines.slice(0,split)){
   if(!line.trim())continue;
-  const m=/^(Title|Listing title|Section|Tags):[ \t]*(.+)$/i.exec(line);
+  const m=/^(Title|Listing title|Section|Sizes|Tags):[ \t]*(.+)$/i.exec(line);
   if(!m)fail('Unknown or invalid details.md field');
   const key=m[1].toLowerCase();if(Object.hasOwn(fields,key))fail('Duplicate details.md field');fields[key]=m[2].trim();
  }
@@ -103,7 +103,9 @@ export function parsePosterText(source){
  if(!/\b(?:prints?|posters?|wall art)\b/i.test(listingTitle))fail('Listing title must identify a physical print or poster');
  if(typeof sectionTitle!=='string'||sectionTitle.length>24||/[<>\u0000-\u001f\u007f]/.test(sectionTitle))fail('Section must be a valid Etsy shop section name (up to 24 characters)');
  if(tags.length!==13||tags.some(t=>!t||t.length>20||/[<>\u0000-\u001f]/.test(t))||new Set(tags.map(t=>t.toLowerCase())).size!==13)fail('Every poster needs exactly 13 unique Etsy tags, each at most 20 characters');
- return {title,listingTitle,sectionTitle,description,tags};
+ const printSizes=fields.sizes?fields.sizes.split(',').map(x=>x.trim()):['A5','A4','A3'];
+ if(!['A5|A4','A5|A4|A3'].includes(printSizes.join('|')))fail('Sizes must be A5, A4 or A5, A4, A3 in that order');
+ return {title,listingTitle,sectionTitle,description,tags,printSizes};
 }
 // A stable short internal filename uses the artwork hash to distinguish namesakes.
 // The existing server derives the SKU from it and reuses it for later metadata edits.
