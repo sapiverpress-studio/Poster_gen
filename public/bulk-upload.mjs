@@ -1,4 +1,4 @@
-import {openPosterCollectionZip,collectionUploadFilename,BULK_COUNT} from './bulk-zip.mjs';
+import {openPosterCollectionZip,collectionUploadFilename,BULK_MIN_COUNT,BULK_MAX_COUNT} from './bulk-zip.mjs';
 
 const form=document.getElementById('bulk-collection-form'),status=document.getElementById('bulk-status');
 const cards=document.getElementById('bulk-cards'),deploy=document.getElementById('bulk-deploy');
@@ -10,7 +10,7 @@ let state=null,seen=[],pollHandle=null,busy=false;
 function text(tag,value){const el=document.createElement(tag);el.textContent=value;return el;}
 function save(){try{sessionStorage.setItem(KEY,JSON.stringify(state));}catch{throw Error('Session storage unavailable. Use the single uploader to avoid duplicate products.');}}
 function read(){
- try{const v=JSON.parse(sessionStorage.getItem(KEY)||'null');return [1,2].includes(v?.version)&&[BULK_COUNT,8].includes(v.items?.length)&&v.items.every(i=>typeof i.filename==='string'&&(!i.id||ID.test(i.id)))?v:null;}catch{return null;}
+ try{const v=JSON.parse(sessionStorage.getItem(KEY)||'null');return [1,2].includes(v?.version)&&(v.items?.length>=BULK_MIN_COUNT&&v.items?.length<=BULK_MAX_COUNT||v.items?.length===8)&&v.items.every(i=>typeof i.filename==='string'&&(!i.id||ID.test(i.id)))?v:null;}catch{return null;}
 }
 function message(value){status.textContent=value;}
 async function api(url,{method='GET',body,headers={}}={}){
@@ -70,8 +70,8 @@ async function inspect(){
  const canApprove=allReviewed&&ready>0;
  buildCards(results);
  deploy.hidden=!canApprove;deploy.disabled=!canApprove||busy;
- deploy.textContent=ready===BULK_COUNT?'Deploy all six approved posters':'Deploy remaining '+ready+' reviewed posters';
- if(allStored)message('All six posters are stored privately. No Etsy listings were created or monthly slots used. Open Catalogue to publish later.');
+ deploy.textContent=ready===state.items.length?'Deploy all '+state.items.length+' approved posters':'Deploy remaining '+ready+' reviewed posters';
+ if(allStored)message('All '+state.items.length+' posters are stored privately. No Etsy listings were created or monthly slots used. Open Catalogue to publish later.');
  else if(canApprove)message('Check the remaining '+ready+' approved reviews, their titles, descriptions, 13 tags and four mockups. Previously accepted approvals will not be repeated.');
  else if(allReviewed)message('Publication is underway or complete. Check the individual listings below.');
  else if(results.some(r=>r?.phase==='needs_investigation'))message('An item needs investigation. Existing product IDs are retained. Do not re-create failed merchant listings.');
@@ -82,13 +82,13 @@ async function inspect(){
 }
 async function checkAll(archive){
  const hashes=[],unique=new Set();
- for(let i=0;i<BULK_COUNT;i++){
-  message('Checking PNG integrity, print dimensions and SHA-256 '+(i+1)+'/'+BULK_COUNT+' (nothing uploaded)…');
+ for(let i=0;i<archive.items.length;i++){
+  message('Checking PNG integrity, print dimensions and SHA-256 '+(i+1)+'/'+archive.items.length+' (nothing uploaded)…');
   const file=await archive.artwork(archive.items[i]);
   // Bind every saved upload receipt to the artwork bytes, not just its ZIP name.
   const digest=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
   const hash=Array.from(new Uint8Array(digest),x=>x.toString(16).padStart(2,'0')).join('');
-  if(unique.has(hash))throw Error('The ZIP repeats identical artwork. Six different designs are required.');
+  if(unique.has(hash))throw Error('The ZIP repeats identical artwork. Each poster must have distinct artwork.');
   hashes.push(hash);unique.add(hash);
  }
  return hashes;
@@ -97,7 +97,7 @@ async function uploadItem(item,file,index){
  if(item.creating&&!item.id)throw Error('Creation of poster '+(index+1)+' had an uncertain response. Inspect the dashboard before continuing; never create it twice.');
  if(!item.id){
   item.creating=true;save();
-  message((state.storeOnly?'Storing':'Preparing')+' poster '+(index+1)+' of six…');
+  message((state.storeOnly?'Storing':'Preparing')+' poster '+(index+1)+' of '+state.items.length+'…');
   const meta={name:item.title,etsyTitle:item.listingTitle,description:item.description,tags:item.tags.join(','),
    subject:item.title,kind:state.kind,sectionTitle:item.sectionTitle,websiteFolder:state.websiteFolder||''};
   const receipt=await api('/poster/uploads',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -113,7 +113,7 @@ async function uploadItem(item,file,index){
  const chunk=item.chunkBytes||2_000_000;
  for(let offset=0,n=0;offset<file.size;offset+=chunk,n++){
   await api('/poster/uploads/'+item.id+'/chunks/'+n,{method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:await file.slice(offset,Math.min(offset+chunk,file.size)).arrayBuffer()});
-  message('Uploading poster '+(index+1)+'/'+BULK_COUNT+' — '+Math.round(100*Math.min(offset+chunk,file.size)/file.size)+'%');
+  message('Uploading poster '+(index+1)+'/'+state.items.length+' — '+Math.round(100*Math.min(offset+chunk,file.size)/file.size)+'%');
  }
  try{await api('/poster/uploads/'+item.id+'/finish',{method:'POST'});}
  catch(error){
@@ -128,7 +128,7 @@ async function start(e){
  busy=true;form.querySelector('button[type="submit"]').disabled=true;deploy.disabled=true;
  try{
   const file=form.elements.collection.files[0];
-  if(!file||!file.name.toLowerCase().endsWith('.zip'))throw Error('Choose your six-poster ZIP.');
+  if(!file||!file.name.toLowerCase().endsWith('.zip'))throw Error('Choose a ZIP containing 2 to 6 posters.');
   const sig=signature(file);
   if(state&&state.signature!==sig)throw Error('A different collection is already saved in this browser. Finish or inspect it before starting another. To avoid duplicates, do not overwrite its receipts.');
   message('Reading ZIP and validating names, artwork and descriptions…');
@@ -145,7 +145,7 @@ async function start(e){
   }
   if(!state){
    const quota=await api('/poster/bulk/status');
-   const storeOnly=form.elements.storeOnly?.checked===true||quota.remaining<BULK_COUNT;
+   const storeOnly=form.elements.storeOnly?.checked===true||quota.remaining<archive.items.length;
    const artworkHashes=await checkAll(archive);
    state={version:2,signature:sig,kind:form.elements.kind.value,selectedShopSection:selected,websiteFolder:form.elements.websiteFolder?.value||'',storeOnly,
     items:archive.items.map((i,n)=>({filename:i.filename,folder:i.folder,title:i.title,listingTitle:i.listingTitle,sectionTitle:i.sectionTitle,description:i.description,tags:i.tags,sha256:artworkHashes[n],uploadFilename:collectionUploadFilename(i.title,artworkHashes[n]),id:null}))};save();
@@ -156,13 +156,13 @@ async function start(e){
    if(state.items.some((v,i)=>v.sha256!==artworkHashes[i]))
     throw Error('Artwork differs from the original saved ZIP. Do not reuse an existing upload ID with changed images.');
   }
-  for(let i=0;i<BULK_COUNT;i++){
+  for(let i=0;i<archive.items.length;i++){
    const item=state.items[i],live=item.id?await api('/poster/uploads/'+item.id):null;
    if(live&&live.phase!=='uploading')continue;
    const artwork=await archive.artwork(archive.items[i]);
    await uploadItem(item,artwork,i);
   }
-  message(state.storeOnly?'All six posters uploaded to private storage.':'All six uploads submitted for Etsy reviews.');await inspect();
+  message(state.storeOnly?'All '+state.items.length+' posters uploaded to private storage.':'All '+state.items.length+' uploads submitted for Etsy reviews.');await inspect();
  }catch(err){message('Stopped safely: '+err.message+' All successfully started products are retained; check the product dashboard.');}
  finally{busy=false;form.querySelector('button[type="submit"]').disabled=false;
   if(seen.every(r=>r&&['ready_for_approval','publishing','published'].includes(r.phase))&&seen.some(r=>r.phase==='ready_for_approval')){deploy.hidden=false;deploy.disabled=false;}
@@ -180,16 +180,16 @@ deploy?.addEventListener('click',async()=>{
   const count=fresh.filter(r=>r.phase==='ready_for_approval').length;
   if(!count)return;
   if(!confirm('Deploy '+count+' reviewed posters to Etsy and PrintShrimp? Up to '+count+' new listing fees may apply. Already accepted approvals will be skipped. Automatic customer orders remain off.'))return;
-  for(let n=0;n<BULK_COUNT;n++){
+  for(let n=0;n<state.items.length;n++){
    if(fresh[n].phase!=='ready_for_approval')continue;
    const item=state.items[n],review=fresh[n].review;
-   message('Approving product '+(n+1)+' of six…');
+   message('Approving product '+(n+1)+' of '+state.items.length+'…');
    const result=await api('/poster/uploads/'+item.id+'/approve',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},
     body:new URLSearchParams({csrf,approvalHash:review.approvalHash})});
    if(result.phase!=='publishing')throw Error('Approval not confirmed for '+item.filename+'; inspect its individual product before retrying.');
    item.phase='publishing';seen[n]={...seen[n],phase:'publishing'};save();
   }
-  message('All six exact reviews were approved. Etsy and PrintShrimp processing is queued. Check each saved product for final publication status.');
+  message('All '+count+' exact reviews were approved. Etsy and PrintShrimp processing is queued. Check each saved product for final publication status.');
   await inspect();
  }catch(err){
   try{await inspect();}catch{/* Offline or expired session; retain all product IDs. */}
@@ -206,11 +206,11 @@ if(state&&form?.elements?.shopSection){
  const chosen=state.selectedShopSection||'';
  if([...form.elements.shopSection.options].some(x=>x.value===chosen))form.elements.shopSection.value=chosen;
 }
-if(state&&(state.version!==2||state.items.length!==BULK_COUNT)){
+if(state&&(state.version!==2||(state.items.length<BULK_MIN_COUNT||state.items.length>BULK_MAX_COUNT))){
  busy=true;form.querySelector('button[type="submit"]').disabled=true;deploy.hidden=true;
  buildCards();
- message('Your saved legacy collection is retained. New collections use six folders with poster.png and details.md. Open the individual product links below or the saved-products dashboard to finish existing work; do not upload it again.');
+ message('Your saved legacy collection is retained. New collections use 2 to 6 folders with poster.png and details.md. Open the individual product links below or the saved-products dashboard to finish existing work; do not upload it again.');
 }else if(state){
- message('Saved six-poster collection found. Re-select the SAME ZIP if upload is incomplete, or wait for the existing product reviews.');
+ message('Saved '+state.items.length+'-poster collection found. Re-select the SAME ZIP if upload is incomplete, or wait for the existing product reviews.');
  inspect().catch(e=>message('Could not load saved collection status: '+e.message));
 }
