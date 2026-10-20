@@ -1,13 +1,13 @@
 // Browser-side, bounded ZIP reader for ONE physical collection; no server-side
 // decompression, external scripts or changes to the existing Etsy/PrintShrimp worker.
 // The untrusted ZIP is fully validated before the first product is reserved.
-export const BULK_COUNT=6, BULK_ZIP_MAX=100_000_000, BULK_PNG_MAX=50_000_000;
+export const BULK_MIN_COUNT=2, BULK_MAX_COUNT=6, BULK_ZIP_MAX=100_000_000, BULK_PNG_MAX=50_000_000;
 const read16=(v,i)=>v.getUint16(i,true),read32=(v,i)=>v.getUint32(i,true);
 const decoder=new TextDecoder('utf-8',{fatal:true});
 const fail=why=>{throw Error(why)};
 function safeName(name){
  if(name.length>180||name.includes('\\')||name.startsWith('/')||name.includes('\0')||/[\u0000-\u001f]/.test(name)||name.split('/').some(x=>x==='.'||x==='..'))fail('Unsafe archive filename');
- const pieces=name.split('/');if(pieces.length>3||pieces.some(x=>x.length===0))fail('Use six poster subfolders, optionally inside one collection folder');
+ const pieces=name.split('/');if(pieces.length>3||pieces.some(x=>x.length===0))fail('Use 2 to 6 poster subfolders, optionally inside one collection folder');
  return pieces.at(-1);
 }
 const CRC_TABLE=Uint32Array.from({length:256},(_,index)=>{
@@ -25,7 +25,7 @@ export async function openPosterCollectionZip(file){
  let pos=-1;for(let i=tail.byteLength-22;i>=0;i--)if(read32(tail,i)===0x06054b50&&i+22+read16(tail,i+20)===tail.byteLength){pos=i;break;}
  if(pos<0||read16(tail,pos+4)!==0||read16(tail,pos+6)!==0||read16(tail,pos+8)!==read16(tail,pos+10))fail('Invalid ZIP directory');
  const count=read16(tail,pos+10),size=read32(tail,pos+12),offset=read32(tail,pos+16);
- if(count<BULK_COUNT*2||count>BULK_COUNT*3+1||!size||size>16384||offset+size>file.size-tailSize+pos||offset===0xffffffff)fail('ZIP must contain exactly six poster folders with poster.png and details.md');
+ if(count<BULK_MIN_COUNT*2||count>BULK_MAX_COUNT*3+1||!size||size>16384||offset+size>file.size-tailSize+pos||offset===0xffffffff)fail('ZIP must contain 2 to 6 poster folders with poster.png and details.md');
  const central=new DataView(await file.slice(offset,offset+size).arrayBuffer());
  const entries=[],directories=[],seen=new Set();let cur=0;
  for(let n=0;n<count;n++){
@@ -46,9 +46,9 @@ export async function openPosterCollectionZip(file){
   if(read32(central,cur-(46+nameLen+extraLen+commentLen)+0)!==0x02014b50)fail('Invalid central ZIP header');
   entries.push({name,base,ext,method,start,compressed,expanded,crc:read32(central,cur-(46+nameLen+extraLen+commentLen)+16)});
  }
- if(cur!==central.byteLength||entries.length!==BULK_COUNT*2)fail('The collection must contain six poster.png and six details.md files');
+ if(cur!==central.byteLength||entries.length<BULK_MIN_COUNT*2||entries.length>BULK_MAX_COUNT*2||entries.length%2!==0)fail('The collection must contain 2 to 6 poster.png and matching details.md files');
  const depths=new Set(entries.map(x=>x.name.split('/').length));
- if(depths.size!==1||![2,3].includes([...depths][0]))fail('Use six poster subfolders, optionally inside one collection folder');
+ if(depths.size!==1||![2,3].includes([...depths][0]))fail('Use 2 to 6 poster subfolders, optionally inside one collection folder');
  if([...depths][0]===3&&new Set(entries.map(x=>x.name.split('/')[0])).size!==1)fail('Use only one enclosing collection folder');
  const pairs=new Map();
  for(const entry of entries){
@@ -57,7 +57,7 @@ export async function openPosterCollectionZip(file){
   if(pair[entry.ext])fail('Duplicate artwork or details');
   pair[entry.ext]=entry;pairs.set(key,pair);
  }
- if(pairs.size!==BULK_COUNT||[...pairs.values()].some(p=>!p.png||!p.md))fail('Every poster folder needs poster.png and details.md');
+ if(pairs.size<BULK_MIN_COUNT||pairs.size>BULK_MAX_COUNT||[...pairs.values()].some(p=>!p.png||!p.md))fail('Each of the 2 to 6 poster folders needs poster.png and details.md');
  const allowedDirs=new Set([...pairs.values()].flatMap(p=>[p.folder,...(p.folder.includes('/')?[p.folder.split('/')[0]]:[])]));
  if(directories.some(d=>!allowedDirs.has(d))||new Set(directories).size!==directories.length)fail('Unexpected or duplicate empty folder');
  const readEntry=async e=>{
