@@ -58,3 +58,12 @@ test('failed Etsy read-back stops without retrying the inventory mutation',async
  const result=await executeA3Removal({client,uploads,plan,id,clock});
  assert.equal(result.phase,'needs_investigation');assert.equal(writes,1);assert.equal(memory.get(sizeChangeKey(id)).phase,'needs_investigation');
 });
+
+test('Catalogue Organiser has one owner-approved preset without turning whole listings off',async()=>{
+ const {folderCatalogue}=await import('../lib/catalogue-folders.mjs');
+ const content=folderCatalogue({audit:{...audit,summary:{physicalTotal:1,activePhysical:1},sections:[{id:44,title:'Nature'}]},status:{phase:'available'},clock});
+ assert.match(content,/id="apply-approved-a4a5"/);
+ assert.match(content,/16 existing Nature/);
+ assert.match(content,/A3 stays available on decorative wall art/);
+ assert.doesNotMatch(content,/data-state="inactive"/);
+});
