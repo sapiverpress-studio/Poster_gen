@@ -29,11 +29,12 @@ test('owner-confirmed seller job puts only A4/A5 and verifies unchanged identiti
  const plan=approveA3Removal({audit,ids:[record.id],shopId:audit.shopId,clock});
  const id='a'.repeat(32),memory=new Map([[sizeChangeKey(id),{phase:'queued',plan,createdAt:t,results:[]}]]);
  const uploads={get:async k=>memory.get(k),setJSON:async(k,v)=>{memory.set(k,v);return {modified:true};}};
- const source=inv(),expected=makeA4A5Inventory(source),written=[];
+ const source=inv(),expected=makeA4A5Inventory(source),written=[],copyWrites=[];
  const prepared={...expected,products:expected.products.map((p,i)=>({...p,product_id:i+10,offerings:p.offerings.map(o=>({...o,price:{amount:Math.round(o.price*100),divisor:100,currency_code:'GBP'}}))}))};
- const listing={listing_id:record.id,shop_id:audit.shopId,state:'active',listing_type:'physical',title:record.title,shop_section_id:record.sectionId,skus:record.sku};
+ const listing={listing_id:record.id,shop_id:audit.shopId,state:'active',listing_type:'physical',title:record.title,shop_section_id:record.sectionId,skus:record.sku,description:'Print: A5, A4 and A3.\nChoose your size.'};
  const client={session:async()=>({shop_id:audit.shopId,shop_name:'SapiverPrints'}),api:async(path,options={})=>{
   if(path==='/listings/'+record.id)return listing;
+  if(path==='/shops/'+audit.shopId+'/listings/'+record.id&&options.method==='PATCH'){const params=new URLSearchParams(options.body);listing.description=params.get('description');copyWrites.push(listing.description);return listing;}
   if(path.startsWith('/listings/'+record.id+'/inventory')){
    if(options.method==='PUT'){written.push(JSON.parse(options.body));return prepared;}
    return written.length?prepared:source;
@@ -43,6 +44,7 @@ test('owner-confirmed seller job puts only A4/A5 and verifies unchanged identiti
  const result=await executeA3Removal({client,uploads,plan,id,clock});
  assert.equal(result.phase,'complete');assert.equal(result.results.length,1);
  assert.equal(written.length,1);assert.equal(written[0].products.length,8);
+ assert.deepEqual(copyWrites,['Print: A5 and A4.\nChoose your size.']);
  assert.equal(memory.get(sizeChangeKey(id)).phase,'complete');
 });
 test('failed Etsy read-back stops without retrying the inventory mutation',async()=>{
@@ -51,7 +53,7 @@ test('failed Etsy read-back stops without retrying the inventory mutation',async
  const uploads={get:async k=>memory.get(k),setJSON:async(k,v)=>{memory.set(k,v);return {modified:true};}};
  let writes=0;
  const client={session:async()=>({shop_id:audit.shopId,shop_name:'SapiverPrints'}),api:async(path,options={})=>{
-  if(path==='/listings/'+record.id)return {listing_id:record.id,shop_id:audit.shopId,state:'active',listing_type:'physical',title:record.title,shop_section_id:record.sectionId,skus:record.sku};
+  if(path==='/listings/'+record.id)return {listing_id:record.id,shop_id:audit.shopId,state:'active',listing_type:'physical',title:record.title,shop_section_id:record.sectionId,skus:record.sku,description:'A5 and A4'};
   if(options.method==='PUT'){writes++;return {};}
   return inv();
  }};
@@ -66,4 +68,37 @@ test('Catalogue Organiser has one owner-approved preset without turning whole li
  assert.match(content,/16 existing Nature/);
  assert.match(content,/A3 stays available on decorative wall art/);
  assert.doesNotMatch(content,/data-state="inactive"/);
+});
+
+test('description reconciliation strips former A3 advertising without rewriting verses',async()=>{
+ const {reconcileA4A5Description}=await import('../lib/size-description.mjs');
+ const texts=[
+  'AVAILABLE SIZES\nA5 — 148 × 210 mm\nA4 — 210 × 297 mm\nA3 — 297 × 420 mm\nCheck the listed A5, A4 and A3 dimensions.',
+  'Choose A5 (148 × 210 mm), A4 (210 × 297 mm) or A3 (297 × 420 mm).',
+  'Available in A5, A4 and A3. PRINT ONLY.'
+ ];
+ for(const s of texts){const t=reconcileA4A5Description(s).description;assert.doesNotMatch(t,/\bA3\b/);assert.match(t,/\bA5\b/);assert.match(t,/\bA4\b/);}
+ const educational=reconcileA4A5Description('Original alphabet learning art');
+ assert.match(educational.description,/AVAILABLE PRINT SIZES/);
+ assert.throws(()=>reconcileA4A5Description('Only A3 — wall print.'),/nonstandard/);
+});
+test('already corrected size inventory updates missing text but never PUTs it',async()=>{
+ const plan=approveA3Removal({audit,ids:[record.id],shopId:audit.shopId,clock}),id='c'.repeat(32);
+ const memory=new Map([[sizeChangeKey(id),{phase:'queued',plan,createdAt:t,results:[]}]]);
+ const uploads={get:async k=>memory.get(k),setJSON:async(k,v)=>{memory.set(k,v);return {modified:true};}};
+ const already=inv(['A5','A4']),desc='An educational nature print';
+ const listing={listing_id:record.id,shop_id:audit.shopId,state:'active',listing_type:'physical',title:record.title,shop_section_id:record.sectionId,skus:record.sku,description:desc};
+ let writes=0,patches=0;
+ const client={session:async()=>({shop_id:audit.shopId,shop_name:'SapiverPrints'}),api:async(path,options={})=>{
+  if(path==='/listings/'+record.id)return listing;
+  if(path==='/listings/'+record.id+'/inventory'){
+   if(options.method==='PUT')writes++;
+   return already;
+  }
+  if(path==='/shops/'+audit.shopId+'/listings/'+record.id&&options.method==='PATCH'){patches++;listing.description=new URLSearchParams(options.body).get('description');return listing;}
+  throw Error('unexpected provider action');
+ }};
+ const result=await executeA3Removal({client,uploads,plan,id,clock});
+ assert.equal(result.phase,'complete');assert.equal(writes,0);assert.equal(patches,1);
+ assert.match(listing.description,/AVAILABLE PRINT SIZES/);
 });
