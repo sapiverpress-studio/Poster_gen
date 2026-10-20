@@ -42,7 +42,7 @@ test('A4/A5 Nature configuration creates eight options and does not alter three-
  assert.deepEqual([...new Set(two.inventory.products.map(x=>x.property_values[0].values[0]))],['A5','A4']);
  const readBack={products:inventory.products.slice(0,8).map(x=>({...x,sku:two.identity.sku}))};
  verifyTemplateInventory(readBack,two);
- assert.throws(()=>verifyTemplateInventory({products:inventory.products.map(x=>({...x,sku:two.identity.sku}))},two),/size\\/frame/);
+ assert.throws(()=>verifyTemplateInventory({products:inventory.products.map(x=>({...x,sku:two.identity.sku}))},two),/size\/frame/);
  assert.equal(templateDraftPlan(settings).inventory.products.length,12);
  assert.throws(()=>templateDraftPlan({...settings,printSizes:['A5','A3']}),/print-size/);
 });
