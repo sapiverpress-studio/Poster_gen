@@ -45,3 +45,9 @@ test('master stream denies invalid, expired and revoked tickets and serves only 
  grant.revoked=true;assert.equal((await handler(req())).status,403);grant.revoked=false;grant.expiresAt=0;assert.equal((await handler(req())).status,403);grant.expiresAt=Date.now()+10000;
  const response=await handler(req());assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'private, no-store');assert.equal(response.headers.get('content-type'),'image/png');assert.deepEqual(new Uint8Array(await response.arrayBuffer()),bytes);assert.equal(streams,1);
 });
+
+test('PrintShrimp request carries only explicitly approved A4/A5 variants when selected',()=>{
+ const p=supplierPayload('Nature Verse','SP-NATURE-01','https://poster.example.test/master.png',['A5','A4']);
+ assert.deepEqual(p.variants.map(v=>v.size),['A5','A4']);
+ assert.throws(()=>supplierPayload('Nature Verse','SP-NATURE-01','https://poster.example.test/master.png',['A5','A3']),/Unapproved supplier/);
+});

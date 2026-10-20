@@ -38,9 +38,17 @@ test('Six subfolders at ZIP root also work',async()=>{
  const archive=await openPosterCollectionZip(await zipFile({folder:''}));
  assert.equal(archive.items.length,6);
 });
-test('ZIP rejects missing item, extra files and nested paths before any upload',async()=>{
- for(const itemCount of [5,7,8])await assert.rejects(openPosterCollectionZip(await zipFile({itemCount})),/exactly six|six poster/i);
- await assert.rejects(openPosterCollectionZip(await zipFile({extra:true})),/six poster|unsupported|Unexpected/i);
+test('ZIP accepts every batch size from two to six, at root or in a collection folder',async()=>{
+ for(const itemCount of [2,3,4,5,6]){
+  const file=await zipFile({itemCount,folder:itemCount%2?'':'Collection/'});
+  const archive=await openPosterCollectionZip(file);
+  assert.equal(archive.items.length,itemCount);
+  assert.equal((await archive.artwork(archive.items.at(-1))).size,33);
+ }
+});
+test('ZIP rejects one item, seven or more, extra files and nested paths before any upload',async()=>{
+ for(const itemCount of [1,7,8])await assert.rejects(openPosterCollectionZip(await zipFile({itemCount})),/2 to 6|poster folders/i);
+ await assert.rejects(openPosterCollectionZip(await zipFile({extra:true})),/2 to 6|unsupported|Unexpected/i);
  await assert.rejects(openPosterCollectionZip(await zipFile({nested:true})),/subfolders|nested|folder/i);
 });
 test('ZIP rejects bad title/description/tag files before any monthly slot',async()=>{
@@ -61,11 +69,12 @@ test('bulk keeps the owner written short Etsy title and exact thirteen tags',()=
  assert.equal(m.etsyTitle,'Midnight Saxophone');assert.equal(m.tags.length,13);
  assert.throws(()=>productMetadata({name:'Jazz Nocturne',etsyTitle:'x'.repeat(141)},'01-Poster.png','physical'),/140/);
 });
-test('bulk form stages the full collection privately when fewer than six monthly slots remain',()=>{
+test('bulk form uses dynamic batch quota guidance, not a blanket six-slot storage rule',()=>{
  let body=bulkCollectionBody({monthly:{used:47,limit:52,remaining:5,label:'October 2026'}});
- assert.match(body,/fewer than six slots/);assert.match(body,/name="storeOnly" type="checkbox" checked/);assert.doesNotMatch(body,/type="file"[^>]+disabled/);
+ assert.match(body,/ZIP size determines/);assert.doesNotMatch(body,/name="storeOnly" type="checkbox" checked/);assert.doesNotMatch(body,/type="file"[^>]+disabled/);
  body=bulkCollectionBody({monthly:{used:46,limit:52,remaining:6,label:'October 2026'}});
  assert.doesNotMatch(body,/type="file"[^>]+disabled/);
+ assert.match(body,/2 to 6 posters/);
  assert.match(body,/bulk-deploy/);assert.match(body,/bulk-upload\.mjs/);
 });
 
@@ -95,4 +104,30 @@ test('namesake posters get short distinct SKUs; editing the title retains saved 
  assert.notEqual(productMetadata({name:'The Puddle'},other,'physical').sku,first.sku);
  const longest=collectionUploadFilename('An unusually long but allowed artwork title','c'.repeat(64));
  assert.ok(productMetadata({name:'Long name'},longest,'physical').sku.length<=32);
+});
+
+test('Nature and verse ZIP metadata selects A4/A5; older three-size ZIPs stay compatible',()=>{
+ const nature=details(1).replace('Section: Wall Art','Section: Nature'+String.fromCharCode(10)+'Sizes: A5, A4');
+ const selected=parsePosterText(nature);
+ assert.deepEqual(selected.printSizes,['A5','A4']);
+ assert.deepEqual(parsePosterText(details(1)).printSizes,['A5','A4','A3']);
+ assert.throws(()=>parsePosterText(nature.replace('A5, A4','A5, A3')),/Sizes must/);
+ assert.throws(()=>parsePosterText(nature.replace('A5, A4','A3, A4, A5')),/Sizes must/);
+ assert.deepEqual(parsePosterText(details(1).replace('Section: Wall Art','Section: Nature')).printSizes,['A5','A4']);
+ assert.throws(()=>parsePosterText(nature.replace('A5, A4','A5, A4, A3')),/A3 is reserved/);
+ const m=productMetadata({name:'River Whisper',kind:'artwork',sectionTitle:'Nature',printSizes:selected.printSizes},'Nature.png','physical');
+ assert.deepEqual(m.printSizes,['A5','A4']);
+ assert.throws(()=>productMetadata({name:'River Whisper',kind:'artwork',printSizes:['A5','A3']},'Nature.png','physical'),/print sizes/);
+ assert.throws(()=>productMetadata({name:'River Whisper',kind:'artwork',sectionTitle:'Nature',printSizes:['A5','A4','A3']},'Nature.png','physical'),/A3 is reserved/);
+ assert.deepEqual(productMetadata({name:'Dinosaur Timeline',kind:'dinosaur'},'Dino.png','physical').printSizes,['A5','A4']);
+ assert.deepEqual(productMetadata({name:'Learning Chart',kind:'educational'},'Learning.png','physical').printSizes,['A5','A4']);
+ assert.deepEqual(productMetadata({name:'Jazz Club',kind:'artwork',sectionTitle:'Wall Art'},'Jazz.png','physical').printSizes,['A5','A4','A3']);
+});
+
+test('A4/A5 ZIPs accept genuine 300 PPI A4 artwork without requiring A3 enlargement',()=>{
+ const b=png();b.writeUInt32BE(2480,16);b.writeUInt32BE(3508,20);
+ assert.deepEqual(validatePosterPng(b,['A5','A4']),{width:2480,height:3508});
+ assert.throws(()=>validatePosterPng(b),/270 PPI or above at A3/);
+ const low=Buffer.from(b);low.writeUInt32BE(1200,16);low.writeUInt32BE(1700,20);
+ assert.throws(()=>validatePosterPng(low,['A5','A4']),/300 PPI at A4/);
 });

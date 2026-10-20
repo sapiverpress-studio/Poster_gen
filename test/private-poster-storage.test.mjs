@@ -64,5 +64,7 @@ test('catalogue shows custom website category, thumbnails and first-ON review wh
  assert.match(form,/name="storeOnly" checked/);
  assert.doesNotMatch(form,/type="submit" disabled/);
  const bulk=bulkCollectionBody({monthly:{used:50,limit:52,remaining:2,label:'October 2026'},sectionInfo:{sections:[{id:11,title:'Nature'}]}});
- assert.match(bulk,/name="storeOnly" type="checkbox" checked/);
+ assert.match(bulk,/name="storeOnly" type="checkbox"/);
+ assert.doesNotMatch(bulk,/name="storeOnly" type="checkbox" checked/);
+ assert.match(bulk,/ZIP size determines whether the collection fits/);
 });

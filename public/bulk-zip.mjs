@@ -1,13 +1,13 @@
 // Browser-side, bounded ZIP reader for ONE physical collection; no server-side
 // decompression, external scripts or changes to the existing Etsy/PrintShrimp worker.
 // The untrusted ZIP is fully validated before the first product is reserved.
-export const BULK_COUNT=6, BULK_ZIP_MAX=100_000_000, BULK_PNG_MAX=50_000_000;
+export const BULK_MIN_COUNT=2, BULK_MAX_COUNT=6, BULK_ZIP_MAX=100_000_000, BULK_PNG_MAX=50_000_000;
 const read16=(v,i)=>v.getUint16(i,true),read32=(v,i)=>v.getUint32(i,true);
 const decoder=new TextDecoder('utf-8',{fatal:true});
 const fail=why=>{throw Error(why)};
 function safeName(name){
  if(name.length>180||name.includes('\\')||name.startsWith('/')||name.includes('\0')||/[\u0000-\u001f]/.test(name)||name.split('/').some(x=>x==='.'||x==='..'))fail('Unsafe archive filename');
- const pieces=name.split('/');if(pieces.length>3||pieces.some(x=>x.length===0))fail('Use six poster subfolders, optionally inside one collection folder');
+ const pieces=name.split('/');if(pieces.length>3||pieces.some(x=>x.length===0))fail('Use 2 to 6 poster subfolders, optionally inside one collection folder');
  return pieces.at(-1);
 }
 const CRC_TABLE=Uint32Array.from({length:256},(_,index)=>{
@@ -25,7 +25,7 @@ export async function openPosterCollectionZip(file){
  let pos=-1;for(let i=tail.byteLength-22;i>=0;i--)if(read32(tail,i)===0x06054b50&&i+22+read16(tail,i+20)===tail.byteLength){pos=i;break;}
  if(pos<0||read16(tail,pos+4)!==0||read16(tail,pos+6)!==0||read16(tail,pos+8)!==read16(tail,pos+10))fail('Invalid ZIP directory');
  const count=read16(tail,pos+10),size=read32(tail,pos+12),offset=read32(tail,pos+16);
- if(count<BULK_COUNT*2||count>BULK_COUNT*3+1||!size||size>16384||offset+size>file.size-tailSize+pos||offset===0xffffffff)fail('ZIP must contain exactly six poster folders with poster.png and details.md');
+ if(count<BULK_MIN_COUNT*2||count>BULK_MAX_COUNT*3+1||!size||size>16384||offset+size>file.size-tailSize+pos||offset===0xffffffff)fail('ZIP must contain 2 to 6 poster folders with poster.png and details.md');
  const central=new DataView(await file.slice(offset,offset+size).arrayBuffer());
  const entries=[],directories=[],seen=new Set();let cur=0;
  for(let n=0;n<count;n++){
@@ -46,9 +46,9 @@ export async function openPosterCollectionZip(file){
   if(read32(central,cur-(46+nameLen+extraLen+commentLen)+0)!==0x02014b50)fail('Invalid central ZIP header');
   entries.push({name,base,ext,method,start,compressed,expanded,crc:read32(central,cur-(46+nameLen+extraLen+commentLen)+16)});
  }
- if(cur!==central.byteLength||entries.length!==BULK_COUNT*2)fail('The collection must contain six poster.png and six details.md files');
+ if(cur!==central.byteLength||entries.length<BULK_MIN_COUNT*2||entries.length>BULK_MAX_COUNT*2||entries.length%2!==0)fail('The collection must contain 2 to 6 poster.png and matching details.md files');
  const depths=new Set(entries.map(x=>x.name.split('/').length));
- if(depths.size!==1||![2,3].includes([...depths][0]))fail('Use six poster subfolders, optionally inside one collection folder');
+ if(depths.size!==1||![2,3].includes([...depths][0]))fail('Use 2 to 6 poster subfolders, optionally inside one collection folder');
  if([...depths][0]===3&&new Set(entries.map(x=>x.name.split('/')[0])).size!==1)fail('Use only one enclosing collection folder');
  const pairs=new Map();
  for(const entry of entries){
@@ -57,7 +57,7 @@ export async function openPosterCollectionZip(file){
   if(pair[entry.ext])fail('Duplicate artwork or details');
   pair[entry.ext]=entry;pairs.set(key,pair);
  }
- if(pairs.size!==BULK_COUNT||[...pairs.values()].some(p=>!p.png||!p.md))fail('Every poster folder needs poster.png and details.md');
+ if(pairs.size<BULK_MIN_COUNT||pairs.size>BULK_MAX_COUNT||[...pairs.values()].some(p=>!p.png||!p.md))fail('Each of the 2 to 6 poster folders needs poster.png and details.md');
  const allowedDirs=new Set([...pairs.values()].flatMap(p=>[p.folder,...(p.folder.includes('/')?[p.folder.split('/')[0]]:[])]));
  if(directories.some(d=>!allowedDirs.has(d))||new Set(directories).size!==directories.length)fail('Unexpected or duplicate empty folder');
  const readEntry=async e=>{
@@ -82,7 +82,7 @@ export async function openPosterCollectionZip(file){
   const details=parsePosterText(decoder.decode(await readEntry(pair.md)));
   items.push({...details,folder:pair.folder,filename:pair.png.base,bytes:pair.png.expanded,entry:pair.png});
  }
- return {items,async artwork(item){const bytes=await readEntry(item.entry);validatePosterPng(bytes);return new File([bytes],item.filename,{type:'image/png'});}};
+ return {items,async artwork(item){const bytes=await readEntry(item.entry);validatePosterPng(bytes,item.printSizes);return new File([bytes],item.filename,{type:'image/png'});}};
 }
 export function parsePosterText(source){
  if(typeof source!=='string'||source.length>12000||source.includes('\0'))fail('Invalid details.md file');
@@ -91,7 +91,7 @@ export function parsePosterText(source){
  if(split<0)fail('details.md needs Description: on its own line after the metadata fields');
  for(const line of lines.slice(0,split)){
   if(!line.trim())continue;
-  const m=/^(Title|Listing title|Section|Tags):[ \t]*(.+)$/i.exec(line);
+  const m=/^(Title|Listing title|Section|Sizes|Tags):[ \t]*(.+)$/i.exec(line);
   if(!m)fail('Unknown or invalid details.md field');
   const key=m[1].toLowerCase();if(Object.hasOwn(fields,key))fail('Duplicate details.md field');fields[key]=m[2].trim();
  }
@@ -103,7 +103,11 @@ export function parsePosterText(source){
  if(!/\b(?:prints?|posters?|wall art)\b/i.test(listingTitle))fail('Listing title must identify a physical print or poster');
  if(typeof sectionTitle!=='string'||sectionTitle.length>24||/[<>\u0000-\u001f\u007f]/.test(sectionTitle))fail('Section must be a valid Etsy shop section name (up to 24 characters)');
  if(tags.length!==13||tags.some(t=>!t||t.length>20||/[<>\u0000-\u001f]/.test(t))||new Set(tags.map(t=>t.toLowerCase())).size!==13)fail('Every poster needs exactly 13 unique Etsy tags, each at most 20 characters');
- return {title,listingTitle,sectionTitle,description,tags};
+ const decorativeWallArt=sectionTitle==='Wall Art';
+ const printSizes=fields.sizes?fields.sizes.split(',').map(x=>x.trim()):(decorativeWallArt?['A5','A4','A3']:['A5','A4']);
+ if(!['A5|A4','A5|A4|A3'].includes(printSizes.join('|')))fail('Sizes must be A5, A4 or A5, A4, A3 in that order');
+ if(!decorativeWallArt&&printSizes.length!==2)fail('A3 is reserved for individual decorative Wall Art; Nature and learning ZIPs offer A5 and A4 only');
+ return {title,listingTitle,sectionTitle,description,tags,printSizes};
 }
 // A stable short internal filename uses the artwork hash to distinguish namesakes.
 // The existing server derives the SKU from it and reuses it for later metadata edits.
@@ -112,10 +116,12 @@ export function collectionUploadFilename(title,sha256){
  const stem=title.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,18).replace(/-$/,'')||'POSTER';
  return 'SP-'+stem.toUpperCase()+'-'+sha256.slice(0,8).toUpperCase()+'.png';
 }
-export function validatePosterPng(b){
+export function validatePosterPng(b,printSizes=['A5','A4','A3']){
+ if(!['A5|A4','A5|A4|A3'].includes(printSizes.join('|')))fail('Unsupported print-size selection');
  const sig=[137,80,78,71,13,10,26,10];
  if(b.length<33||sig.some((n,i)=>b[i]!==n)||b[12]!==73||b[13]!==72||b[14]!==68||b[15]!==82)fail('Not a valid PNG');
  const view=new DataView(b.buffer,b.byteOffset,b.byteLength),width=view.getUint32(16),height=view.getUint32(20);
- if(width<3160||height<4470||width*height>100_000_000||Math.abs(height/width-Math.SQRT2)/Math.SQRT2>0.02)fail('Poster must be A-series portrait at 270 PPI or above at A3');
+ const a4Only=printSizes.length===2,minWidth=a4Only?2480:3160,minHeight=a4Only?3508:4470;
+ if(width<minWidth||height<minHeight||width*height>100_000_000||Math.abs(height/width-Math.SQRT2)/Math.SQRT2>0.02)fail(a4Only?'Poster must be A-series portrait at 300 PPI at A4 or above':'Poster must be A-series portrait at 270 PPI or above at A3');
  return {width,height};
 }

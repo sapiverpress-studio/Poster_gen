@@ -6,7 +6,7 @@ const cards=[...document.querySelectorAll('.poster-card')];
 const allSwitches=[...document.querySelectorAll('.poster-toggle')];
 let busy=false;
 const tell=s=>{if(status)status.textContent=s;};
-const buttons=[...document.querySelectorAll('#batch-on,#batch-off')];
+const buttons=[...document.querySelectorAll('#batch-on,#batch-off,#batch-remove-a3')];
 const refresh=document.getElementById('manager-refresh');
 refresh?.addEventListener('click',async()=>{
  if(busy)return;busy=true;refresh.disabled=true;tell('Refreshing Etsy listing status…');
@@ -48,6 +48,31 @@ async function plan(target,ids){
  }catch(e){tell('Listing change not confirmed: '+e.message);}
  finally{busy=false;disableAll(false);}
 }
+async function removeSelectedA3(ids){
+ if(busy||root?.dataset.fresh!=='true')return;
+ if(!ids.length){tell('Select existing Nature, nursery, learning or capybara posters.');return;}
+ if(ids.length>20){tell('Select at most 20 posters.');return;}
+ if(!confirm('Remove A3 from '+ids.length+' existing Etsy listing(s)?\n\nA4/A5, prices, framing and SKUs will be checked and retained. This does NOT switch listings OFF, remove supplier products or create new listings. Any unexpected variations will stop the batch.'))return;
+ busy=true;disableAll(true);tell('Submitting seller-verified A3 removal…');
+ try{
+  const r=await fetch('/poster/catalogue/sizes',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','x-poster-csrf':csrf},body:JSON.stringify({ids,operation:'remove_a3_only',confirm:true})});
+  const response=await r.json();if(!r.ok||!response.id)throw Error(response.error||'Size change was not queued');
+  for(let n=0;n<45;n++){
+   const s=await fetch('/poster/catalogue/sizes/status?id='+encodeURIComponent(response.id),{credentials:'same-origin',cache:'no-store'});
+   const result=await s.json();if(!s.ok)throw Error(result.error||'Cannot verify Etsy size changes');
+   if(result.phase==='complete'){tell('Verified A3 removed from '+result.verified+' listings. Refreshing catalogue…');location.reload();return;}
+   if(result.phase==='needs_investigation')throw Error('Size change requires inspection. '+(result.verified||0)+' verified; do not retry until the affected listings have been checked.');
+   tell('Checking A4/A5 retention and SKU mapping… '+(result.verified||0)+'/'+ids.length+' confirmed.');
+   await sleep(6000);
+  }
+  throw Error('Worker outcome pending. Check saved task status before retrying.');
+ }catch(error){tell('A3 removal not confirmed: '+error.message);}
+ finally{busy=false;disableAll(false);}
+}
+document.getElementById('batch-remove-a3')?.addEventListener('click',()=>{
+ const ids=cards.filter(card=>card.querySelector('.poster-choose:checked')).map(card=>Number(card.dataset.listing));
+ removeSelectedA3(ids);
+});
 for(const toggle of allSwitches){
  toggle.addEventListener('change',()=>{
   const id=Number(toggle.dataset.id);
