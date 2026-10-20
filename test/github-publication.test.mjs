@@ -274,3 +274,16 @@ test('worker bridge can access only numeric audited bulk-product reference keys'
   assert.equal((await call({op:'set',store:'sapiver-poster-uploads',type:'json',key:bad,data:{}})).status,403);
  }
 });
+
+test('signed worker may store one A3-removal receipt but cannot access arbitrary catalogue keys',async()=>{
+ const s=memory(),bridge=createGithubBridge({env,store:()=>s,authenticate:async()=>({})});
+ const rpc=async b=>{const r=await bridge(new Request(origin,{method:'POST',body:JSON.stringify(b)}));return {status:r.status,data:await r.json()};};
+ const key='catalogue/remove-a3/'+'z'.repeat(32);
+ let response=await rpc({op:'set',store:'sapiver-poster-uploads',key,type:'json',data:{phase:'queued',results:[]}});
+ assert.equal(response.status,200);
+ response=await rpc({op:'get',store:'sapiver-poster-uploads',key,type:'json'});
+ assert.equal(response.status,200);assert.equal(response.data.data.phase,'queued');
+ for(const bad of ['catalogue/remove-a3-current','catalogue/remove-a3/invalid','catalogue/remove-a3/'+ 'z'.repeat(32) +'/extra']){
+  assert.equal((await rpc({op:'get',store:'sapiver-poster-uploads',key:bad,type:'json'})).status,403);
+ }
+});
