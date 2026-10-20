@@ -150,7 +150,7 @@ async function start(e){
    state={version:2,signature:sig,kind:form.elements.kind.value,selectedShopSection:selected,websiteFolder:form.elements.websiteFolder?.value||'',storeOnly,
     items:archive.items.map((i,n)=>({filename:i.filename,folder:i.folder,title:i.title,listingTitle:i.listingTitle,sectionTitle:i.sectionTitle,description:i.description,tags:i.tags,printSizes:i.printSizes,sha256:artworkHashes[n],uploadFilename:collectionUploadFilename(i.title,artworkHashes[n]),id:null}))};save();
   }else{
-   if(state.items.some((v,i)=>v.filename!==archive.items[i].filename||v.folder!==archive.items[i].folder||v.listingTitle!==archive.items[i].listingTitle||v.sectionTitle!==archive.items[i].sectionTitle||v.title!==archive.items[i].title||v.description!==archive.items[i].description||v.tags.join(',')!==archive.items[i].tags.join(',')||JSON.stringify(v.printSizes)!==JSON.stringify(archive.items[i].printSizes)))
+   if(state.items.some((v,i)=>v.filename!==archive.items[i].filename||v.folder!==archive.items[i].folder||v.listingTitle!==archive.items[i].listingTitle||v.sectionTitle!==archive.items[i].sectionTitle||v.title!==archive.items[i].title||v.description!==archive.items[i].description||v.tags.join(',')!==archive.items[i].tags.join(',')||JSON.stringify(v.printSizes||['A5','A4','A3'])!==JSON.stringify(archive.items[i].printSizes)))
     throw Error('This ZIP differs from the saved collection. Do not reuse existing product receipts with different descriptions.');
    const artworkHashes=await checkAll(archive);
    if(state.items.some((v,i)=>v.sha256!==artworkHashes[i]))
