@@ -105,3 +105,15 @@ test('namesake posters get short distinct SKUs; editing the title retains saved 
  const longest=collectionUploadFilename('An unusually long but allowed artwork title','c'.repeat(64));
  assert.ok(productMetadata({name:'Long name'},longest,'physical').sku.length<=32);
 });
+
+test('Nature and verse ZIP metadata selects A4/A5; older three-size ZIPs stay compatible',()=>{
+ const nature=details(1).replace('Section: Wall Art','Section: Nature\\nSizes: A5, A4');
+ const selected=parsePosterText(nature);
+ assert.deepEqual(selected.printSizes,['A5','A4']);
+ assert.deepEqual(parsePosterText(details(1)).printSizes,['A5','A4','A3']);
+ assert.throws(()=>parsePosterText(nature.replace('A5, A4','A5, A3')),/Sizes must/);
+ assert.throws(()=>parsePosterText(nature.replace('A5, A4','A3, A4, A5')),/Sizes must/);
+ const m=productMetadata({name:'River Whisper',kind:'artwork',sectionTitle:'Nature',printSizes:selected.printSizes},'Nature.png','physical');
+ assert.deepEqual(m.printSizes,['A5','A4']);
+ assert.throws(()=>productMetadata({name:'River Whisper',kind:'artwork',printSizes:['A5','A3']},'Nature.png','physical'),/print sizes/);
+});
