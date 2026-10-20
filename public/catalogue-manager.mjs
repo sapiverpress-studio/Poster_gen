@@ -73,6 +73,11 @@ document.getElementById('batch-remove-a3')?.addEventListener('click',()=>{
  const ids=cards.filter(card=>card.querySelector('.poster-choose:checked')).map(card=>Number(card.dataset.listing));
  removeSelectedA3(ids);
 });
+const approvedExistingA4A5=[4595277551,4595921846,4595944801,4595765615,4595774989,4589715100,4589715114,4589703929,4589703919,4589703441,4597439715,4597439239,4597438717,4597459888,4597459356,4597458802];
+document.getElementById('apply-approved-a4a5')?.addEventListener('click',()=>{
+ if(root?.dataset.fresh!=='true'){tell('Refresh Etsy first so every listing is verified.');return;}
+ removeSelectedA3(approvedExistingA4A5);
+});
 for(const toggle of allSwitches){
  toggle.addEventListener('change',()=>{
   const id=Number(toggle.dataset.id);
