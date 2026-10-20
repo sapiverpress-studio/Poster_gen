@@ -113,9 +113,15 @@ test('Nature and verse ZIP metadata selects A4/A5; older three-size ZIPs stay co
  assert.deepEqual(parsePosterText(details(1)).printSizes,['A5','A4','A3']);
  assert.throws(()=>parsePosterText(nature.replace('A5, A4','A5, A3')),/Sizes must/);
  assert.throws(()=>parsePosterText(nature.replace('A5, A4','A3, A4, A5')),/Sizes must/);
+ assert.deepEqual(parsePosterText(details(1).replace('Section: Wall Art','Section: Nature')).printSizes,['A5','A4']);
+ assert.throws(()=>parsePosterText(nature.replace('A5, A4','A5, A4, A3')),/A3 is reserved/);
  const m=productMetadata({name:'River Whisper',kind:'artwork',sectionTitle:'Nature',printSizes:selected.printSizes},'Nature.png','physical');
  assert.deepEqual(m.printSizes,['A5','A4']);
  assert.throws(()=>productMetadata({name:'River Whisper',kind:'artwork',printSizes:['A5','A3']},'Nature.png','physical'),/print sizes/);
+ assert.throws(()=>productMetadata({name:'River Whisper',kind:'artwork',sectionTitle:'Nature',printSizes:['A5','A4','A3']},'Nature.png','physical'),/A3 is reserved/);
+ assert.deepEqual(productMetadata({name:'Dinosaur Timeline',kind:'dinosaur'},'Dino.png','physical').printSizes,['A5','A4']);
+ assert.deepEqual(productMetadata({name:'Learning Chart',kind:'educational'},'Learning.png','physical').printSizes,['A5','A4']);
+ assert.deepEqual(productMetadata({name:'Jazz Club',kind:'artwork',sectionTitle:'Wall Art'},'Jazz.png','physical').printSizes,['A5','A4','A3']);
 });
 
 test('A4/A5 ZIPs accept genuine 300 PPI A4 artwork without requiring A3 enlargement',()=>{
