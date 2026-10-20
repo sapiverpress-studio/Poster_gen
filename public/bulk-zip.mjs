@@ -103,8 +103,10 @@ export function parsePosterText(source){
  if(!/\b(?:prints?|posters?|wall art)\b/i.test(listingTitle))fail('Listing title must identify a physical print or poster');
  if(typeof sectionTitle!=='string'||sectionTitle.length>24||/[<>\u0000-\u001f\u007f]/.test(sectionTitle))fail('Section must be a valid Etsy shop section name (up to 24 characters)');
  if(tags.length!==13||tags.some(t=>!t||t.length>20||/[<>\u0000-\u001f]/.test(t))||new Set(tags.map(t=>t.toLowerCase())).size!==13)fail('Every poster needs exactly 13 unique Etsy tags, each at most 20 characters');
- const printSizes=fields.sizes?fields.sizes.split(',').map(x=>x.trim()):['A5','A4','A3'];
+ const decorativeWallArt=sectionTitle==='Wall Art';
+ const printSizes=fields.sizes?fields.sizes.split(',').map(x=>x.trim()):(decorativeWallArt?['A5','A4','A3']:['A5','A4']);
  if(!['A5|A4','A5|A4|A3'].includes(printSizes.join('|')))fail('Sizes must be A5, A4 or A5, A4, A3 in that order');
+ if(!decorativeWallArt&&printSizes.length!==2)fail('A3 is reserved for individual decorative Wall Art; Nature and learning ZIPs offer A5 and A4 only');
  return {title,listingTitle,sectionTitle,description,tags,printSizes};
 }
 // A stable short internal filename uses the artwork hash to distinguish namesakes.
