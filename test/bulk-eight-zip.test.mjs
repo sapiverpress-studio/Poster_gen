@@ -107,7 +107,7 @@ test('namesake posters get short distinct SKUs; editing the title retains saved 
 });
 
 test('Nature and verse ZIP metadata selects A4/A5; older three-size ZIPs stay compatible',()=>{
- const nature=details(1).replace('Section: Wall Art','Section: Nature\\nSizes: A5, A4');
+ const nature=details(1).replace('Section: Wall Art','Section: Nature'+String.fromCharCode(10)+'Sizes: A5, A4');
  const selected=parsePosterText(nature);
  assert.deepEqual(selected.printSizes,['A5','A4']);
  assert.deepEqual(parsePosterText(details(1)).printSizes,['A5','A4','A3']);
