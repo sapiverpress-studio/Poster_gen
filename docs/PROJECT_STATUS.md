@@ -1,3 +1,6 @@
+## 2026-10-21 — Audit scheduling correction
+- GitHub refused rerun of job 119252455092 twice: overall run still reported in_progress despite successful completed job. No audit mutation ran. Rebound GET-only second audit to completed run 39606841309 attempt 2; original queue remains bypassed for that exact attempt.
+
 ## 2026-10-21 — First API audit VERIFIED; reconciliation pending
 - Run 39605131581 attempt 2 / job 119252455092 succeeded: 38 supplier products, 3 bundles, 9 Woodland component records, zero merchant writes.
 - Existing 20 October products: SP-BADGER-73C91495, SP-RED-SQUIRREL-649E8590, SP-ROE-DEER-08061999. New 21 October duplicates: SP-WOOD-BADGER-3EBC29B76F, SP-WOOD-RED-SQUIRREL-0F27360216, SP-WOOD-ROE-DEER-17790EA57D.
