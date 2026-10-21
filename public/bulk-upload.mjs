@@ -135,13 +135,14 @@ async function showTrioReviews(){
   }
   trioReviews.append(card);
  }
- const all= statuses.every(x=>x&&['ready_for_approval','publishing','published'].includes(x.phase));
+ const all= statuses.every(x=>x&&['ready_for_approval','publishing','draft_verified','published'].includes(x.phase));
  const canDeploy=all&&statuses.some(x=>x.phase==='ready_for_approval');
  if(deployTrios){deployTrios.hidden=!canDeploy;deployTrios.disabled=!canDeploy||busy;}
  if(!all&&statuses.some(x=>['preparing','publishing'].includes(x.phase))){
   clearTimeout(pollHandle);pollHandle=setTimeout(()=>inspect().catch(e=>message(e.message)),9000);
  }
- if(statuses.every(x=>x.phase==='published'))message('Complete: eight Etsy listings verified — six individual prints and two separate three-print bundles.');
+ if(statuses.every(x=>x.phase==='draft_verified'))message('Six individual Etsy listings published; both three-print sets are verified Etsy drafts (inactive). PrintShrimp fulfilment and activation are not verified.');
+  else if(statuses.every(x=>x.phase==='published'))message('Eight Etsy listings active; PrintShrimp automatic order fulfilment still requires a real order-flow check.');
  else if(ready===2)message('Both trio-specific Etsy reviews are ready. Check their different descriptions, tags and supplier costs before deploying.');
 }
 async function inspect(){
