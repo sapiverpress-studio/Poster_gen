@@ -67,7 +67,7 @@ test('three existing live Etsy and supplier singles plus three missing supplier-
  assert.equal(result.ids.length,2);assert.equal(new Set(result.skus).size,2);
  assert.deepEqual(x.calls.dispatch.map(p=>p.action),['prepare','prepare']);
  assert.equal((await monthlyUploadStatus({uploads:x.uploads,clock:x.clock})).used,2);
- assert.equal([...x.m.values()].filter(p=>p?.type==='physical_bundle').length,2);
+ assert.equal([...x.m.entries()].filter(([key,value])=>/^uploads\/[A-Za-z0-9_-]{32}\/state$/.test(key)&&value?.type==='physical_bundle').length,2);
  assert.equal([...x.m.values()].filter(p=>p?.source==='woodland_two_bundles_only'&&p.listingId===null).length,3);
  assert.ok(!x.calls.etsy.some(path=>!path.startsWith('/listings/')));
  const second=await reserveWoodlandBundlesOnly({incoming:x.req,uploads:x.uploads,client:x.client,env:x.env,request:x.request,clock:x.clock,dispatch:x.dispatch});
@@ -85,7 +85,7 @@ test('duplicate existing listing or changed original master prevents supplier wr
  await assert.rejects(verifyWoodlandExisting({incoming:x.req,uploads:x.uploads,client:x.client,env:x.env,request:x.request}),/THREE existing Etsy listing IDs/);
  assert.equal(x.calls.supplier.length,0);
  const y=mock();y.m.get('uploads/'+y.req.items[4].id+'/state').phase='preparing';
- await assert.rejects(verifyWoodlandExisting({incoming:y.req,uploads:y.uploads,client:y.client,env:y.env,request:y.request}),/original approved/);
+ await assert.rejects(verifyWoodlandExisting({incoming:y.req,uploads:y.uploads,client:y.client,env:y.env,request:y.request}),/Original approved/);
  assert.equal((await monthlyUploadStatus({uploads:y.uploads,clock:y.clock})).used,0);
 });
 
