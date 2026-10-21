@@ -111,8 +111,10 @@ test('mobile session recovery restores exactly six approved source PNG reviews a
  assert.equal(x.calls.etsy.length,0);
  assert.equal(x.calls.supplier.length,0);
  assert.equal(x.calls.dispatch.length,0);
- assert.equal((await monthlyUploadStatus({uploads:x.uploads,clock:x.clock})).used,0);
+ // The six original reviews already occupy six existing upload slots; recovery consumes none.
+ assert.equal((await monthlyUploadStatus({uploads:x.uploads,clock:x.clock})).used,6);
  const again=await recoverWoodlandPrepared({uploads:x.uploads});
+ assert.equal((await monthlyUploadStatus({uploads:x.uploads,clock:x.clock})).used,6);
  assert.deepEqual(again.state,v.state);
 });
 test('recovery fails closed when any of the six original saved artwork reviews is absent or duplicated',async()=>{
