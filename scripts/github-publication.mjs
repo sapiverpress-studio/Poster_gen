@@ -36,6 +36,12 @@ try{
   }
   process.exit(0);
  }
+ if(process.env.GITHUB_RUN_ID==='39586693729'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {previewLegacyPhotos}=await import('./etsy-legacy-photo-preview.mjs');
+  await previewLegacyPhotos({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})});
+  process.exit(0);
+ }
  if(process.env.GITHUB_RUN_ID==='39606841309'&&process.env.GITHUB_RUN_ATTEMPT==='8'){
   const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
   const {auditPrimaryImages}=await import('./etsy-lead-image-audit.mjs');
