@@ -17,76 +17,8 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
- if((process.env.GITHUB_RUN_ID==='39605131581'&&process.env.GITHUB_RUN_ATTEMPT==='3')||
-  (process.env.GITHUB_RUN_ID==='39606841309'&&['9','10','11','12'].includes(process.env.GITHUB_RUN_ATTEMPT))||
-  (process.env.GITHUB_RUN_ID==='39605343364'&&['2','3'].includes(process.env.GITHUB_RUN_ATTEMPT))||
-  (process.env.GITHUB_RUN_ID==='39606236932'&&process.env.GITHUB_RUN_ATTEMPT==='2')){
-  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-  const {promoteOakFramedLead}=await import('./etsy-promote-framed-leads.mjs');
-  try{
-   await promoteOakFramedLead({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),
-    limit:process.env.GITHUB_RUN_ATTEMPT==='9'||process.env.GITHUB_RUN_ATTEMPT==='11'||
-     (process.env.GITHUB_RUN_ID==='39605343364'&&process.env.GITHUB_RUN_ATTEMPT==='2')?1:30,
-    start:process.env.GITHUB_RUN_ATTEMPT==='11'||(process.env.GITHUB_RUN_ID==='39605343364'&&process.env.GITHUB_RUN_ATTEMPT==='2')?3:0});
-  }catch(error){
-   console.error('IMAGE_GUARDED_FAILURE '+JSON.stringify({etsyStatus:Number(error.etsyStatus||0),
-    operation:String(error.etsyOperation||'validation'),
-    reason:String(error.etsyStatus?'Etsy API rejected image update':error.message||'Unknown safe image error').slice(0,100)}));
-   throw error;
-  }
-  process.exit(0);
- }
- if(process.env.GITHUB_RUN_ID==='39586502678'&&['3','4'].includes(process.env.GITHUB_RUN_ATTEMPT)){
-  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-  const {auditAllFramedMainPhotos}=await import('./etsy-framed-final-audit.mjs');
-  await auditAllFramedMainPhotos({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})});
-  process.exit(0);
- }
- if(process.env.GITHUB_RUN_ID==='39586502678'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
-  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-  const client=createEtsySession({store:etsyStore,config:etsySetup(workerEnv)});
-  const {promoteLegacyFramed}=await import('./etsy-promote-legacy-framed.mjs');
-  const {auditThirtyOakFramed}=await import('./etsy-promote-framed-leads.mjs');
-  await promoteLegacyFramed({client});
-  await auditThirtyOakFramed({client});
-  process.exit(0);
- }
- if(process.env.GITHUB_RUN_ID==='39586693729'&&process.env.GITHUB_RUN_ATTEMPT==='5'){
-  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-  const {repairFramedBundleRank}=await import('./etsy-bundle-framed-rank-repair.mjs');
-  await repairFramedBundleRank({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),listingId:4600180569});
-  process.exit(0);
- }
- if(process.env.GITHUB_RUN_ID==='39586693729'&&process.env.GITHUB_RUN_ATTEMPT==='6'){
-  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-  const {execFileSync}=await import('node:child_process');
-  execFileSync('npm',['ci','--ignore-scripts','--no-audit','--no-fund'],{stdio:'ignore',env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR}});
-  const client=createEtsySession({store:etsyStore,config:etsySetup(workerEnv)});
-  const {framedBundleCovers}=await import('./etsy-framed-bundle-cover.mjs');
-  await framedBundleCovers({uploads,client,mode:'apply',onlyListingId:4600182933});
-  process.exit(0);
- }
- if(process.env.GITHUB_RUN_ID==='39586693729'&&['3','4'].includes(process.env.GITHUB_RUN_ATTEMPT)){
-  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-  const {execFileSync}=await import('node:child_process');
-  execFileSync('npm',['ci','--ignore-scripts','--no-audit','--no-fund'],{stdio:'ignore',env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR}});
-  const {framedBundleCovers}=await import('./etsy-framed-bundle-cover.mjs');
-  await framedBundleCovers({uploads,client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),
-   mode:process.env.GITHUB_RUN_ATTEMPT==='3'?'preview':'apply'});
-  process.exit(0);
- }
- if(process.env.GITHUB_RUN_ID==='39586693729'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
-  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-  const {previewLegacyPhotos}=await import('./etsy-legacy-photo-preview.mjs');
-  await previewLegacyPhotos({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})});
-  process.exit(0);
- }
- if(process.env.GITHUB_RUN_ID==='39606841309'&&process.env.GITHUB_RUN_ATTEMPT==='8'){
-  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-  const {auditPrimaryImages}=await import('./etsy-lead-image-audit.mjs');
-  await auditPrimaryImages({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})});
-  process.exit(0);
- }
+ // Finished Etsy framed-first catalogue migration (all 37 records read back).
+ // One-off rerun triggers intentionally retired; normal queue handling follows.
  if(process.env.GITHUB_RUN_ID==='39606841309'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
   const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
   const {auditAlignment}=await import('./woodland-alignment-audit.mjs');
