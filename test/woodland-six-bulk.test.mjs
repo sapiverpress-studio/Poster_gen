@@ -82,10 +82,18 @@ test('six-poster exporter blocks changed pages or failed print dimensions, witho
  await assert.rejects(woodlandSixDownload({uploads:u}));
 });
 
-test('oversized six-image original archive is rejected before download',async()=>{
+test('the original archive may exceed old 100 MB restriction while returning bounded original chunks',async()=>{
  const uploads=storage(),args={uploads,token:'mock',request:canva()};
  await woodlandSixStart(args);await woodlandSixFinish(args);
- const record=await uploads.get('woodland-six-20261021/state');
- await uploads.setJSON('woodland-six-20261021/state',{...record,pages:record.pages.map(p=>({...p,bytes:21_000_000}))});
- await assert.rejects(woodlandSixDownload({uploads}),/capacity/);
+ const rec=await uploads.get('woodland-six-20261021/state');
+ await uploads.setJSON('woodland-six-20261021/state',{...rec,pages:rec.pages.map(x=>({...x,bytes:21000000}))});
+ const {woodlandSixManifest}=await import('../lib/woodland-six-bulk.mjs');
+ const m=await woodlandSixManifest({uploads});assert.equal(m.images.length,6);assert.equal(m.bundles.length,2);
+});
+
+test('retry is limited to verified old 100MB export errors',async()=>{
+ const s=storage();await s.setJSON('woodland-six-20261021/state',{phase:'needs_review',reason:"Canva export not fully verified: Original six PNGs exceed the importer's 100 MB collection ZIP limit."});
+ assert.equal((await woodlandSixStart({uploads:s,token:'mock',request:canva()})).phase,'in_progress');
+ const t=storage();await t.setJSON('woodland-six-20261021/state',{phase:'needs_review',reason:'Canva API failure'});
+ await assert.rejects(woodlandSixStart({uploads:t,token:'mock',request:canva()}),/review/);
 });

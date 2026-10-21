@@ -2,7 +2,7 @@ import {parseTrioDetails,validateTwoTrios} from './collection-trios.mjs';
 // Browser-side, bounded ZIP reader for ONE physical collection; no server-side
 // decompression, external scripts or changes to the existing Etsy/PrintShrimp worker.
 // The untrusted ZIP is fully validated before the first product is reserved.
-export const BULK_MIN_COUNT=2, BULK_MAX_COUNT=6, BULK_ZIP_MAX=100_000_000, BULK_PNG_MAX=50_000_000;
+export const BULK_MIN_COUNT=2, BULK_MAX_COUNT=6, BULK_ZIP_MAX=250_000_000, BULK_PNG_MAX=50_000_000;
 const read16=(v,i)=>v.getUint16(i,true),read32=(v,i)=>v.getUint32(i,true);
 const decoder=new TextDecoder('utf-8',{fatal:true});
 const fail=why=>{throw Error(why)};
@@ -21,7 +21,7 @@ function crc32(data){
  return (crc^0xffffffff)>>>0;
 }
 export async function openPosterCollectionZip(file,{allowLegacySix=false}={}){
- if(!file||!Number.isSafeInteger(file.size)||file.size<22||file.size>BULK_ZIP_MAX)fail('Use a ZIP under 100 MB');
+ if(!file||!Number.isSafeInteger(file.size)||file.size<22||file.size>BULK_ZIP_MAX)fail('Use a ZIP under 250 MB');
  const tailSize=Math.min(file.size,65557),tail=new DataView(await file.slice(file.size-tailSize).arrayBuffer());
  let pos=-1;for(let i=tail.byteLength-22;i>=0;i--)if(read32(tail,i)===0x06054b50&&i+22+read16(tail,i+20)===tail.byteLength){pos=i;break;}
  if(pos<0||read16(tail,pos+4)!==0||read16(tail,pos+6)!==0||read16(tail,pos+8)!==read16(tail,pos+10))fail('Invalid ZIP directory');
