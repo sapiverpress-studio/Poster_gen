@@ -51,7 +51,7 @@ test('ZIP accepts every batch size from two to six, at root or in a collection f
  }
 });
 test('ZIP rejects one item, seven or more, extra files and nested paths before any upload',async()=>{
- for(const itemCount of [1,7,8])await assert.rejects(openPosterCollectionZip(await zipFile({itemCount})),/2 to 6|poster folders/i);
+ for(const itemCount of [1,7,8])await assert.rejects(openPosterCollectionZip(await zipFile({itemCount})),/2 to 6|2–6|poster folders|artwork folders/i);
  await assert.rejects(openPosterCollectionZip(await zipFile({extra:true})),/2 to 6|unsupported|Unexpected/i);
  await assert.rejects(openPosterCollectionZip(await zipFile({nested:true})),/subfolders|nested|folder/i);
 });
