@@ -68,11 +68,11 @@ test('wrong CSRF and overlapping trio member are rejected without reservations',
  assert.equal((await monthlyUploadStatus({uploads:b.uploads,clock:()=>now})).used,6);
  assert.equal(b.dispatched.length,0);
 });
-test('unpublished member, changed artwork or duplicate supplier SKUs prevent queueing',async()=>{
+test('unpublished member, changed artwork or duplicate live supplier SKUs prevent queueing',async()=>{
  for(const mutate of [
   a=>{a.uploads.m.get('uploads/'+a.body.items[1].id+'/state').phase='ready_for_approval';},
   a=>{a.uploads.m.get('uploads/'+a.body.items[1].id+'/state').image.sha256='b'.repeat(64);},
-  a=>{a.body.inputs[1].sku=a.body.inputs[0].sku;}
+  a=>{a.uploads.m.get('uploads/'+a.body.items[4].id+'/state').plan.identity.sku=a.uploads.m.get('uploads/'+a.body.items[3].id+'/state').plan.identity.sku;}
  ]){
   const setupState=setup();mutate(setupState);
   const res=await setupState.handler(request('/poster/bulk/trios',setupState.body),{waitUntil(){}});
@@ -80,4 +80,23 @@ test('unpublished member, changed artwork or duplicate supplier SKUs prevent que
   assert.equal(setupState.dispatched.length,0);
   assert.equal((await monthlyUploadStatus({uploads:setupState.uploads,clock:()=>now})).used,6);
  }
+});
+
+test('manually typed client SKUs are ignored: server assigns distinct PrintShrimp bundle SKUs from verified products',async()=>{
+ const a=setup();
+ a.body.inputs[0].sku='DUPLICATE-USER-SKU';
+ a.body.inputs[1].sku='DUPLICATE-USER-SKU';
+ const res=await a.handler(request('/poster/bulk/trios',a.body),{waitUntil(){}});
+ assert.equal(res.status,201,await res.clone().text());
+ const out=await res.json();
+ assert.equal(out.skus?.length,2);
+ assert.match(out.skus[0],/^SP-TRIO-[A-F0-9]{24}$/);
+ assert.match(out.skus[1],/^SP-TRIO-[A-F0-9]{24}$/);
+ assert.notEqual(out.skus[0],out.skus[1]);
+ assert.ok(out.skus.every(s=>s!=='DUPLICATE-USER-SKU'));
+ assert.equal(a.uploads.m.get('uploads/'+out.ids[0]+'/state').sku,out.skus[0]);
+ assert.equal(a.uploads.m.get('uploads/'+out.ids[1]+'/state').sku,out.skus[1]);
+ const second=await a.handler(request('/poster/bulk/trios',a.body),{waitUntil(){}});
+ assert.equal(second.status,200);
+ assert.deepEqual((await second.json()).skus,out.skus);
 });
