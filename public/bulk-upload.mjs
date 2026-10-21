@@ -52,7 +52,7 @@ async function onZipChosen(){
   message(archive.listingCount===8?'Eight products detected: six individual posters and two separate three-print sets. Check both SKU fields and titles before uploading.':archive.items.length+' individual posters detected.');
  }catch(error){previewArchive=null;previewSignature='';trioForm?.replaceChildren();message('ZIP rejected: '+error.message+'. No products created.');}
 }
-form?.elements?.collection?.addEventListener('change',()=>{onZipChosen().catch(e=>message(e.message));});
+form?.elements?.collection?.addEventListener?.('change',()=>{onZipChosen().catch(e=>message(e.message));});
 function inputPlans(archive){
  if(!archive.bundles.length)return null;
  const inputs=archive.bundles.map((_,i)=>({sku:trioInput(i+1,'Sku')?.value?.trim(),title:trioInput(i+1,'Title')?.value?.trim(),discount:Number(trioInput(i+1,'Discount')?.value)}));
