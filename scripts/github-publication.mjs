@@ -19,18 +19,6 @@ try{
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
  // Finished Etsy framed-first catalogue migration (all 37 records read back).
  // One-off rerun triggers intentionally retired; normal queue handling follows.
- if(process.env.GITHUB_RUN_ID==='39586502678'&&['4','5','6','7'].includes(process.env.GITHUB_RUN_ATTEMPT)){
-  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-  const {finishBundleCovers}=await import('./etsy-bundle-finalize-last-mile.mjs');
-  const modes={'4':'audit','5':'fix_forest','6':'finish_hidden','7':'verify'};
-  const mode=modes[process.env.GITHUB_RUN_ATTEMPT];
-  if(mode==='finish_hidden'){
-   const {execFileSync}=await import('node:child_process');
-   execFileSync('npm',['ci','--ignore-scripts','--no-audit','--no-fund'],{stdio:'ignore',env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR}});
-  }
-  await finishBundleCovers({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),uploads,mode});
-  process.exit(0);
- }
  if(process.env.GITHUB_RUN_ID==='39606841309'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
   const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
   const {auditAlignment}=await import('./woodland-alignment-audit.mjs');
