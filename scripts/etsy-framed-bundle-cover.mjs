@@ -80,11 +80,17 @@ export async function framedBundleCovers({uploads,client,mode='preview',onlyList
    form.set('rank','1');form.set('alt_text',marker);
    const posted=await client.api('/shops/'+seller.shop_id+'/listings/'+set.listingId+'/images',{method:'POST',body:form});
    if(!posted.listing_image_id)throw Error('Etsy marketing upload outcome uncertain. Inspect before any retry');
+   // Etsy can keep the previous photo at rank 1 alongside a newly uploaded
+   // rank-1 cover. Demote only the known old cover; do not upload again.
+   const demote=new FormData();
+   demote.set('listing_image_id',String(set.oldCoverId));
+   demote.set('rank','5');
+   await client.api('/shops/'+seller.shop_id+'/listings/'+set.listingId+'/images',{method:'POST',body:demote});
    let confirmed=false;
    for(let t=0;t<20;t++){
     const res=await client.api('/listings/'+set.listingId+'/images');
     if(res.results?.length===5&&res.results.find(x=>x.rank===1)?.listing_image_id===posted.listing_image_id&&
-     res.results.some(x=>x.listing_image_id===set.oldCoverId)){
+     res.results.find(x=>x.listing_image_id===set.oldCoverId)?.rank!==1){
      confirmed=true;break;
     }
     await new Promise(resolve=>setTimeout(resolve,1200));
