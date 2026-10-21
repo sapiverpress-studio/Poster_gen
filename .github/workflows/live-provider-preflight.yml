@@ -1,0 +1,27 @@
+name: Verify live provider credentials (read only)
+on:
+  push:
+    branches: [feature/canva-oauth-callback]
+    paths:
+      - scripts/verify-live-providers-readonly.mjs
+      - .github/workflows/live-provider-preflight.yml
+permissions:
+  contents: read
+jobs:
+  preflight:
+    if: github.repository == 'sapiverpress-studio/Poster_gen' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Read-only UK supplier pricing and Etsy application credentials
+        env:
+          SHRIMP_APIKEY: ${{ secrets.SHRIMP_APIKEY }}
+          ETSY_PRINTS_KEYSTRING: ${{ secrets.ETSY_PRINTS_KEYSTRING }}
+          ETSY_PRINTS_SHARED_SECRET: ${{ secrets.ETSY_PRINTS_SHARED_SECRET }}
+        run: node scripts/verify-live-providers-readonly.mjs
