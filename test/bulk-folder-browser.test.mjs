@@ -14,43 +14,29 @@ async function zip(invalid=false,itemCount=6){
  z.end();const chunks=[];for await(const c of z.outputStream)chunks.push(c);
  return new File(chunks,'collection.zip');
 }
-test('browser imports all six folder metadata records and validates every artwork before reserving slots',async()=>{
- const nodes=new Map(),saved=new Map(),created=[],live=new Map();let file=await zip(true),handler;
+test('new six-poster collections without BOTH trio manifests stop before uploading any merchant product',async()=>{
+ const nodes=new Map(),saved=new Map(),created=[];let file=await zip(true);
  function el(){return {children:[],style:{},listeners:{},append(...v){this.children.push(...v);},replaceChildren(){this.children=[];},addEventListener(k,v){this.listeners[k]=v;},querySelector(){return button;}};}
  const button=el();
  globalThis.document={getElementById(id){if(!nodes.has(id))nodes.set(id,el());return nodes.get(id);},querySelector(){return {content:'csrf'};},createElement:el};
- const form=document.getElementById('bulk-collection-form');form.elements={collection:{get files(){return [file];}},kind:{value:'artwork'}};
+ const form=document.getElementById('bulk-collection-form');form.elements={collection:{get files(){return[file];}},kind:{value:'artwork'}};
  globalThis.sessionStorage={getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)};
  Object.defineProperty(globalThis,'crypto',{value:webcrypto,configurable:true});
- globalThis.fetch=async(url,options={})=>{
-  if(url==='/poster/bulk/status')return Response.json({remaining:52});
-  if(url==='/poster/bulk/sections')return Response.json({phase:'available',sections:[{id:123,title:'Nature'},{id:456,title:'Wall Art'}]});
-  if(url==='/poster/uploads'){
-   const body=JSON.parse(options.body);created.push(body);const id=String(created.length).padStart(32,'a');live.set(id,{phase:'uploading'});
-   return Response.json({id,chunkBytes:2000000},{status:201});
-  }
-  const id=url.split('/')[3];
-  if(url.endsWith('/finish')){live.set(id,{phase:'ready_for_approval',review:{title:'Ready',description:'Reviewed',tags,imageUrls:[]}});return Response.json({phase:'preparing'});}
-  if(url.includes('/chunks/'))return Response.json({ok:true});
-  return Response.json(live.get(id));
- };
+ globalThis.fetch=async(url,options={})=>{if(url==='/poster/uploads')created.push(JSON.parse(options.body));return Response.json({phase:'unavailable'},{status:503});};
  try{
-  await import('../public/bulk-upload.mjs');handler=form.listeners.submit;
+  await import('../public/bulk-upload.mjs');
+  const handler=form.listeners.submit;
   await handler({preventDefault(){}});
-  assert.equal(created.length,0);assert.equal(saved.size,0);assert.match(nodes.get('bulk-status').textContent,/Not a valid PNG/);
-  file=await zip();await handler({preventDefault(){}});
-  assert.equal(created.length,6);assert.equal(new Set(created.map(x=>x.filename)).size,6);
-  created.forEach((x,n)=>{
-   assert.equal(x.metadata.name,'The Puddle');assert.equal(x.metadata.etsyTitle,'Puddle Print '+n);
-   assert.equal(x.metadata.sectionTitle,'Nature');assert.equal(x.metadata.tags,tags);
-   assert.equal(x.metadata.description,'Full original description for poster '+n+'.');
-   assert.match(x.filename,/^SP-THE-PUDDLE-[A-F0-9]{8}\.png$/);
-  });
-  assert.equal(JSON.parse(saved.get('sapiver-physical-bulk-v1')).version,2);
-  assert.equal(nodes.get('bulk-deploy').hidden,false);
+  assert.equal(created.length,0);
+  assert.equal(saved.size,0);
+  assert.match(nodes.get('bulk-status').textContent,/two distinct trio listings/);
+  file=await zip(false);
+  await handler({preventDefault(){}});
+  assert.equal(created.length,0);
+  assert.equal(saved.size,0);
+  assert.match(nodes.get('bulk-status').textContent,/bundle-1.md and bundle-2.md/);
  }finally{delete globalThis.document;delete globalThis.sessionStorage;delete globalThis.fetch;}
 });
-
 test('two-item collection consumes only two slots, or stores both privately if fewer than two remain',async()=>{
  for(const remaining of [1,2,3]){
   const nodes=new Map(),saved=new Map(),created=[],live=new Map();

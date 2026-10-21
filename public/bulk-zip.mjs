@@ -1,3 +1,4 @@
+import {parseTrioDetails,validateTwoTrios} from './collection-trios.mjs';
 // Browser-side, bounded ZIP reader for ONE physical collection; no server-side
 // decompression, external scripts or changes to the existing Etsy/PrintShrimp worker.
 // The untrusted ZIP is fully validated before the first product is reserved.
@@ -19,13 +20,13 @@ function crc32(data){
  for(const byte of data)crc=(crc>>>8)^CRC_TABLE[(crc^byte)&255];
  return (crc^0xffffffff)>>>0;
 }
-export async function openPosterCollectionZip(file){
+export async function openPosterCollectionZip(file,{allowLegacySix=false}={}){
  if(!file||!Number.isSafeInteger(file.size)||file.size<22||file.size>BULK_ZIP_MAX)fail('Use a ZIP under 100 MB');
  const tailSize=Math.min(file.size,65557),tail=new DataView(await file.slice(file.size-tailSize).arrayBuffer());
  let pos=-1;for(let i=tail.byteLength-22;i>=0;i--)if(read32(tail,i)===0x06054b50&&i+22+read16(tail,i+20)===tail.byteLength){pos=i;break;}
  if(pos<0||read16(tail,pos+4)!==0||read16(tail,pos+6)!==0||read16(tail,pos+8)!==read16(tail,pos+10))fail('Invalid ZIP directory');
  const count=read16(tail,pos+10),size=read32(tail,pos+12),offset=read32(tail,pos+16);
- if(count<BULK_MIN_COUNT*2||count>BULK_MAX_COUNT*3+1||!size||size>16384||offset+size>file.size-tailSize+pos||offset===0xffffffff)fail('ZIP must contain 2 to 6 poster folders with poster.png and details.md');
+ if(count<BULK_MIN_COUNT*2||count>BULK_MAX_COUNT*3+3||!size||size>16384||offset+size>file.size-tailSize+pos||offset===0xffffffff)fail('ZIP must contain 2 to 6 poster folders with poster.png and details.md');
  const central=new DataView(await file.slice(offset,offset+size).arrayBuffer());
  const entries=[],directories=[],seen=new Set();let cur=0;
  for(let n=0;n<count;n++){
@@ -40,18 +41,20 @@ export async function openPosterCollectionZip(file){
   if(name.endsWith('/')){safeName(name.slice(0,-1));if(name.split('/').length>3)fail('Unexpected nested folder');directories.push(name.slice(0,-1));continue;}
   const base=safeName(name),lower=name.normalize('NFC').toLowerCase();
   if(seen.has(lower))fail('Duplicate poster filename');seen.add(lower);
-  const ext=base.toLowerCase()==='poster.png'?'png':base.toLowerCase()==='details.md'?'md':null;
+  const ext=base.toLowerCase()==='poster.png'?'png':base.toLowerCase()==='details.md'?'md':/^bundle-[12]\.md$/i.test(base)?'trio':null;
   if(!ext||expanded<(ext==='png'?33:30)||expanded>(ext==='png'?BULK_PNG_MAX:14000)||compressed>file.size||method===0&&expanded!==compressed)fail('ZIP contains unsupported or oversized files');
   if(read16(central,cur-(46+nameLen+extraLen+commentLen)+34)!==0)fail('Multi-disk ZIP entries are unsupported');
   if(read32(central,cur-(46+nameLen+extraLen+commentLen)+0)!==0x02014b50)fail('Invalid central ZIP header');
   entries.push({name,base,ext,method,start,compressed,expanded,crc:read32(central,cur-(46+nameLen+extraLen+commentLen)+16)});
  }
- if(cur!==central.byteLength||entries.length<BULK_MIN_COUNT*2||entries.length>BULK_MAX_COUNT*2||entries.length%2!==0)fail('The collection must contain 2 to 6 poster.png and matching details.md files');
- const depths=new Set(entries.map(x=>x.name.split('/').length));
+ const posterEntries=entries.filter(e=>e.ext!=='trio'),trioEntries=entries.filter(e=>e.ext==='trio');
+ if(cur!==central.byteLength||posterEntries.length<BULK_MIN_COUNT*2||posterEntries.length>BULK_MAX_COUNT*2||posterEntries.length%2!==0||!([0,2].includes(trioEntries.length))||entries.length!==posterEntries.length+trioEntries.length)
+  fail('Expected 2–6 artwork folders and, for a six-poster set, exactly bundle-1.md and bundle-2.md');
+ const depths=new Set(posterEntries.map(x=>x.name.split('/').length));
  if(depths.size!==1||![2,3].includes([...depths][0]))fail('Use 2 to 6 poster subfolders, optionally inside one collection folder');
- if([...depths][0]===3&&new Set(entries.map(x=>x.name.split('/')[0])).size!==1)fail('Use only one enclosing collection folder');
+ if([...depths][0]===3&&new Set(posterEntries.map(x=>x.name.split('/')[0])).size!==1)fail('Use only one enclosing collection folder');
  const pairs=new Map();
- for(const entry of entries){
+ for(const entry of posterEntries){
   const folder=entry.name.slice(0,entry.name.lastIndexOf('/')),key=folder.normalize('NFC').toLowerCase(),pair=pairs.get(key)||{folder};
   if(pair.folder!==folder)fail('Inconsistent poster folder spelling');
   if(pair[entry.ext])fail('Duplicate artwork or details');
@@ -59,6 +62,13 @@ export async function openPosterCollectionZip(file){
  }
  if(pairs.size<BULK_MIN_COUNT||pairs.size>BULK_MAX_COUNT||[...pairs.values()].some(p=>!p.png||!p.md))fail('Each of the 2 to 6 poster folders needs poster.png and details.md');
  const allowedDirs=new Set([...pairs.values()].flatMap(p=>[p.folder,...(p.folder.includes('/')?[p.folder.split('/')[0]]:[])]));
+ if(pairs.size===6&&trioEntries.length!==2&&!(allowLegacySix&&trioEntries.length===0))fail('Every new six-poster collection requires two distinct trio listings in bundle-1.md and bundle-2.md');
+ if(pairs.size!==6&&trioEntries.length!==0)fail('Trio manifests are only supported for exactly six individual posters');
+ if(trioEntries.length){
+  const root=[...depths][0]===3?posterEntries[0].name.split('/')[0]+'/':'';
+  const required=new Set([root+'bundle-1.md',root+'bundle-2.md']);
+  if(trioEntries.some(e=>!required.has(e.name)))fail('Put bundle-1.md and bundle-2.md next to the six poster folders, not inside them');
+ }
  if(directories.some(d=>!allowedDirs.has(d))||new Set(directories).size!==directories.length)fail('Unexpected or duplicate empty folder');
  const readEntry=async e=>{
   const header=new DataView(await file.slice(e.start,e.start+30).arrayBuffer());
@@ -82,7 +92,13 @@ export async function openPosterCollectionZip(file){
   const details=parsePosterText(decoder.decode(await readEntry(pair.md)));
   items.push({...details,folder:pair.folder,filename:pair.png.base,bytes:pair.png.expanded,entry:pair.png});
  }
- return {items,async artwork(item){const bytes=await readEntry(item.entry);validatePosterPng(bytes,item.printSizes);return new File([bytes],item.filename,{type:'image/png'});}};
+ let bundles=[];
+ if(trioEntries.length){
+  const sorted=trioEntries.sort((a,b)=>a.name.localeCompare(b.name,'en'));
+  bundles=validateTwoTrios(items,await Promise.all(sorted.map(async e=>parseTrioDetails(decoder.decode(await readEntry(e)),{filename:e.name}))));
+ }
+ return {items,bundles,listingCount:items.length+bundles.length,
+  async artwork(item){const bytes=await readEntry(item.entry);validatePosterPng(bytes,item.printSizes);return new File([bytes],item.filename,{type:'image/png'});}};
 }
 export function parsePosterText(source){
  if(typeof source!=='string'||source.length>12000||source.includes('\0'))fail('Invalid details.md file');
