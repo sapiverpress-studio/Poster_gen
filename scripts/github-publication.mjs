@@ -1,9 +1,5 @@
 import {workerFailure,reportWorkerResult} from '../lib/worker-diagnostics.mjs';
 import {createRemoteStore} from '../lib/github-remote-store.mjs';
-// Owner-authorised read-only supplier audit: only this failed run's second attempt.
-if(process.env.GITHUB_RUN_ID==='39605131581'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
- await import('./woodland-api-audit.mjs');
-}else{
 // Never print provider bodies, tokens, capabilities, artwork or exception text.
 try{
  const origin=process.env.POSTER_SITE_ORIGIN;
@@ -21,6 +17,12 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ if(process.env.GITHUB_RUN_ID==='39605131581'&&process.env.GITHUB_RUN_ATTEMPT==='3'){
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {auditAlignment}=await import('./woodland-alignment-audit.mjs');
+  await auditAlignment({uploads,client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),apiKey:env('SHRIMP_APIKEY')});
+  process.exit(0);
+ }
  // The Robin draft audit is allowed only on attempt TWO of its original
  // failed workflow. The branch never polls queued jobs or mutates merchants.
  // Historical Robin publication is complete; do not execute one-off recovery in ordinary worker.
@@ -184,5 +186,3 @@ try{
  }
  // End of standard publication job and read-only checks
 }catch(error){console.error('::error::Worker stopped: '+JSON.stringify(workerFailure(error))+'. Saved tasks retained; no automatic replay.');process.exitCode=1;}
-
-}

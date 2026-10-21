@@ -1,3 +1,11 @@
+## 2026-10-21 — First API audit VERIFIED; reconciliation pending
+- Run 39605131581 attempt 2 / job 119252455092 succeeded: 38 supplier products, 3 bundles, 9 Woodland component records, zero merchant writes.
+- Existing 20 October products: SP-BADGER-73C91495, SP-RED-SQUIRREL-649E8590, SP-ROE-DEER-08061999. New 21 October duplicates: SP-WOOD-BADGER-3EBC29B76F, SP-WOOD-RED-SQUIRREL-0F27360216, SP-WOOD-ROE-DEER-17790EA57D.
+- Hidden Paths currently references original Badger with size null and new Squirrel/Deer at A4. Forest Friends references original Fox/Robin/Hedgehog at A4. Original SP-WOODLAND-VERSE-TRIO also remains.
+- Earlier owned=false diagnostics are NOT failed images: first audit only recognized the documented API storage host. Next audit checks returned supplier storage hosts and image checksums without logging URLs.
+- Worker read-only audit now restricted to original run attempt 3; uses normal authenticated Etsy session/refresh, bypasses queues, lists relevant Etsy inventory and saved studio references. No product creation/deletion, publication, order or paid Netlify release.
+- Node24 new audit syntax checked. Live alignment audit PENDING.
+
 ## 2026-10-21 — Woodland API reconciliation (IN PROGRESS)
 - Owner asks to fix duplicate supplier products, align bundles and Etsy drafts, and work through the API.
 - Screenshot evidence: two Etsy trio drafts at £40.77; supplier has Forest Friends, Hidden Paths and older SP-WOODLAND-VERSE-TRIO; duplicate Badger/Red Squirrel/Roe Deer cards. Product IDs, references and artwork health are NOT yet verified.
