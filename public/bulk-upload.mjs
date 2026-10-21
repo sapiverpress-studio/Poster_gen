@@ -300,7 +300,7 @@ deploy?.addEventListener('click',async()=>{
  }
 });
 
-const only=document.getElementById('bulk-woodland-exception'),onlySwitch=document.getElementById('bulk-only-switch'),
+const only=document.getElementById('bulk-woodland-exception'),onlyRecover=document.getElementById('bulk-only-recover'),onlyRecoveryStatus=document.getElementById('bulk-only-recovery-status'),onlySwitch=document.getElementById('bulk-only-switch'),
  onlyFind=document.getElementById('bulk-only-find'),onlyMatches=document.getElementById('bulk-only-matches'),
  onlyConfirm=document.getElementById('bulk-only-confirm'),onlyConfirmLabel=document.getElementById('bulk-only-confirm-label'),
  onlyPrepare=document.getElementById('bulk-only-prepare');
@@ -313,13 +313,43 @@ function woodlandOneOffReady(){
 }
 function drawOnly(){
  if(!only)return;
- only.hidden=!woodlandOneOffReady();
- if(only.hidden)return;
- onlySwitch.hidden=state.bundlesOnly===true;
- onlyFind.hidden=state.bundlesOnly!==true||state.trioIds?.length===2;
- onlyPrepare.hidden=state.bundlesOnly!==true||state.trioIds?.length===2;
- if(state.bundlesOnly===true){deploy.hidden=true;deploy.disabled=true;}
+ only.hidden=false;
+ const ready=woodlandOneOffReady();
+ onlyRecover.hidden=ready;
+ onlySwitch.hidden=!ready||state.bundlesOnly===true;
+ onlyFind.hidden=!ready||state.bundlesOnly!==true||state.trioIds?.length===2;
+ onlyPrepare.hidden=!ready||state.bundlesOnly!==true||state.trioIds?.length===2;
+ if(ready&&state.bundlesOnly===true){deploy.hidden=true;deploy.disabled=true;}
 }
+
+onlyRecover?.addEventListener('click',async()=>{
+ if(busy)return;
+ if(woodlandOneOffReady()){
+  drawOnly();onlyRecoveryStatus.textContent='Your six original reviews are already loaded in this tab. Use Find six existing Etsy products below.';
+  return;
+ }
+ if(state){
+  onlyRecoveryStatus.textContent='A different upload session is already saved in this tab. Your existing records are safe; open this page in another tab to recover Woodland without replacing the current session.';
+  return;
+ }
+ busy=true;onlyRecover.disabled=true;
+ try{
+  onlyRecoveryStatus.textContent='Checking the six original Canva hashes against existing saved product reviews. Nothing will be re-uploaded.';
+  const response=await api('/poster/bulk/woodland-existing/recover');
+  if(response.phase!=='recovered'||response.originalsVerified!==true||response.state?.items?.length!==6||response.state.bundlesOnly!==true){
+   onlyRecoveryStatus.textContent='Recovery on HOLD: '+(response.message||'Not all six original reviews were found.')+' No new products have been created.';
+   return;
+  }
+  state=response.state;
+  save();drawOnly();
+  if(form?.elements?.kind)form.elements.kind.value='artwork';
+  onlyRecoveryStatus.textContent='Six saved original reviews recovered. Only TWO new bundles are permitted in this setup. Now select Find six existing Etsy products below.';
+  await inspect();
+ }catch(error){
+  onlyRecoveryStatus.textContent='Recovery unavailable: '+error.message+'. Your saved records have not been changed.';
+ }finally{busy=false;onlyRecover.disabled=false;}
+});
+
 onlySwitch?.addEventListener('click',()=>{
  if(!woodlandOneOffReady()||busy||state.trioIds?.length)return;
  if(seen.some(x=>x&&['publishing','published'].includes(x.phase))){message('An individual may already have been published. Inspect the saved product before switching.');return;}
