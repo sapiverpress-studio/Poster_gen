@@ -21,14 +21,12 @@ function showTrioFields(archive,signature){
  previewArchive=archive;previewSignature=signature;trioForm?.replaceChildren();
  if(!archive.bundles?.length){return;}
  const heading=text('h3','This ZIP contains 8 Etsy listings: six individual posters and two different sets of three.');
- trioForm.append(heading,text('p','The two sets will each have their own Etsy title, description, 13 tags, fixed print size and PrintShrimp SKU. All three prints in a set are unframed.'));
+ trioForm.append(heading,text('p','The two sets each have independent Etsy text and 13 tags. The system allocates the distinct PrintShrimp bundle SKUs automatically from verified component products. All three prints in a set are unframed.'));
  for(let i=0;i<2;i++){
   const b=archive.bundles[i],n=i+1,fieldset=document.createElement('fieldset');
   const legend=text('legend','Trio '+n+': '+b.title);
   fieldset.append(legend,text('p','Includes: '+b.members.join(', ')+' · '+b.size+' · '+b.sectionTitle));
-  const skuLabel=document.createElement('label');skuLabel.append(text('span','PrintShrimp bundle SKU '+n+' (required)'));
-  const sku=document.createElement('input');sku.name='trio'+n+'Sku';sku.required=true;sku.maxLength=100;sku.pattern='[A-Za-z0-9_-]{1,100}';sku.autocomplete='off';
-  sku.placeholder='SP-COLLECTION-'+n;sku.value=state?.bundles?.[i]?.input?.sku||'';skuLabel.append(sku);fieldset.append(skuLabel);
+  fieldset.append(text('p','PrintShrimp bundle SKU: assigned automatically from the verified component products after review. No manual SKU entry.'));
   const titleLabel=document.createElement('label');titleLabel.append(text('span','Etsy listing title '+n));
   const title=document.createElement('input');title.name='trio'+n+'Title';title.required=true;title.maxLength=140;
   title.value=state?.bundles?.[i]?.input?.title||b.listingTitle;titleLabel.append(title);fieldset.append(titleLabel);
@@ -49,13 +47,13 @@ async function onZipChosen(){
   message('Validating six artworks and two different trio descriptions…');
   const archive=await openPosterCollectionZip(file,{allowLegacySix:state?.version===2});
   showTrioFields(archive,signature(file));
-  message(archive.listingCount===8?'Eight products detected: six individual posters and two separate three-print sets. Check both SKU fields and titles before uploading.':archive.items.length+' individual posters detected.');
+  message(archive.listingCount===8?'Eight products detected: six individual posters and two separate three-print sets. Check the two titles before uploading; bundle SKUs are assigned automatically.':archive.items.length+' individual posters detected.');
  }catch(error){previewArchive=null;previewSignature='';trioForm?.replaceChildren();message('ZIP rejected: '+error.message+'. No products created.');}
 }
 form?.elements?.collection?.addEventListener?.('change',()=>{onZipChosen().catch(e=>message(e.message));});
 function inputPlans(archive){
  if(!archive.bundles.length)return null;
- const inputs=archive.bundles.map((_,i)=>({sku:trioInput(i+1,'Sku')?.value?.trim(),title:trioInput(i+1,'Title')?.value?.trim(),discount:Number(trioInput(i+1,'Discount')?.value)}));
+ const inputs=archive.bundles.map((_,i)=>({sku:'SP-PENDING-TRIO-'+(i+1),title:trioInput(i+1,'Title')?.value?.trim(),discount:Number(trioInput(i+1,'Discount')?.value)}));
  return makeEightListingPlan({items:archive.items,trios:archive.bundles,inputs});
 }
 async function api(url,{method='GET',body,headers={}}={}){
@@ -111,7 +109,8 @@ async function prepareTwoTrios(){
    inputs:state.bundles.map(b=>b.input)
   };
   const result=await api('/poster/bulk/trios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(submitted)});
-  if(result.ids?.length!==2)throw Error('Two bundle records were not confirmed');
+  if(result.ids?.length!==2||result.skus?.length!==2||result.skus.some(s=>!/^[A-Za-z0-9_-]{1,100}$/.test(s))||result.skus[0]===result.skus[1])throw Error('Two unique supplier bundle identities not confirmed. Inspect saved collection before retrying');
+  state.bundles.forEach((b,i)=>{b.input.sku=result.skus[i];});
   state.trioIds=result.ids;save();
  }finally{preparingTrios=false;}
 }
