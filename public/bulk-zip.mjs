@@ -20,7 +20,7 @@ function crc32(data){
  for(const byte of data)crc=(crc>>>8)^CRC_TABLE[(crc^byte)&255];
  return (crc^0xffffffff)>>>0;
 }
-export async function openPosterCollectionZip(file){
+export async function openPosterCollectionZip(file,{allowLegacySix=false}={}){
  if(!file||!Number.isSafeInteger(file.size)||file.size<22||file.size>BULK_ZIP_MAX)fail('Use a ZIP under 100 MB');
  const tailSize=Math.min(file.size,65557),tail=new DataView(await file.slice(file.size-tailSize).arrayBuffer());
  let pos=-1;for(let i=tail.byteLength-22;i>=0;i--)if(read32(tail,i)===0x06054b50&&i+22+read16(tail,i+20)===tail.byteLength){pos=i;break;}
@@ -62,7 +62,7 @@ export async function openPosterCollectionZip(file){
  }
  if(pairs.size<BULK_MIN_COUNT||pairs.size>BULK_MAX_COUNT||[...pairs.values()].some(p=>!p.png||!p.md))fail('Each of the 2 to 6 poster folders needs poster.png and details.md');
  const allowedDirs=new Set([...pairs.values()].flatMap(p=>[p.folder,...(p.folder.includes('/')?[p.folder.split('/')[0]]:[])]));
- if(pairs.size===6&&trioEntries.length!==2)fail('Every six-poster collection requires two distinct trio listings in bundle-1.md and bundle-2.md');
+ if(pairs.size===6&&trioEntries.length!==2&&!(allowLegacySix&&trioEntries.length===0))fail('Every new six-poster collection requires two distinct trio listings in bundle-1.md and bundle-2.md');
  if(pairs.size!==6&&trioEntries.length!==0)fail('Trio manifests are only supported for exactly six individual posters');
  if(trioEntries.length){
   const root=[...depths][0]===3?posterEntries[0].name.split('/')[0]+'/':'';
