@@ -21,8 +21,9 @@ function mock(){
    productId:id,image:{sha256:sha},metadata:meta,plan:{identity:{sku:'SP-NEW-'+slug},body:{
     shipping_profile_id:7,readiness_state_id:8,production_partner_ids:'9'}}});
   req.items.push({id,sha256:sha,folder:slug,listingTitle:meta.etsyTitle,sectionTitle:meta.sectionTitle,printSizes:meta.printSizes});
-  req.etsyListingIds.push(listingId);
+  req.etsyListingIds.push(i<3?listingId:0);
  }
+ m.set('woodland-six-20261021/state',{phase:'ready',pages:req.items.map(x=>({slug:x.folder,sha256:x.sha256}))});
  for(let n=1;n<=2;n++){
   const members=n===1?animals.slice(0,3):animals.slice(3);
   req.trios.push({title:'Woodland Trio '+n,listingTitle:'British Woodland Trio '+n+' Set of 3 A4 Prints',
@@ -46,7 +47,7 @@ function mock(){
   const urlText=String(url),sku=new URL(urlText).searchParams.get('sku');
   if(options.method!=='GET')throw Error('No supplier writes allowed');
   calls.supplier.push(sku);
-  if(missing.has(sku))return {ok:false,status:404};
+  if(missing.has(sku)||sku.startsWith('SP-WOOD-'))return {ok:false,status:404};
   return {ok:true,status:200,json:async()=>({success:true,product:{sku,product_id:'supplier-'+sku,variants:[{size:'A4',image_url:'https://cdn.printshrimp.com/art.png'}]}})};
  };
  const dispatch=async(id,action)=>{calls.dispatch.push({id,action})};
@@ -58,31 +59,33 @@ test('Woodland exception discovers the six existing Etsy source listing IDs read
  assert.ok(r.candidates.every(x=>x.choices.length===1));
  assert.equal(x.calls.dispatch.length,0);
 });
-test('if Badger, Red Squirrel or Roe Deer supplier product is absent, no bundles or six individual listings are reserved',async()=>{
- const x=mock();x.missing.add('SP-EXISTING-BADGER');x.missing.add('SP-EXISTING-RED-SQUIRREL');x.missing.add('SP-EXISTING-ROE-DEER');
- await assert.rejects(reserveWoodlandBundlesOnly({incoming:x.req,uploads:x.uploads,client:x.client,env:x.env,request:x.request,clock:x.clock,dispatch:x.dispatch}),/PrintShrimp/);
+test('three existing live Etsy and supplier singles plus three missing supplier-only items reserve just two bundle reviews',async()=>{
+ const x=mock();
+ const result=await reserveWoodlandBundlesOnly({incoming:x.req,uploads:x.uploads,client:x.client,env:x.env,request:x.request,clock:x.clock,dispatch:x.dispatch});
+ assert.equal(result.totalListings,2);assert.equal(result.newSingles,0);assert.equal(result.existingSingles,3);
+ assert.deepEqual(result.pendingSupplier,['badger','red-squirrel','roe-deer']);
+ assert.equal(result.ids.length,2);assert.equal(new Set(result.skus).size,2);
+ assert.deepEqual(x.calls.dispatch.map(p=>p.action),['prepare','prepare']);
+ assert.equal((await monthlyUploadStatus({uploads:x.uploads,clock:x.clock})).used,2);
+ assert.equal([...x.m.values()].filter(p=>p?.type==='physical_bundle').length,2);
+ assert.equal([...x.m.values()].filter(p=>p?.source==='woodland_two_bundles_only'&&p.listingId===null).length,3);
+ assert.ok(!x.calls.etsy.some(path=>!path.startsWith('/listings/')));
+ const second=await reserveWoodlandBundlesOnly({incoming:x.req,uploads:x.uploads,client:x.client,env:x.env,request:x.request,clock:x.clock,dispatch:x.dispatch});
+ assert.equal(second.reused,true);assert.deepEqual(second.ids,result.ids);assert.equal(x.calls.dispatch.length,2);
+});
+test('missing ORIGINAL Fox supplier product stops setup BEFORE reserving any new bundle or supplier-only component',async()=>{
+ const x=mock();x.missing.add('SP-EXISTING-FOX');
+ await assert.rejects(reserveWoodlandBundlesOnly({incoming:x.req,uploads:x.uploads,client:x.client,env:x.env,request:x.request,clock:x.clock,dispatch:x.dispatch}),/Existing fox PrintShrimp A4/);
  assert.equal((await monthlyUploadStatus({uploads:x.uploads,clock:x.clock})).used,0);
- assert.equal([...x.m.keys()].filter(k=>k.startsWith('collections/woodland-two/')).length,0);
- assert.equal([...x.m.keys()].filter(k=>k.includes('/state')&&x.m.get(k)?.type==='physical_bundle').length,0);
+ assert.equal([...x.m.values()].filter(p=>p?.type==='physical_bundle').length,0);
  assert.equal(x.calls.dispatch.length,0);
 });
-test('with six verified live singles, exactly two distinct bundle reviews are reserved and no new single-product writes occur',async()=>{
- const x=mock();const r=await reserveWoodlandBundlesOnly({incoming:x.req,uploads:x.uploads,client:x.client,env:x.env,request:x.request,clock:x.clock,dispatch:x.dispatch});
- assert.equal(r.totalListings,2);assert.equal(r.createdSingles,0);assert.equal(r.existingSingles,6);
- assert.equal(r.ids.length,2);assert.equal(new Set(r.skus).size,2);
- assert.deepEqual(x.calls.dispatch.map(y=>y.action),['prepare','prepare']);
- assert.equal((await monthlyUploadStatus({uploads:x.uploads,clock:x.clock})).used,2);
- assert.equal([...x.m.keys()].filter(k=>k.startsWith('products/')&&k.endsWith('/record')).length,2);
- const second=await reserveWoodlandBundlesOnly({incoming:x.req,uploads:x.uploads,client:x.client,env:x.env,request:x.request,clock:x.clock,dispatch:x.dispatch});
- assert.equal(second.reused,true);assert.deepEqual(second.ids,r.ids);
- assert.equal(x.calls.dispatch.length,2);
-});
-test('same listing ID reused for two animals or unapproved source prevents any supplier or Etsy writes',async()=>{
- const x=mock();x.req.etsyListingIds[5]=x.req.etsyListingIds[4];
- await assert.rejects(verifyWoodlandExisting({incoming:x.req,uploads:x.uploads,client:x.client,env:x.env,request:x.request}),/distinct/);
+test('duplicate existing listing or changed original master prevents supplier writes',async()=>{
+ const x=mock();x.req.etsyListingIds[1]=x.req.etsyListingIds[0];
+ await assert.rejects(verifyWoodlandExisting({incoming:x.req,uploads:x.uploads,client:x.client,env:x.env,request:x.request}),/THREE existing Etsy listing IDs/);
  assert.equal(x.calls.supplier.length,0);
- const y=mock();y.uploads.m.get('uploads/'+y.req.items[4].id+'/state').phase='preparing';
- await assert.rejects(verifyWoodlandExisting({incoming:y.req,uploads:y.uploads,client:y.client,env:y.env,request:y.request}),/prepared, unchanged/);
+ const y=mock();y.m.get('uploads/'+y.req.items[4].id+'/state').phase='preparing';
+ await assert.rejects(verifyWoodlandExisting({incoming:y.req,uploads:y.uploads,client:y.client,env:y.env,request:y.request}),/original approved/);
  assert.equal((await monthlyUploadStatus({uploads:y.uploads,clock:y.clock})).used,0);
 });
 
