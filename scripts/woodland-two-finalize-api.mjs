@@ -3,7 +3,9 @@
 // no singles. Exact listing/SKU allowlist. Execute audit before any writes.
 import {SHRIMP_API} from '../lib/printshrimp-api.mjs';
 import {quoteSupplierGB,computeUKBundleQuote} from '../lib/three-print-bundle.mjs';
-import {assetKey,hashBytes} from '../lib/uploaded-poster.mjs';
+import {createHash} from 'node:crypto';
+const assetKey=id=>'uploads/'+id+'/state';
+const hashBytes=x=>createHash('sha256').update(x).digest('hex');
 const fail=x=>{throw Error(x);};
 const groups=[
  {name:'Forest Friends',listingId:4600180569,sku:'SP-TRIO-D1B581C8843C136EF3744B3D',
