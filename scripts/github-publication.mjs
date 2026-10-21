@@ -17,6 +17,13 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ if(process.env.GITHUB_RUN_ID==='39606841309'&&['9','10'].includes(process.env.GITHUB_RUN_ATTEMPT)){
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {promoteOakFramedLead}=await import('./etsy-promote-framed-leads.mjs');
+  await promoteOakFramedLead({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),
+   limit:process.env.GITHUB_RUN_ATTEMPT==='9'?1:30});
+  process.exit(0);
+ }
  if(process.env.GITHUB_RUN_ID==='39606841309'&&process.env.GITHUB_RUN_ATTEMPT==='8'){
   const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
   const {auditPrimaryImages}=await import('./etsy-lead-image-audit.mjs');
