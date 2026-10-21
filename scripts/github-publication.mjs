@@ -51,6 +51,21 @@ try{
   await auditThirtyOakFramed({client});
   process.exit(0);
  }
+ if(process.env.GITHUB_RUN_ID==='39586693729'&&process.env.GITHUB_RUN_ATTEMPT==='5'){
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {repairFramedBundleRank}=await import('./etsy-bundle-framed-rank-repair.mjs');
+  await repairFramedBundleRank({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),listingId:4600180569});
+  process.exit(0);
+ }
+ if(process.env.GITHUB_RUN_ID==='39586693729'&&process.env.GITHUB_RUN_ATTEMPT==='6'){
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {execFileSync}=await import('node:child_process');
+  execFileSync('npm',['ci','--ignore-scripts','--no-audit','--no-fund'],{stdio:'ignore',env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR}});
+  const client=createEtsySession({store:etsyStore,config:etsySetup(workerEnv)});
+  const {framedBundleCovers}=await import('./etsy-framed-bundle-cover.mjs');
+  await framedBundleCovers({uploads,client,mode:'apply',onlyListingId:4600182933});
+  process.exit(0);
+ }
  if(process.env.GITHUB_RUN_ID==='39586693729'&&['3','4'].includes(process.env.GITHUB_RUN_ATTEMPT)){
   const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
   const {execFileSync}=await import('node:child_process');

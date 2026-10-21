@@ -32,11 +32,12 @@ function drawScene(title){
  <text x="800" y="1024" fill="#5e655f" font-family="sans-serif" font-size="24" text-anchor="middle">Frames shown for display only — frames are not included</text>
  </svg>`);
 }
-export async function framedBundleCovers({uploads,client,mode='preview'}){
+export async function framedBundleCovers({uploads,client,mode='preview',onlyListingId=null}){
  if(!['preview','apply'].includes(mode))throw Error('Invalid photo operation');
  const {default:sharp}=await import('sharp');
  const seller=await client.session();if(seller.shop_name!=='SapiverPrints')throw Error('Wrong seller');
  for(const set of sets){
+  if(onlyListingId!==null&&set.listingId!==onlyListingId)continue;
   const state=await uploads.get('uploads/'+set.id+'/state',{type:'json',consistency:'strong'});
   if(state?.type!=='physical_bundle'||state.listingId!==set.listingId||state.sku!==set.sku||
    state.phase!=='published'||state.plan?.previewHashes?.length!==4||
