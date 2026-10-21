@@ -1,0 +1,60 @@
+name: Woodland supplier API audit
+on:
+  push:
+    branches: ["fix/woodland-api-audit-20261021"]
+    paths: [".github/workflows/woodland-api-audit.yml"]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Read supplier products and bundle references only
+        env:
+          SHRIMP_APIKEY: ${{ secrets.SHRIMP_APIKEY }}
+        run: |
+          node --input-type=module <<'NODE'
+          const base='https://api.printshrimp.com/functions/v1';
+          const key=process.env.SHRIMP_APIKEY;
+          if(!key)throw Error('Saved supplier key unavailable');
+          async function get(path){
+           const r=await fetch(base+path,{method:'GET',headers:{'x-api-key':key,Accept:'application/json'},redirect:'error',signal:AbortSignal.timeout(25000)});
+           if(!r.ok)throw Error('Supplier GET HTTP '+r.status);
+           const j=await r.json();if(j.success!==true)throw Error('Supplier response incomplete');return j;
+          }
+          async function list(endpoint,field,total){
+           const result=[];
+           for(let page=1;page<=40;page++){
+            const j=await get(endpoint+'?page='+page);
+            if(!Array.isArray(j[field])||!Number.isInteger(j[total]))throw Error('Unexpected pagination');
+            result.push(...j[field]);if(result.length>=j[total])return result;
+            if(j[field].length===0)throw Error('Incomplete pagination');
+           }
+           throw Error('Catalogue exceeds bounded audit');
+          }
+          const products=await list('/api-get-product','products','total_products');
+          const bundles=await list('/api-get-bundle','bundles','total_bundles');
+          const relevant=products.filter(p=>/badger|squirrel|roe deer|hedgehog|robin|fox/i.test(p.name||''));
+          async function imageCheck(url){
+           if(!url)return {present:false};
+           let u;try{u=new URL(url)}catch{return {present:true,owned:false}}
+           const owned=u.origin==='https://api.printshrimp.com'&&u.pathname.startsWith('/storage/');
+           if(!owned)return {present:true,owned:false};
+           const r=await fetch(u,{method:'HEAD',redirect:'error',signal:AbortSignal.timeout(20000)});
+           return {present:true,owned:true,status:r.status};
+          }
+          for(const p of relevant){
+           const variants=[];
+           for(const v of p.variants||[])variants.push({id:v.variant_id,size:v.size,sku:v.sku,image:await imageCheck(v.image_url),thumbnail:await imageCheck(v.thumbnail_url)});
+           console.log('PRODUCT '+JSON.stringify({id:p.product_id,name:p.name,sku:p.sku,created:p.created_at,variants,usedBy:bundles.filter(b=>(b.items||[]).some(i=>i.product_id===p.product_id)).map(b=>b.sku)}));
+          }
+          for(const b of bundles.filter(b=>/woodland|forest friends|hidden paths/i.test(b.name||'')||/SP-TRIO|SP-WOODLAND/.test(b.sku||''))){
+           console.log('BUNDLE '+JSON.stringify({id:b.bundle_id,name:b.name,sku:b.sku,totalPrints:b.total_prints,items:(b.items||[]).map(i=>({productId:i.product_id,sku:i.sku,name:i.name,size:i.size,quantity:i.quantity}))}));
+          }
+          console.log('AUDIT_COMPLETE '+JSON.stringify({products:products.length,bundles:bundles.length,matched:relevant.length,writes:0}));
+          
+          NODE
