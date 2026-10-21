@@ -45,6 +45,15 @@ try{
   await auditThirtyOakFramed({client});
   process.exit(0);
  }
+ if(process.env.GITHUB_RUN_ID==='39586693729'&&['3','4'].includes(process.env.GITHUB_RUN_ATTEMPT)){
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {execFileSync}=await import('node:child_process');
+  execFileSync('npm',['ci','--ignore-scripts','--no-audit','--no-fund'],{stdio:'ignore',env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR}});
+  const {framedBundleCovers}=await import('./etsy-framed-bundle-cover.mjs');
+  await framedBundleCovers({uploads,client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),
+   mode:process.env.GITHUB_RUN_ATTEMPT==='3'?'preview':'apply'});
+  process.exit(0);
+ }
  if(process.env.GITHUB_RUN_ID==='39586693729'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
   const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
   const {previewLegacyPhotos}=await import('./etsy-legacy-photo-preview.mjs');
