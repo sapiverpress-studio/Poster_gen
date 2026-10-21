@@ -1,5 +1,9 @@
 import {workerFailure,reportWorkerResult} from '../lib/worker-diagnostics.mjs';
 import {createRemoteStore} from '../lib/github-remote-store.mjs';
+// Owner-authorised read-only supplier audit: only this failed run's second attempt.
+if(process.env.GITHUB_RUN_ID==='39605131581'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
+ await import('./woodland-api-audit.mjs');
+}else{
 // Never print provider bodies, tokens, capabilities, artwork or exception text.
 try{
  const origin=process.env.POSTER_SITE_ORIGIN;
@@ -180,3 +184,5 @@ try{
  }
  // End of standard publication job and read-only checks
 }catch(error){console.error('::error::Worker stopped: '+JSON.stringify(workerFailure(error))+'. Saved tasks retained; no automatic replay.');process.exitCode=1;}
+
+}

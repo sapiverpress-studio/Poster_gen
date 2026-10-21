@@ -1,3 +1,11 @@
+## 2026-10-21 — Woodland API reconciliation (IN PROGRESS)
+- Owner asks to fix duplicate supplier products, align bundles and Etsy drafts, and work through the API.
+- Screenshot evidence: two Etsy trio drafts at £40.77; supplier has Forest Friends, Hidden Paths and older SP-WOODLAND-VERSE-TRIO; duplicate Badger/Red Squirrel/Roe Deer cards. Product IDs, references and artwork health are NOT yet verified.
+- Read-only audit workflow staged on fix/woodland-api-audit-20261021, commit f20c2103, but no run was observed. Existing worker audit is restricted to run 39605131581 attempt 2 and bypasses bootstrap, queue and all merchant writes. Ordinary runs are unchanged.
+- Added scripts/woodland-api-audit.mjs; GET-only paginated products/bundles, supplier-host-only image HEAD checks. Output excludes credentials and image URLs. No orders, publications, deletion or new products.
+- Validation: Node24 syntax checks passed for audit and final worker hook; mocked supplier catalogue verifies exactly two GETs, product-to-bundle references and zero writes. Initial local hook syntax failed because imports were inside a block; corrected before commit.
+- Cost: [skip netlify], no website release requested. Live audit and corrective mutations remain PENDING; do not report fixed from screenshots.
+
 ## 2026-10-20 — Woodland verse and A4/A5 catalogue alignment (RELEASED CODE / MERCHANT ACTION PENDING)
 - Owner decisions: Nature, wildlife, children's educational, dinosaur, nursery and children's seasonal prints are A4/A5 only. Separate decorative Wall Art may offer A3/A4/A5 when genuine print detail supports it. The established Woodland and Elephant Verse collections require the original four-line poem **printed on each poster**; do not package the unversed Elephant Nature collection. Add a suitable room-specific phrase among the 13 Etsy tags.
 - **Production verified:** PRs #53–55 merged; full Node24 CI passed; Netlify release `6ad75bcc29db8e251b6e7c30` published commit `be69788b2f27781167085d0374b281a6589c1410`. Owner-authenticated `/poster/catalogue` now supports one-click A3 removal from the existing 16 eligible listings, retaining original listing ID/SKU/frames/prices, with preflight and read-back. The final release also updates descriptions to remove obsolete A3 statements and can skip variant PUTs for listings already A4/A5.
