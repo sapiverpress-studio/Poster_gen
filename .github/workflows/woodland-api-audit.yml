@@ -55,6 +55,8 @@ jobs:
           for(const b of bundles.filter(b=>/woodland|forest friends|hidden paths/i.test(b.name||'')||/SP-TRIO|SP-WOODLAND/.test(b.sku||''))){
            console.log('BUNDLE '+JSON.stringify({id:b.bundle_id,name:b.name,sku:b.sku,totalPrints:b.total_prints,items:(b.items||[]).map(i=>({productId:i.product_id,sku:i.sku,name:i.name,size:i.size,quantity:i.quantity}))}));
           }
+          console.log('BUNDLE_ALIGNMENT '+JSON.stringify(bundles.filter(b=>/^SP-(?:TRIO-|WOODLAND-VERSE-TRIO)/.test(b.sku||'')).map(b=>({sku:b.sku,name:b.name,allA4:(b.items||[]).length===3&&b.items.every(i=>i.size==='A4'&&i.quantity===1),parts:(b.items||[]).map(i=>({sku:i.sku,size:i.size,quantity:i.quantity,productId:i.product_id}))}))));
+          console.log('AUDIT_TIME '+new Date().toISOString());
           console.log('AUDIT_COMPLETE '+JSON.stringify({products:products.length,bundles:bundles.length,matched:relevant.length,writes:0}));
           
           NODE
