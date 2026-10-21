@@ -32,7 +32,7 @@ Hidden Paths' old mixed-source bundle was deleted and created again **with the s
 - Unused `SP-WOOD-RED-SQUIRREL-0F27360216`
 - Unused `SP-WOOD-ROE-DEER-17790EA57D`
 
-Preflight confirmed no seller Etsy listing referenced these SKUs, no active supplier bundle used the redundant products, and zero paid PrintShrimp orders. Deletions were read back; both current bundles and Etsy listings were rechecked after cleanup.
+Preflight confirmed no seller Etsy listing referenced these SKUs, no active supplier bundle used the redundant products, and zero paid PrintShrimp orders. Each provider DELETE acknowledgement was checked; both current bundles and Etsy listings were read back after cleanup.
 
 ## Financial and QA
 
