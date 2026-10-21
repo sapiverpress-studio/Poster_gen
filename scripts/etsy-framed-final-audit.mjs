@@ -22,6 +22,7 @@ export async function auditAllFramedMainPhotos({client}){
   const inv=await client.api('/listings/'+x.id+'/inventory');
   const product=(inv.products||[]).filter(y=>!y.is_deleted);
   const lead=pictures.results?.find(y=>y.rank===1);
+  console.log('BUNDLE_FRAME_STATE '+JSON.stringify({id:x.id,images:pictures.results?.map(i=>({id:i.listing_image_id,rank:i.rank,alt:!!i.alt_text,marker:i.alt_text?.includes('Sapiver Prints '+x.title)})),count:pictures.results?.length}));
   if(l.state==='active'&&l.shop_id===seller.shop_id&&pictures.results?.length===5&&
     lead?.alt_text==='Sapiver Prints '+x.title+' three unframed A4 posters shown in oak frames for display only. Frames are not included.'&&
     pictures.results.some(y=>y.listing_image_id===x.previous)&&product.length===1&&product[0].sku===x.sku){
