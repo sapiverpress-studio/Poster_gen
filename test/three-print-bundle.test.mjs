@@ -55,3 +55,12 @@ test('ambiguous provider post stays claimed and cannot be retried into duplicate
  await assert.rejects(createOrVerifyTrio({store,key:'bundle/SKU',request,apiKey:'private',sku:bundle.sku,name:'Woodland Set',items}),/already reserved/);
  assert.equal(posts,1);
 });
+
+
+test('supplier bundle reuses only the exact original product IDs behind all three SKUs',async()=>{
+ const ids=new Map(items.map((x,i)=>[x.sku.toLowerCase(),'product-'+i]));
+ const requester=async()=>({ok:true,status:200,json:async()=>({success:true,bundle})});
+ assert.equal((await createOrVerifyTrio({store:mem(),key:'bundle/SKU',request:requester,apiKey:'private',sku:bundle.sku,name:'Woodland Set',items,productIds:ids})).reused,true);
+ const drifted=new Map(ids);drifted.set(items[0].sku.toLowerCase(),'replaced-artwork-product');
+ await assert.rejects(createOrVerifyTrio({store:mem(),key:'bundle/SKU',request:requester,apiKey:'private',sku:bundle.sku,name:'Woodland Set',items,productIds:drifted}),/product IDs changed/);
+});
