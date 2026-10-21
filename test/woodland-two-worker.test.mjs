@@ -26,7 +26,7 @@ test('one authenticated worker request prepares exactly two independent bundle r
 });
 test('missing second bundle identity blocks all bundle preparation',async()=>{
  const x=setup();x.dependencies.reserveWoodlandBundlesOnly=async()=>({ids:[x.ids[0]],skus:['A'],newSingles:0});
- await assert.rejects(processWoodlandTwo({id:x.id,uploads:x.uploads,dependencies:x.dependencies}),/Exactly two/);
+ await assert.rejects(processWoodlandTwo({id:x.id,uploads:x.uploads,dependencies:x.dependencies}),/Two distinct bundle records/);
  assert.equal(x.calls.prepare.length,0);
 });
 test('interrupted second review retains both reserved bundle IDs for investigation and never declares success',async()=>{
