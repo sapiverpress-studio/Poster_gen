@@ -1,4 +1,5 @@
 import {makeWoodlandZip} from './woodland-six-zip.mjs';
+import {createResumableChunkFetcher} from './woodland-six-resume.mjs';
 const root=document.getElementById('woodland-tools'),start=document.getElementById('woodland-start'),download=document.getElementById('woodland-download'),status=document.getElementById('woodland-status');
 const csrf=root?.dataset.csrf||'';
 function render(phase){
@@ -29,15 +30,19 @@ download?.addEventListener('click',async()=>{
  try{
   const r=await fetch('/poster/woodland-six/manifest',{credentials:'same-origin',cache:'no-store'});
   if(!r.ok)throw Error('Canva originals not ready');const m=await r.json();
-  const result=await makeWoodlandZip(m,async(img,part)=>{
-   const p=await fetch('/poster/woodland-six/chunk?'+new URLSearchParams({slug:img.slug,part:String(part)}),{credentials:'same-origin',cache:'no-store'});
-   if(!p.ok)throw Error('Original artwork download interrupted');return new Uint8Array(await p.arrayBuffer());
-  },msg=>{status.textContent=msg});
+  const resumable=await createResumableChunkFetcher({
+   manifest:m,request:fetch,
+   progress:msg=>{status.textContent=msg}
+  });
+  const result=await makeWoodlandZip(m,resumable.getPart,msg=>{status.textContent=msg});
+  if(result.size>250000000)throw Error('ZIP exceeds bulk uploader capacity');
   const url=URL.createObjectURL(result),a=document.createElement('a');a.href=url;
   a.download='Sapiver_Woodland_Verses_Six_Posters_Two_A4_Trios.zip';
   document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
-  status.textContent='Original ZIP prepared. Reuse existing Fox, Robin and Hedgehog supplier products. Do not create duplicate listings.';
- }catch(e){status.textContent='Download failed: '+e.message;}finally{download.disabled=false;}
+  status.textContent='ZIP download started. Open Downloads to check the saved file before uploading. Fox, Robin and Hedgehog supplier records must be reused.';
+  // Clear local temporary copies only after browser has started saving the ZIP.
+  setTimeout(()=>resumable.clear().catch(()=>{}),120000);
+ }catch(e){status.textContent='Download interrupted: '+e.message+' Tap Download again to resume; do not re-export from Canva.';}finally{download.disabled=false;}
 });
 render(root?.dataset.phase);
 if(['exporting','in_progress','finalizing'].includes(root?.dataset.phase))poll().catch(e=>{status.textContent=e.message;});
