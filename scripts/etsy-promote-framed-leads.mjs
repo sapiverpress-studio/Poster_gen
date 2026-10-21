@@ -24,9 +24,16 @@ export async function promoteOakFramedLead({client,limit=1,start=0}){
   console.log('IMAGE_STAGE promoting_'+listingId);
   await client.api('/shops/'+seller.shop_id+'/listings/'+listingId+'/images',{method:'POST',body:form});
   console.log('IMAGE_STAGE checking_'+listingId);
-  const after=await client.api('/listings/'+listingId+'/images');
-  if(after.results?.length!==4||after.results.find(x=>x.rank===1)?.listing_image_id!==oakId||
-   !after.results.some(x=>x.listing_image_id===originalId))throw Error('Image reorder verification failed '+listingId);
+  let confirmed=false;
+  // Etsy processes existing-image rank reassignment asynchronously, even after
+  // HTTP 201. Never make a second POST merely because the first GET is stale.
+  for(let attempt=0;attempt<16;attempt++){
+   const after=await client.api('/listings/'+listingId+'/images');
+   if(after.results?.length===4&&after.results.find(x=>x.rank===1)?.listing_image_id===oakId&&
+    after.results.some(x=>x.listing_image_id===originalId)){confirmed=true;break;}
+   await new Promise(resolve=>setTimeout(resolve,1200));
+  }
+  if(!confirmed)throw Error('Etsy image rank still unconfirmed after waiting '+listingId);
   const check=await client.api('/listings/'+listingId);
   if(check.state!=='active'||check.shop_id!==seller.shop_id)throw Error('Listing state changed after reorder');
   changed++;console.log('IMAGE_PRIMARY_VERIFIED '+JSON.stringify({listingId,framedImageId:oakId,originalArtworkRetained:true}));
