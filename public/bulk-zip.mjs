@@ -26,7 +26,7 @@ export async function openPosterCollectionZip(file,{allowLegacySix=false}={}){
  let pos=-1;for(let i=tail.byteLength-22;i>=0;i--)if(read32(tail,i)===0x06054b50&&i+22+read16(tail,i+20)===tail.byteLength){pos=i;break;}
  if(pos<0||read16(tail,pos+4)!==0||read16(tail,pos+6)!==0||read16(tail,pos+8)!==read16(tail,pos+10))fail('Invalid ZIP directory');
  const count=read16(tail,pos+10),size=read32(tail,pos+12),offset=read32(tail,pos+16);
- if(count<BULK_MIN_COUNT*2||count>BULK_MAX_COUNT*3+1||!size||size>16384||offset+size>file.size-tailSize+pos||offset===0xffffffff)fail('ZIP must contain 2 to 6 poster folders with poster.png and details.md');
+ if(count<BULK_MIN_COUNT*2||count>BULK_MAX_COUNT*3+3||!size||size>16384||offset+size>file.size-tailSize+pos||offset===0xffffffff)fail('ZIP must contain 2 to 6 poster folders with poster.png and details.md');
  const central=new DataView(await file.slice(offset,offset+size).arrayBuffer());
  const entries=[],directories=[],seen=new Set();let cur=0;
  for(let n=0;n<count;n++){
