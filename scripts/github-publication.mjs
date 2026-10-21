@@ -36,6 +36,15 @@ try{
   }
   process.exit(0);
  }
+ if(process.env.GITHUB_RUN_ID==='39586502678'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const client=createEtsySession({store:etsyStore,config:etsySetup(workerEnv)});
+  const {promoteLegacyFramed}=await import('./etsy-promote-legacy-framed.mjs');
+  const {auditThirtyOakFramed}=await import('./etsy-promote-framed-leads.mjs');
+  await promoteLegacyFramed({client});
+  await auditThirtyOakFramed({client});
+  process.exit(0);
+ }
  if(process.env.GITHUB_RUN_ID==='39586693729'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
   const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
   const {previewLegacyPhotos}=await import('./etsy-legacy-photo-preview.mjs');

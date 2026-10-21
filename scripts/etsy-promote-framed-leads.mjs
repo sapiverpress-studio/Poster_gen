@@ -45,3 +45,18 @@ export async function promoteOakFramedLead({client,limit=1,start=0}){
  }
  console.log('IMAGE_PROMOTION_COMPLETE '+JSON.stringify({tested:Math.min(limit,approved.length-start),changed,already,pending,totalApproved:approved.length}));
 }
+
+export async function auditThirtyOakFramed({client}){
+ const seller=await client.session();if(seller.shop_name!=='SapiverPrints')throw Error('Unexpected Etsy seller');
+ const settled=[],missing=[],unexpected=[];
+ for(const [id,original,oak] of approved){
+  const listing=await client.api('/listings/'+id);
+  const imgs=await client.api('/listings/'+id+'/images');
+  if(listing.state!=='active'||listing.shop_id!==seller.shop_id||imgs.results?.length!==4||
+   !imgs.results.some(i=>i.listing_image_id===original))unexpected.push(id);
+  else if(imgs.results.find(i=>i.rank===1)?.listing_image_id===oak)settled.push(id);
+  else missing.push(id);
+ }
+ console.log('STANDARD_FRAME_READBACK '+JSON.stringify({total:approved.length,settled,missing,unexpected}));
+ return {settled,missing,unexpected};
+}
