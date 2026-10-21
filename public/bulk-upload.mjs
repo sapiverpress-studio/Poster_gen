@@ -317,7 +317,7 @@ function drawOnly(){
  onlyRecover.hidden=ready;
  onlySwitch.hidden=!ready||state.bundlesOnly===true;
  onlyPrepare.hidden=!ready||state.bundlesOnly!==true||state.trioIds?.length===2;
- onlyPrepare.disabled=!!state.woodlandRequestId;
+ onlyPrepare.disabled=!!state?.woodlandRequestId;
  if(ready&&state.bundlesOnly===true){deploy.hidden=true;deploy.disabled=true;}
 }
 
