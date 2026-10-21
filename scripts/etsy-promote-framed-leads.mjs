@@ -4,8 +4,9 @@ const approved=[[4599438228,8758815115,8710999828],[4599437738,8758811709,871099
 export async function promoteOakFramedLead({client,limit=1,start=0}){
  const seller=await client.session();
  if(seller.shop_name!=='SapiverPrints'||!Number.isSafeInteger(seller.shop_id))throw Error('Seller mismatch');
- let changed=0,already=0;
+ let changed=0,already=0,pending=[];
  for(const [listingId,originalId,oakId] of approved.slice(start,start+limit)){
+  try{
   console.log('IMAGE_STAGE listing_'+listingId);
   const listing=await client.api('/listings/'+listingId);
   if(listing.shop_id!==seller.shop_id||listing.state!=='active'||listing.listing_type!=='physical')
@@ -37,6 +38,10 @@ export async function promoteOakFramedLead({client,limit=1,start=0}){
   const check=await client.api('/listings/'+listingId);
   if(check.state!=='active'||check.shop_id!==seller.shop_id)throw Error('Listing state changed after reorder');
   changed++;console.log('IMAGE_PRIMARY_VERIFIED '+JSON.stringify({listingId,framedImageId:oakId,originalArtworkRetained:true}));
+  }catch(error){
+   pending.push(listingId);
+   console.log('IMAGE_ITEM_PENDING '+JSON.stringify({listingId,reason:Number(error?.etsyStatus||0)?'etsy_http_'+error.etsyStatus:String(error.message||'unknown').slice(0,95)}));
+  }
  }
- console.log('IMAGE_PROMOTION_COMPLETE '+JSON.stringify({tested:Math.min(limit,approved.length-start),changed,already,totalApproved:approved.length}));
+ console.log('IMAGE_PROMOTION_COMPLETE '+JSON.stringify({tested:Math.min(limit,approved.length-start),changed,already,pending,totalApproved:approved.length}));
 }

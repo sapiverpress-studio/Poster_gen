@@ -19,7 +19,8 @@ try{
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
  if((process.env.GITHUB_RUN_ID==='39605131581'&&process.env.GITHUB_RUN_ATTEMPT==='3')||
   (process.env.GITHUB_RUN_ID==='39606841309'&&['9','10','11','12'].includes(process.env.GITHUB_RUN_ATTEMPT))||
-  (process.env.GITHUB_RUN_ID==='39605343364'&&['2','3'].includes(process.env.GITHUB_RUN_ATTEMPT))){
+  (process.env.GITHUB_RUN_ID==='39605343364'&&['2','3'].includes(process.env.GITHUB_RUN_ATTEMPT))||
+  (process.env.GITHUB_RUN_ID==='39606236932'&&process.env.GITHUB_RUN_ATTEMPT==='2')){
   const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
   const {promoteOakFramedLead}=await import('./etsy-promote-framed-leads.mjs');
   try{
