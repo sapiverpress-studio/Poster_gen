@@ -89,6 +89,8 @@ test('the original archive may exceed old 100 MB restriction while returning bou
  await uploads.setJSON('woodland-six-20261021/state',{...rec,pages:rec.pages.map(x=>({...x,bytes:21000000}))});
  const {woodlandSixManifest}=await import('../lib/woodland-six-bulk.mjs');
  const m=await woodlandSixManifest({uploads});assert.equal(m.images.length,6);assert.equal(m.bundles.length,2);
+ assert.match(m.images[0].details,/AI assistance/);
+ assert.match(m.images[5].details,/AI assistance/);
 });
 
 test('retry is limited to verified old 100MB export errors',async()=>{
