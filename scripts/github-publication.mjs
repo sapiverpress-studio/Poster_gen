@@ -17,11 +17,17 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
- if(process.env.GITHUB_RUN_ID==='39606841309'&&['3','4'].includes(process.env.GITHUB_RUN_ATTEMPT)){
+ if(process.env.GITHUB_RUN_ID==='39606841309'&&['3','4','5'].includes(process.env.GITHUB_RUN_ATTEMPT)){
   const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
   const {runWoodlandFinal}=await import('./woodland-two-finalize-api.mjs');
-  await runWoodlandFinal({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),
-   uploads,apiKey:env('SHRIMP_APIKEY'),mode:process.env.GITHUB_RUN_ATTEMPT==='3'?'audit':'apply'});
+  try{
+   await runWoodlandFinal({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),
+    uploads,apiKey:env('SHRIMP_APIKEY'),mode:['3','4'].includes(process.env.GITHUB_RUN_ATTEMPT)?'audit':'apply'});
+  }catch(error){
+   const detail=String(error?.message||error?.name||'unknown').replace(/[^a-zA-Z0-9 _.,:+-]/g,'').slice(0,150);
+   console.error('WOODLAND_GUARDED_FAILURE '+detail);
+   throw error;
+  }
   process.exit(0);
  }
  if(process.env.GITHUB_RUN_ID==='39606841309'&&process.env.GITHUB_RUN_ATTEMPT==='2'){

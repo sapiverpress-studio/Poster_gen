@@ -49,13 +49,18 @@ function cleanText(original,g){
 }
 export async function runWoodlandFinal({client,uploads,apiKey,mode}){
  if(!['audit','apply'].includes(mode)||!apiKey)fail('Unapproved Woodland finalisation');
+ console.log('WOODLAND_STAGE seller_session');
  const seller=await client.session();
  if(seller.shop_name!=='SapiverPrints'||!Number.isSafeInteger(seller.shop_id))fail('Wrong Etsy shop');
+ console.log('WOODLAND_STAGE pricing');
  const pricing=await quoteSupplierGB({apiKey});
  const stocks=[];
  for(const [i,g] of groups.entries()){
+  console.log('WOODLAND_STAGE etsy_draft_'+g.listingId);
   const original=await client.api('/listings/'+g.listingId+'?includes=Images');
+  console.log('WOODLAND_STAGE inventory_'+g.listingId);
   const inv=await client.api('/listings/'+g.listingId+'/inventory');
+  console.log('WOODLAND_STAGE supplier_bundle_'+g.sku);
   const supplier=await callSupplier(apiKey,'/api-get-bundle?'+new URLSearchParams({sku:g.sku}));
   const bundle=supplier.bundle;
   if(original.shop_id!==seller.shop_id||original.listing_id!==g.listingId||original.state!=='draft'||
@@ -71,6 +76,7 @@ export async function runWoodlandFinal({client,uploads,apiKey,mode}){
   const target=expected(g);
   const ids=new Map();
   for(const sku of g.items){
+   console.log('WOODLAND_STAGE supplier_product_'+sku);
    const {product:p}=await callSupplier(apiKey,'/api-get-product?'+new URLSearchParams({sku}));
    if(p?.sku!==sku||!p.product_id)fail('Supplier product missing '+sku);
    const variant=p.variants?.find(v=>v.size==='A4');
@@ -81,6 +87,7 @@ export async function runWoodlandFinal({client,uploads,apiKey,mode}){
   const current= format(bundle.items),want=format(target);
   const correct=current===want&&bundle.items.every(m=>ids.get(m.sku)===m.product_id);
   if(i===0&&!correct)fail('Forest Friends supplier bundle changed; no automated replacement permitted');
+  console.log('WOODLAND_STAGE source_prices_'+g.name.replace(' ','_'));
   const originalPrices=[];
   for(const sku of g.items){
    const match= sku==='SP-FOX-PRINT-WI-05689631'?4595277551:
@@ -90,10 +97,12 @@ export async function runWoodlandFinal({client,uploads,apiKey,mode}){
    if(live.shop_id!==seller.shop_id||live.state!=='active')fail('Original single listing inactive '+sku);
    originalPrices.push(onlyUnframedA4(await client.api('/listings/'+match+'/inventory'),sku));
   }
+  console.log('WOODLAND_STAGE compute_quote_'+g.name.replace(' ','_'));
   const quote=computeUKBundleQuote({pricing,size:'A4',unitPrices:originalPrices,discount:15});
   if(Math.abs(quote.grossGbp-40.77)>0.005||quote.contributionGbp<6)fail('Bundle economic preflight failed '+g.name);
   stocks.push({g,original,inv,bundle,correct,target,ids,quote,newDescription:cleanText(original.description,g)});
  }
+ console.log('WOODLAND_STAGE supplier_paid_orders');
  let paidOrderCount=0,referenced=0;
  for(let page=1;page<=20;page++){
   const orders=await callSupplier(apiKey,'/api-get-order?'+new URLSearchParams({page:String(page)}));
