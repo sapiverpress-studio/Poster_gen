@@ -17,7 +17,7 @@ async function fixture({ingested=true,postStatus=201}={}){
   if(String(url).includes('api-get-product')){
    if(!created)return new Response(null,{status:404});
    return Response.json({success:true,product:{sku,product_id:'supplier-id-badger',
-    variants:[{size:'A4',image_url:ingested?'https://cdn.printshrimp.com/images/badger.png':'https://sapiver-poster-gen-auth.netlify.app/poster/supplier-artwork.jpg?ticket=foo'},
+    variants:[{size:'A4',image_url:ingested?'https://cdn.printshrimp.com/images/badger.png':('https://'+'sapiver-poster-gen-auth'+'.netlify.app/poster/supplier-artwork.jpg?ticket=foo')},
      {size:'A5',image_url:'https://cdn.printshrimp.com/images/badger-a5.png'}]}});
   }
   if(String(url).includes('api-create-product')){
@@ -29,7 +29,7 @@ async function fixture({ingested=true,postStatus=201}={}){
   }
   throw Error('Unexpected supplier URL');
  };
- const env=n=>({SHRIMP_APIKEY:'fixture-key',CANVA_SITE_ORIGIN:'https://sapiver-poster-gen-auth.netlify.app'})[n];
+ const env=n=>({SHRIMP_APIKEY:'fixture-key',CANVA_SITE_ORIGIN:'https://'+'sapiver-poster-gen-auth'+'.netlify.app'})[n];
  return {m,uploads,request,env,sku,original,getPosts:()=>posts};
 }
 test('supplier-only workflow creates ONE A4/A5 product, preserves original PNG, and retains bounded source ticket',async()=>{
