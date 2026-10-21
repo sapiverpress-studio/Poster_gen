@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {reserveWoodlandBundlesOnly,verifyWoodlandExisting,woodlandExistingCandidates} from '../lib/woodland-bundles-only.mjs';
+import {reserveWoodlandBundlesOnly,verifyWoodlandExisting,woodlandExistingCandidates,recoverWoodlandPrepared} from '../lib/woodland-bundles-only.mjs';
 import {monthlyUploadStatus} from '../lib/monthly-upload-limit.mjs';
 const animals=['fox','robin','hedgehog','badger','red-squirrel','roe-deer'],shopId=512345;
 const tags=n=>['woodland wall art','nature picture set','british animal art','kids reading nook','forest wall decor','woodland nursery','animal print trio','art set of three','nature illustration','nature room prints','animal verse prints','bedroom wall prints',n===1?'woodland animals':'forest nature art'];
@@ -84,4 +84,50 @@ test('same listing ID reused for two animals or unapproved source prevents any s
  const y=mock();y.uploads.m.get('uploads/'+y.req.items[4].id+'/state').phase='preparing';
  await assert.rejects(verifyWoodlandExisting({incoming:y.req,uploads:y.uploads,client:y.client,env:y.env,request:y.request}),/prepared, unchanged/);
  assert.equal((await monthlyUploadStatus({uploads:y.uploads,clock:y.clock})).used,0);
+});
+
+test('mobile session recovery restores exactly six approved source PNG reviews and two bundles without creating any listings',async()=>{
+ const x=mock(),pages=[];
+ for(let n=0;n<animals.length;n++){
+  const slug=animals[n],id=x.req.items[n].id,asset=x.m.get('uploads/'+id+'/state');
+  asset.filename='original-'+slug+'.png';
+  asset.metadata.tags=['nature poem print','british wildlife'];
+  asset.metadata.name=slug;
+  asset.metadata.description='British woodland nature verse poster artwork';
+  x.m.set('products/'+id+'/record',{productId:id,pendingRevision:id,phase:'ready_for_approval',createdAt:x.clock(),metadata:asset.metadata});
+  pages.push({slug,sha256:asset.image.sha256});
+ }
+ x.m.set('woodland-six-20261021/state',{phase:'ready',pages});
+ const v=await recoverWoodlandPrepared({uploads:x.uploads});
+ assert.equal(v.phase,'recovered',JSON.stringify(v));
+ assert.equal(v.originalsVerified,true);
+ assert.equal(v.state.items.length,6);
+ assert.equal(v.state.bundles.length,2);
+ assert.equal(v.state.bundlesOnly,true);
+ assert.equal(v.state.items[0].folder,'fox');
+ assert.equal(v.state.items[5].folder,'roe-deer');
+ assert.equal(v.state.storeOnly,false);
+ assert.deepEqual(v.state.bundles.map(b=>b.members),[animals.slice(0,3),animals.slice(3)]);
+ assert.equal(x.calls.etsy.length,0);
+ assert.equal(x.calls.supplier.length,0);
+ assert.equal(x.calls.dispatch.length,0);
+ assert.equal((await monthlyUploadStatus({uploads:x.uploads,clock:x.clock})).used,0);
+ const again=await recoverWoodlandPrepared({uploads:x.uploads});
+ assert.deepEqual(again.state,v.state);
+});
+test('recovery fails closed when any of the six original saved artwork reviews is absent or duplicated',async()=>{
+ const x=mock();
+ const pages=[];
+ for(let n=0;n<animals.length;n++){
+  const id=x.req.items[n].id,asset=x.m.get('uploads/'+id+'/state');
+  asset.metadata.tags=['woodland nature'];
+  x.m.set('products/'+id+'/record',{productId:id,pendingRevision:id,createdAt:x.clock()});
+  pages.push({slug:animals[n],sha256:asset.image.sha256});
+ }
+ x.m.set('woodland-six-20261021/state',{phase:'ready',pages});
+ x.m.get('uploads/'+x.req.items[3].id+'/state').phase='needs_investigation';
+ const result=await recoverWoodlandPrepared({uploads:x.uploads});
+ assert.equal(result.phase,'incomplete');
+ assert.deepEqual(result.missing,['badger']);
+ assert.equal(x.calls.dispatch.length,0);
 });
