@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseTrioDetails,validateTwoTrios,makeEightListingPlan,validateBundleInput} from '../public/collection-trios.mjs';
-const tags=i=>['woodland wall art','nature picture set','british animal art','kids reading nook','forest wall decor','woodland nursery','animal print trio','art set of three','wildlife illustration','nature room prints','animal verse prints','bedroom wall prints',i===1?'woodland animals':'forest nature art'].join(', ');
+const tags=i=>['woodland wall art','nature picture set','british animal art','kids reading nook','forest wall decor','woodland nursery','animal print trio','art set of three','wildlife art','nature room prints','animal verse prints','bedroom wall prints',i===1?'woodland animals':'forest nature art'].join(', ');
 function trioText(i,members){
  return ['Title: Woodland Trio '+i,'Listing title: British Woodland Trio '+i+' Set of 3 A4 Prints',
  'Section: Nature','Size: A4','Members: '+members.join(', '),'Tags: '+tags(i),'','Description:',
