@@ -319,6 +319,8 @@ function drawOnly(){
  onlySwitch.hidden=!ready||state.bundlesOnly===true;
  onlyFind.hidden=!ready||state.bundlesOnly!==true||state.trioIds?.length===2;
  onlyPrepare.hidden=!ready||state.bundlesOnly!==true||state.trioIds?.length===2;
+ // Block incomplete one-off merchant flow until GitHub seller-authenticated checks are implemented.
+ onlySwitch.hidden=true;onlyFind.hidden=true;onlyPrepare.hidden=true;
  if(ready&&state.bundlesOnly===true){deploy.hidden=true;deploy.disabled=true;}
 }
 
