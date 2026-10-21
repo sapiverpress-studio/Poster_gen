@@ -36,7 +36,7 @@ try{
   }
   process.exit(0);
  }
- if(process.env.GITHUB_RUN_ID==='39586502678'&&process.env.GITHUB_RUN_ATTEMPT==='3'){
+ if(process.env.GITHUB_RUN_ID==='39586502678'&&['3','4'].includes(process.env.GITHUB_RUN_ATTEMPT)){
   const {createEtsySession}=await import('../lib/etsy-session.mjs');const {etsySetup}=await import('../lib/etsy-oauth.mjs');
   const {auditAllFramedMainPhotos}=await import('./etsy-framed-final-audit.mjs');
   await auditAllFramedMainPhotos({client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})});
