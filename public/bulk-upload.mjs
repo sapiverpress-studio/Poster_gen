@@ -302,7 +302,7 @@ deploy?.addEventListener('click',async()=>{
 
 const only=document.getElementById('bulk-woodland-exception'),onlyRecover=document.getElementById('bulk-only-recover'),
  onlyRecoveryStatus=document.getElementById('bulk-only-recovery-status'),onlySwitch=document.getElementById('bulk-only-switch'),
- onlyPrepare=document.getElementById('bulk-only-prepare'),onlyJobStatus=document.getElementById('bulk-only-job-status');
+ onlyPrepare=document.getElementById('bulk-only-prepare'),onlyJobStatus=document.getElementById('bulk-only-job-status'),onlyResume=document.getElementById('bulk-only-resume');
 const animalSlugs=['fox','robin','hedgehog','badger','red-squirrel','roe-deer'];
 let checkingWoodlandJob=false;
 function woodlandOneOffReady(){
@@ -372,7 +372,8 @@ async function pollWoodlandSetup(){
     save();drawOnly();await inspect();return;
    }
    if(['needs_investigation','dispatch_uncertain'].includes(r.phase)){
-    onlyJobStatus.textContent='HOLD: '+(r.notice||'Existing product requires review')+'. Do not restart or create six individuals.';
+    onlyJobStatus.textContent='HOLD: '+(r.notice||'Existing product requires review')+'. No individual listings were requested.';
+    onlyResume.hidden=!(r.phase==='needs_investigation'&&r.stage==='stopped_safely'&&!(r.ids||[]).length);
     return;
    }
    await pause(6000);
@@ -393,12 +394,25 @@ onlyPrepare?.addEventListener('click',async()=>{
   const result=await api('/poster/bulk/woodland-existing/prepare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
   if(!/^[a-f0-9]{32}$/.test(result.id||''))throw Error('No verifiable setup reservation receipt');
   state.woodlandRequestId=result.id;save();drawOnly();
+  onlyResume.hidden=true;
   onlyJobStatus.textContent='One authenticated worker request saved. No six-poster publication.';
   await pollWoodlandSetup();
  }catch(error){onlyJobStatus.textContent='Two-bundle setup stopped: '+error.message+'. Check saved product IDs before retrying.';}
  finally{busy=false;onlyPrepare.disabled=!!state?.woodlandRequestId;}
 });
 
+onlyResume?.addEventListener('click',async()=>{
+ if(!state?.woodlandRequestId||busy||checkingWoodlandJob)return;
+ if(!confirm('Resume the SAME saved two-bundle request? The site checks there are no supplier registrations or bundle reservations first. It will refuse any unsafe retry.'))return;
+ busy=true;onlyResume.disabled=true;
+ try{
+  const data=await api('/poster/bulk/woodland-existing/resume',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:state.woodlandRequestId})});
+  onlyJobStatus.textContent=(data.notice||'Worker state '+data.phase)+'. No six-individual publication.';
+  onlyResume.hidden=true;
+  if(data.phase==='queued')await pollWoodlandSetup();
+ }catch(error){onlyJobStatus.textContent='Recovery blocked: '+error.message+'. Nothing else was created.';}
+ finally{busy=false;onlyResume.disabled=false;}
+});
 state=read();
 drawOnly();
 if(state?.woodlandRequestId)pollWoodlandSetup().catch(()=>{});
