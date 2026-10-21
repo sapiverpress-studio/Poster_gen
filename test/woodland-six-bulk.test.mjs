@@ -53,6 +53,7 @@ test('six original Canva PNGs export into a ZIP accepted by the real eight-listi
  assert.equal((await woodlandSixStart(args)).phase,'in_progress');
  assert.equal((await woodlandSixFinish(args)).phase,'ready');
  assert.equal((await woodlandSixStatus({uploads})).phase,'ready');
+ assert.equal((await woodlandSixStatus({uploads})).pages,6);
  const response=await woodlandSixDownload({uploads});
  const bytes=Buffer.from(await response.arrayBuffer());
  const archive=await openPosterCollectionZip(new File([bytes],'woodland-six.zip',{type:'application/zip'}));
@@ -79,4 +80,12 @@ test('six-poster exporter blocks changed pages or failed print dimensions, witho
  await assert.rejects(woodlandSixFinish(args));
  assert.equal((await woodlandSixStatus({uploads:u})).phase,'needs_review');
  await assert.rejects(woodlandSixDownload({uploads:u}));
+});
+
+test('oversized six-image original archive is rejected before download',async()=>{
+ const uploads=storage(),args={uploads,token:'mock',request:canva()};
+ await woodlandSixStart(args);await woodlandSixFinish(args);
+ const record=await uploads.get('woodland-six-20261021/state');
+ await uploads.setJSON('woodland-six-20261021/state',{...record,pages:record.pages.map(p=>({...p,bytes:21_000_000}))});
+ await assert.rejects(woodlandSixDownload({uploads}),/capacity/);
 });
