@@ -300,12 +300,11 @@ deploy?.addEventListener('click',async()=>{
  }
 });
 
-const only=document.getElementById('bulk-woodland-exception'),onlyRecover=document.getElementById('bulk-only-recover'),onlyRecoveryStatus=document.getElementById('bulk-only-recovery-status'),onlySwitch=document.getElementById('bulk-only-switch'),
- onlyFind=document.getElementById('bulk-only-find'),onlyMatches=document.getElementById('bulk-only-matches'),
- onlyConfirm=document.getElementById('bulk-only-confirm'),onlyConfirmLabel=document.getElementById('bulk-only-confirm-label'),
- onlyPrepare=document.getElementById('bulk-only-prepare');
+const only=document.getElementById('bulk-woodland-exception'),onlyRecover=document.getElementById('bulk-only-recover'),
+ onlyRecoveryStatus=document.getElementById('bulk-only-recovery-status'),onlySwitch=document.getElementById('bulk-only-switch'),
+ onlyPrepare=document.getElementById('bulk-only-prepare'),onlyJobStatus=document.getElementById('bulk-only-job-status');
 const animalSlugs=['fox','robin','hedgehog','badger','red-squirrel','roe-deer'];
-let choicesOnly=null;
+let checkingWoodlandJob=false;
 function woodlandOneOffReady(){
  if(state?.version!==3||state.items?.length!==6||state.bundles?.length!==2)return false;
  const all=state.items.map(x=>String(x.folder||'').split('/').at(-1));
@@ -317,15 +316,15 @@ function drawOnly(){
  const ready=woodlandOneOffReady();
  onlyRecover.hidden=ready;
  onlySwitch.hidden=!ready||state.bundlesOnly===true;
- onlyFind.hidden=!ready||state.bundlesOnly!==true||state.trioIds?.length===2;
  onlyPrepare.hidden=!ready||state.bundlesOnly!==true||state.trioIds?.length===2;
+ onlyPrepare.disabled=!!state.woodlandRequestId;
  if(ready&&state.bundlesOnly===true){deploy.hidden=true;deploy.disabled=true;}
 }
 
 onlyRecover?.addEventListener('click',async()=>{
  if(busy)return;
  if(woodlandOneOffReady()){
-  drawOnly();onlyRecoveryStatus.textContent='Your six original reviews are already loaded in this tab. Use Find six existing Etsy products below.';
+  drawOnly();onlyRecoveryStatus.textContent='Six verified original reviews are already loaded. Prepare the TWO bundles below.';
   return;
  }
  if(state){
@@ -343,7 +342,7 @@ onlyRecover?.addEventListener('click',async()=>{
   state=response.state;
   save();drawOnly();
   if(form?.elements?.kind)form.elements.kind.value='artwork';
-  onlyRecoveryStatus.textContent='Six saved original reviews recovered. Only TWO new bundles are permitted in this setup. Now select Find six existing Etsy products below.';
+  onlyRecoveryStatus.textContent='Six saved original reviews recovered. Only TWO new bundles are permitted in this setup. The two-bundle option is now available below.';
   await inspect();
  }catch(error){
   onlyRecoveryStatus.textContent='Recovery unavailable: '+error.message+'. Your saved records have not been changed.';
@@ -355,63 +354,54 @@ onlySwitch?.addEventListener('click',()=>{
  if(seen.some(x=>x&&['publishing','published'].includes(x.phase))){message('An individual may already have been published. Inspect the saved product before switching.');return;}
  if(!confirm('ONE-OFF WOODLAND SETUP: create only TWO bundle drafts from six existing Etsy and PrintShrimp products? No new singles will be published.'))return;
  state.bundlesOnly=true;save();drawOnly();
- message('Bundles-only selected. Find six existing Etsy products, then verify their supplier SKUs.');
+ message('Bundles-only selected. The authenticated worker will verify the three existing Etsy singles and the six PrintShrimp artwork records.');
 });
-onlyFind?.addEventListener('click',async()=>{
- if(!woodlandOneOffReady()||!state.bundlesOnly||busy)return;
- onlyFind.disabled=true;
+
+async function pollWoodlandSetup(){
+ if(!state?.woodlandRequestId||checkingWoodlandJob)return;
+ checkingWoodlandJob=true;
  try{
-  message('Retrieving existing active Etsy animal listings; no Etsy or supplier writes...');
-  const result=await api('/poster/bulk/woodland-existing/candidates');
-  if(result.candidates?.length!==6)throw Error('Incomplete Etsy results');
-  choicesOnly=new Map();onlyMatches.replaceChildren();
-  for(const animal of result.candidates){
-   const label=document.createElement('label'),select=document.createElement('select');
-   select.dataset.slug=animal.slug;
-   label.append(text('span',animal.slug.replace(/-/g,' ')+' — '+animal.choices.length+' existing listings'));
-   const opt=document.createElement('option');opt.value='';opt.textContent='Select the existing Etsy listing';select.append(opt);
-   for(const c of animal.choices){
-    const option=document.createElement('option');option.value=String(c.listingId);
-    option.textContent=c.title+' (#'+c.listingId+')';select.append(option);
+  for(let count=0;count<40;count++){
+   const r=await api('/poster/bulk/woodland-existing/status?'+new URLSearchParams({id:state.woodlandRequestId}));
+   const stage=r.stage?(' · '+r.stage.replaceAll('_',' ')):'';
+   onlyJobStatus.textContent='Two bundles: '+r.phase.replaceAll('_',' ')+stage+'. '+(r.notice||'');
+   if(r.phase==='ready_for_review'){
+    if(r.ids?.length!==2||r.skus?.length!==2)throw Error('Two reviews did not pass identity checks');
+    state.trioIds=[...r.ids];
+    state.bundles.forEach((b,i)=>{b.input.sku=r.skus[i];});
+    save();drawOnly();await inspect();return;
    }
-   if(animal.choices.length===1)select.value=String(animal.choices[0].listingId);
-   select.addEventListener('change',()=>{onlyConfirm.checked=false;onlyPrepare.disabled=true;});
-   choicesOnly.set(animal.slug,select);label.append(select);onlyMatches.append(label);
+   if(['needs_investigation','dispatch_uncertain'].includes(r.phase)){
+    onlyJobStatus.textContent='HOLD: '+(r.notice||'Existing product requires review')+'. Do not restart or create six individuals.';
+    return;
+   }
+   await pause(6000);
   }
-  onlyConfirmLabel.hidden=false;onlyPrepare.hidden=false;onlyPrepare.disabled=true;onlyConfirm.checked=false;onlyConfirm.disabled=false;
-  const missing=result.candidates.filter(c=>!c.choices.length).map(c=>c.slug);
-  if(missing.length){onlyConfirm.disabled=true;message('HOLD: no matching live Etsy singles found for '+missing.join(', ')+'. To make these two bundles, all six existing supplier products must exist. No products were created.');}
-  else message('Select and visually confirm the six existing Etsy listings. PrintShrimp will be checked automatically; no SKU input.');
- }catch(e){message('Existing product lookup unavailable: '+e.message+'. No Etsy or supplier products changed.');}
- finally{onlyFind.disabled=false;}
-});
-onlyConfirm?.addEventListener('change',()=>{onlyPrepare.disabled=!onlyConfirm.checked;});
+  onlyJobStatus.textContent='Worker is still processing. Refresh this page to resume status; do not reupload or create another setup.';
+ }catch(error){onlyJobStatus.textContent='Status check interrupted: '+error.message+'. Saved IDs remain retained.';}
+ finally{checkingWoodlandJob=false;}
+}
 onlyPrepare?.addEventListener('click',async()=>{
- if(busy||!woodlandOneOffReady()||!state.bundlesOnly||state.trioIds?.length||!choicesOnly||!onlyConfirm.checked)return;
- const ids=state.items.map(x=>Number(choicesOnly.get(x.folder.split('/').at(-1))?.value||0));
- if(ids.some(x=>!Number.isSafeInteger(x)||x<=0)||new Set(ids).size!==6){
-  message('Select SIX different existing Etsy listing IDs, not new single products.');return;
- }
- if(!confirm('Verify all six existing suppliers and reserve ONLY TWO bundle reviews? This does not create or modify six individual Etsy listings.'))return;
+ if(busy||!woodlandOneOffReady()||!state.bundlesOnly||state.trioIds?.length===2||state.woodlandRequestId)return;
+ if(!confirm('Prepare ONLY TWO three-print bundle reviews? The worker may register the three missing PrintShrimp artworks, reusing existing Fox/Robin/Hedgehog products. No individual Etsy listings or paid orders will be created.'))return;
  busy=true;onlyPrepare.disabled=true;
  try{
   const data={existingOnly:true,confirmed:true,
    items:state.items.map(x=>({id:x.id,sha256:x.sha256,folder:x.folder,listingTitle:x.listingTitle,sectionTitle:x.sectionTitle,printSizes:x.printSizes})),
-   etsyListingIds:ids,
    trios:state.bundles.map(x=>({title:x.title,listingTitle:x.listingTitle,sectionTitle:x.sectionTitle,size:x.size,members:x.members,tags:x.tags,description:x.description})),
    inputs:state.bundles.map(x=>x.input)};
-  message('Verifying six real Etsy inventories and six PrintShrimp A4 products. No individual listings will be created...');
   const result=await api('/poster/bulk/woodland-existing/prepare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-  if(result.ids?.length!==2||result.skus?.length!==2)throw Error('Two confirmed bundle receipts missing; inspect saved products before any retry.');
-  state.trioIds=result.ids;state.bundles.forEach((x,i)=>{x.input.sku=result.skus[i];});save();drawOnly();
-  message('Only TWO bundle reviews reserved. All six components reused. Check the supplier quotations before approving.');
-  await inspect();
- }catch(e){message('Bundles-only HOLD: '+e.message+'. No individual Etsy listings were requested.');}
- finally{busy=false;onlyPrepare.disabled=false;}
+  if(!/^[a-f0-9]{32}$/.test(result.id||''))throw Error('No verifiable setup reservation receipt');
+  state.woodlandRequestId=result.id;save();drawOnly();
+  onlyJobStatus.textContent='One authenticated worker request saved. No six-poster publication.';
+  await pollWoodlandSetup();
+ }catch(error){onlyJobStatus.textContent='Two-bundle setup stopped: '+error.message+'. Check saved product IDs before retrying.';}
+ finally{busy=false;onlyPrepare.disabled=!!state?.woodlandRequestId;}
 });
 
 state=read();
 drawOnly();
+if(state?.woodlandRequestId)pollWoodlandSetup().catch(()=>{});
 if(state&&form?.elements?.websiteFolder)form.elements.websiteFolder.value=state.websiteFolder||'';
 if(state&&form?.elements?.storeOnly)form.elements.storeOnly.checked=state.storeOnly===true;
 if(state&&form?.elements?.shopSection){
