@@ -1,0 +1,39 @@
+name: Etsy metadata-only single listing
+on:
+  workflow_dispatch:
+    inputs:
+      batch:
+        description: Fresh authenticated seller SEO audit identifier
+        required: true
+        type: string
+      listing_id:
+        description: Approved existing Etsy listing ID
+        required: true
+        type: string
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: sapiver-etsy-seo-${{ inputs.listing_id }}
+  cancel-in-progress: false
+jobs:
+  update:
+    if: github.repository == 'sapiverpress-studio/Poster_gen' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/canva-oauth-callback
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verified title and tag edit, no supplier API
+        env:
+          SEO_BATCH: ${{ inputs.batch }}
+          SEO_LISTING_ID: ${{ inputs.listing_id }}
+          POSTER_SITE_ORIGIN: https://sapiver-poster-gen-auth.netlify.app
+          ETSY_PRINTS_KEYSTRING: ${{ secrets.ETSY_PRINTS_KEYSTRING }}
+          ETSY_PRINTS_SHARED_SECRET: ${{ secrets.ETSY_PRINTS_SHARED_SECRET }}
+        run: node scripts/github-seo-metadata.mjs
