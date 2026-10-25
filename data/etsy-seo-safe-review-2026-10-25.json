@@ -1,0 +1,310 @@
+{
+  "schemaVersion": 1,
+  "source": "SapiverForge/data/etsy-public-catalog.json",
+  "sourceGeneratedAt": "2026-10-25T23:12:38.138Z",
+  "purpose": "Manual owner review and seller-verified metadata-only patch proposals. These are not applied to Etsy.",
+  "safety": {
+    "merchantWritesEnabled": false,
+    "allowedEtsyPatchFields": [
+      "title",
+      "tags"
+    ],
+    "forbidden": [
+      "sku",
+      "inventory",
+      "variations",
+      "price",
+      "quantity",
+      "shipping_profile_id",
+      "readiness_state_id",
+      "return_policy_id",
+      "production_partner_ids",
+      "state",
+      "images",
+      "supplierProductId",
+      "PrintShrimp"
+    ],
+    "requireSellerReadback": true,
+    "requireEtsyInventorySkuReadbackBeforeAndAfter": true,
+    "skipIfUnknownMapping": true,
+    "skipIfListingChanged": true,
+    "noAutomaticRetries": true
+  },
+  "candidates": [
+    {
+      "listingId": 4602711141,
+      "existingTitle": "Moonlit Stag Wall Art Print",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4601467059,
+      "existingTitle": "Sunlit Mediterranean Kitchen Wall Art Print",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4600182933,
+      "existingTitle": "Woodland Verse Prints - Badger Red Squirrel Roe Deer Set of 3 A4 Posters",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4600180569,
+      "existingTitle": "Woodland Verse Prints - Fox Robin Hedgehog Set of 3 A4 Nature Posters",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4599438228,
+      "existingTitle": "Roe Deer British Woodland Verse Print | Nature Poetry Wall Art",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4599437738,
+      "existingTitle": "Badger Woodland Wildlife Verse Print | British Nature Poetry Wall Art",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4599399281,
+      "existingTitle": "Red Squirrel Woodland Verse Print | British Wildlife Nature Poetry Wall Art",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4598485326,
+      "existingTitle": "Saxophone Art Deco Wall Art Print — Velvet Brass",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4598462411,
+      "existingTitle": "Snare Drum and Cymbal Art Deco Wall Art Print — Silver Pulse",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4598484808,
+      "existingTitle": "Grand Piano Art Deco Wall Art Print — Midnight Keys",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4598484568,
+      "existingTitle": "Vintage Microphone Art Deco Wall Art Print — Golden Voice",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4598484374,
+      "existingTitle": "Vinyl Record Turntable Art Deco Wall Art Print — Blue Groove",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4598461481,
+      "existingTitle": "Double Bass Art Deco Wall Art Print — Amber Strings",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4597439715,
+      "existingTitle": "Capybara Christmas Tree Art Print — Tree Keeper",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4597439239,
+      "existingTitle": "Capybara Christmas Sleigh Art Print — Snowy Delivery",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4597438717,
+      "existingTitle": "Capybara Family Christmas Art Print — Star Gazing",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4597459888,
+      "existingTitle": "Capybara Christmas Gifts Art Print — Quiet Giving",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4597459356,
+      "existingTitle": "Capybara Christmas Bath Art Print — Christmas Bath",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4597458802,
+      "existingTitle": "Sleeping Capybara Christmas Art Print — Festive Slumber",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4596569132,
+      "existingTitle": "Velvet Echo — Jazz Singer and Vintage Microphone Art Print",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4596568620,
+      "existingTitle": "Last Ember — Golden Trumpet Jazz Wall Art Print",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4596550775,
+      "existingTitle": "Quiet Set — Jazz Saxophone Wall Art Print",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4596568002,
+      "existingTitle": "Low Light — Double Bass Jazz Club Wall Art Print",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4596550093,
+      "existingTitle": "Soft Pulse — Jazz Snare Drum and Brushes Art Print",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4596567276,
+      "existingTitle": "Midnight Touch — Late-Night Jazz Piano Art Print",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4596504232,
+      "existingTitle": "The Puddle Wall Art Print",
+      "proposedTitle": "Dachshund Rainy Day Dog Walking Art Print",
+      "proposedTags": [
+        "dachshund art print",
+        "sausage dog art",
+        "dachshund wall art",
+        "rainy day dog print",
+        "dog lover gift",
+        "dog walking print",
+        "black and tan dog",
+        "dachshund lover",
+        "wellies wall art",
+        "rainy day art",
+        "pet lover wall art",
+        "cosy hallway decor",
+        "burgundy dog coat"
+      ],
+      "status": "ready_for_owner_review"
+    },
+    {
+      "listingId": 4595944801,
+      "existingTitle": "The Hedgehog Wall Art Print",
+      "proposedTitle": "Hedgehog Botanical Wildlife Poetry Print",
+      "proposedTags": [
+        "hedgehog art print",
+        "hedgehog wall art",
+        "british wildlife art",
+        "woodland animal art",
+        "botanical wall art",
+        "nature poetry print",
+        "wildlife poetry",
+        "cottagecore decor",
+        "country cottage art",
+        "hedgehog artwork",
+        "nature lover gift",
+        "autumn woodland",
+        "english countryside"
+      ],
+      "status": "ready_for_owner_review"
+    },
+    {
+      "listingId": 4595921846,
+      "existingTitle": "The Robin Wall Art Print",
+      "proposedTitle": "British Robin Botanical Wildlife Poetry Print",
+      "proposedTags": [
+        "robin art print",
+        "robin wall art",
+        "british wildlife art",
+        "garden bird print",
+        "botanical bird art",
+        "woodland bird print",
+        "nature poetry print",
+        "bird lover gift",
+        "cottagecore decor",
+        "robin illustration",
+        "nature lover gift",
+        "english garden art",
+        "wildlife poetry"
+      ],
+      "status": "ready_for_owner_review"
+    },
+    {
+      "listingId": 4595900136,
+      "existingTitle": "After the dip Wall Art Print",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4595774989,
+      "existingTitle": "Butterfly Wall Art Print",
+      "proposedTitle": "Peacock Butterfly Botanical Poetry Art Print",
+      "proposedTags": [
+        "peacock butterfly",
+        "butterfly art print",
+        "butterfly wall art",
+        "botanical wall art",
+        "wildlife poetry",
+        "british butterfly",
+        "summer nature print",
+        "cottagecore decor",
+        "garden wildlife art",
+        "nature poetry print",
+        "butterfly lover gift",
+        "botanical insect art",
+        "english garden art"
+      ],
+      "status": "ready_for_owner_review"
+    },
+    {
+      "listingId": 4595765615,
+      "existingTitle": "Bumblebee Wall Art Print",
+      "proposedTitle": "Bumblebee and Lavender Botanical Poetry Print",
+      "proposedTags": [
+        "bumblebee art print",
+        "bee and lavender",
+        "bumblebee wall art",
+        "botanical bee art",
+        "pollinator wall art",
+        "lavender art print",
+        "british wildlife art",
+        "garden insect art",
+        "cottagecore decor",
+        "nature poetry print",
+        "bee lover gift",
+        "wildflower wall art",
+        "english garden art"
+      ],
+      "status": "ready_for_owner_review"
+    },
+    {
+      "listingId": 4595277551,
+      "existingTitle": "Fox Print with Original Woodland Verse",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4595028274,
+      "existingTitle": "This seats taken Wall Art Print",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4594997083,
+      "existingTitle": "Coast to coast Wall Art Print",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4589703919,
+      "existingTitle": "Dinosaur Colours Educational Poster for Kids | Nursery Colour Learning Wall Art",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4589715114,
+      "existingTitle": "Counting 1–9 Educational Poster | Kids Number Wall Art | Nursery Learning Print",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4589703441,
+      "existingTitle": "Solar System Educational Poster for Kids | Space Nursery Wall Art | Planets Print",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4589703929,
+      "existingTitle": "Shapes Educational Poster for Kids | Nursery Learning Wall Art | Preschool Room Decor",
+      "status": "needs_individual_tag_audit"
+    },
+    {
+      "listingId": 4589715100,
+      "existingTitle": "Animal Alphabet World Map Poster for Kids | ABC Nursery Wall Art | Educational Print",
+      "status": "needs_individual_tag_audit"
+    }
+  ]
+}
