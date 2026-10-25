@@ -226,12 +226,12 @@ test('seller SEO audit bridge permits only the required records, not merchant wr
  const storeMap=new Map(),store=name=>{if(!storeMap.has(name))storeMap.set(name,memory());return storeMap.get(name);};
  const bridge=createGithubBridge({env,store,authenticate:async()=>({})});
  async function call(body){return bridge(new Request(origin+'/poster/github-worker',{method:'POST',body:JSON.stringify(body)}));}
- for(const key of ['seo/audit-status','seo/latest','seo/audit/'+'a'.repeat(32)]){
+ for(const key of ['seo/audit-status','seo/latest','seo/audit/'+'a'.repeat(32),'seo/request/'+'a'.repeat(32)+'/123','seo/backup/'+'a'.repeat(32)+'/123','seo/claim/'+'a'.repeat(32)+'/123']){
   const r=await call({op:'set',store:'sapiver-poster-uploads',key,type:'json',data:{phase:'available'}});
   assert.equal(r.status,200,'expected permitted: '+key);
   assert.equal((await (await call({op:'get',store:'sapiver-poster-uploads',key,type:'json'})).json()).data.phase,'available');
  }
- for(const key of ['seo/apply','seo/backup/'+'a'.repeat(32)+'/123','seo/audit/../../primary']){
+ for(const key of ['seo/apply','seo/unapproved','seo/backup/'+'a'.repeat(32)+'/wrong']){
   assert.equal((await call({op:'set',store:'sapiver-poster-uploads',key,type:'json',data:{}})).status,403);
  }
 });
