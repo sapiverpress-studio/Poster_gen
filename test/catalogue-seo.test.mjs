@@ -5,11 +5,16 @@ const tags=Array.from({length:13},(_,i)=>'nature print '+i);
 const proposal=(id,title)=>({listing_id:id,existing_title:title,suggested_title:'Garden Robin Art Print '+id,suggested_tags:[...tags],review_note:''});
 const manifest={shop:'SapiverPrints',data:[proposal(111,'The Robin Wall Art Print'),proposal(112,'The Fox Wall Art Print')]};
 function fixture(){
- const saved=new Map(),records=new Map(),writes=[];
- for(const row of manifest.data)records.set(row.listing_id,{listing_id:row.listing_id,shop_id:13,state:'active',listing_type:'physical',title:row.existing_title,tags:[...tags],taxonomy_id:2078,skus:['PROTECTED-SKU']});
+ const saved=new Map(),records=new Map(),writes=[],inventories=new Map();
+ for(const row of manifest.data){
+  records.set(row.listing_id,{listing_id:row.listing_id,shop_id:13,state:'active',listing_type:'physical',title:row.existing_title,tags:[...tags],taxonomy_id:2078,skus:['PROTECTED-SKU'],shipping_profile_id:100});
+  inventories.set(row.listing_id,{products:[{sku:'PROTECTED-SKU',is_deleted:false,offerings:[{quantity:5,price:100}]}]});
+ }
+ saved.set('catalogue/audit',{shopId:13,checkedAt:100,listings:manifest.data.map(row=>({id:row.listing_id,state:'active',deliveryMatches:true,sku:['PROTECTED-SKU'],supplierCheck:'product_found',supplierProductId:'supplier-reference'}))});
  const uploads={async get(k){return saved.get(k)||null},async setJSON(k,v,opts={}){if(opts.onlyIfNew&&saved.has(k))return {modified:false};saved.set(k,structuredClone(v));return {modified:true}}};
  const client={session:async()=>({shop_name:'SapiverPrints',shop_id:13}),api:async(path,opts={})=>{
   if(path.startsWith('/shops/13/listings?'))return {count:records.size,results:[...records.values()]};
+  if(/^\/listings\/\d+\/inventory$/.test(path))return structuredClone(inventories.get(Number(path.split('/')[2])));
   if(path.startsWith('/listings/'))return structuredClone(records.get(Number(path.split('/')[2])));
   if(path.startsWith('/shops/13/listings/')&&opts.method==='PATCH'){
    const id=Number(path.split('/')[4]),values=new URLSearchParams(opts.body),keys=[...values.keys()];
@@ -18,7 +23,7 @@ function fixture(){
   }
   throw Error('Unexpected request '+path);
  }};
- return {uploads,client,records,writes,saved};
+ return {uploads,client,records,inventories,writes,saved};
 }
 test('complete catalogue is read without writes; all records have snapshot and tag comparisons',async()=>{
  const f=fixture(),r=await prepareSeoAudit({...f,manifest,clock:()=>100});
@@ -33,6 +38,33 @@ test('guarded update changes title and tags only, reads back same existing listi
  assert.equal(f.records.get(111).taxonomy_id,2078);
  assert.equal(f.saved.get('seo/backup/'+r.batch+'/111').before.title,'The Robin Wall Art Print');
  assert.equal((await applySeoUpdate({...f,batch:r.batch,id:111,clock:()=>102})).state,'already_current');
+});
+test('uncertain PrintShrimp link blocks all Etsy edits without supplier writes',async()=>{
+ const f=fixture(),r=await prepareSeoAudit({...f,manifest,clock:()=>100});
+ const audit=f.saved.get('catalogue/audit');audit.listings[0].supplierCheck='lookup_unavailable';
+ await assert.rejects(applySeoUpdate({...f,batch:r.batch,id:111,clock:()=>101}),/Supplier handover not verified/);
+ assert.deepEqual(f.writes,[]);
+});
+test('SKU drift or changed variation inventory blocks the metadata patch',async()=>{
+ for(const changed of ['sku','inventory']){
+  const f=fixture(),r=await prepareSeoAudit({...f,manifest,clock:()=>100});
+  if(changed==='sku')f.records.get(111).skus=['OTHER-SKU'];
+  else f.inventories.get(111).products[0].sku='OTHER-SKU';
+  await assert.rejects(applySeoUpdate({...f,batch:r.batch,id:111,clock:()=>101}));
+  assert.deepEqual(f.writes,[]);
+ }
+});
+test('a full read-back detects inventory drift after PATCH and never retries',async()=>{
+ const f=fixture(),r=await prepareSeoAudit({...f,manifest,clock:()=>100});
+ const original=f.client.api;
+ f.client.api=async(path,options={})=>{
+  const data=await original(path,options);
+  if(options.method==='PATCH')f.inventories.get(111).products[0].offerings[0].quantity=4;
+  return data;
+ };
+ await assert.rejects(applySeoUpdate({...f,batch:r.batch,id:111,clock:()=>101}),/inventory changed after metadata update/);
+ assert.deepEqual(f.writes,[111]);
+ assert.equal(f.saved.get('seo/claim/'+r.batch+'/111').phase,'sending');
 });
 test('changing tags after read-only audit blocks patch before any Etsy write',async()=>{
  const f=fixture(),r=await prepareSeoAudit({...f,manifest,clock:()=>100});
@@ -59,7 +91,7 @@ test('proposals reject duplicate listing IDs and short one-word tags',()=>{
 test('bundled catalogue contains all twenty verified IDs and valid Etsy title/tag proposals',async()=>{
  const {seoProposals}=await import('../lib/seo-proposals.mjs');
  const rows=validateSeoProposals(seoProposals);
- assert.equal(rows.length,20);
+ assert.equal(rows.length,39);
  assert.equal(new Set(rows.map(r=>r.id)).size,20);
  assert.ok(rows.some(r=>r.id===4596569132));
  assert.ok(rows.some(r=>r.id===4589715100));
