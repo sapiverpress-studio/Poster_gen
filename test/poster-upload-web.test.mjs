@@ -140,7 +140,8 @@ test('SEO comparison is queued for seller-authorised worker and never uses the l
  assert.equal(result.status,202);assert.equal((await result.json()).phase,'pending');
  assert.equal((await f.uploads.get('seo/audit-status')).phase,'pending');
  assert.equal((await f.handler(request('/poster/seo/status'),f.context)).status,200);
- assert.equal((await f.handler(request('/poster/seo/apply','POST','{}',{'Content-Type':'application/json'}),f.context)).status,503);
+ assert.equal((await f.handler(request('/poster/seo/apply','POST','{}',{'Content-Type':'application/json'}),f.context)).status,409);
+ assert.equal((await f.handler(request('/poster/seo/apply','POST','{}',{'Content-Type':'application/json','X-Poster-CSRF':'incorrect'}),f.context)).status,403);
  await Promise.all(f.pending);
  assert.equal(f.sent.length,1);
  assert.doesNotMatch(JSON.stringify(f.sent),/openapi.etsy.com|printshrimp.com/);
