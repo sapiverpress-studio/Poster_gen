@@ -1,3 +1,9 @@
+## 2026-10-25 — First draft PR #57 regression run and corrections (NO LIVE RELEASE)
+- Draft PR #57 opened for CI against `feature/canva-oauth-callback`. GitHub Actions run `40246339464` executed 429 Node24 tests: 424 passed / 5 failed. A Netlify **deploy preview**, not a production deploy, was automatically created by GitHub PR integration despite `[skip netlify]`; this can consume deployment credits. No live production branch was changed, and the PR was temporarily closed to avoid additional preview builds during corrections.
+- Failures: two stale 20-record test counts; bridge test did not yet allow isolated SEO backup/request keys; old website test expected disabled 503 instead of fail-closed 409; browser fixture supplied only `leaves` with no Etsy title; release security lint detected literal Netlify origin in new YAML/script. The core supplier-protection tests and dedicated SEO-isolation tests passed in that run.
+- Corrected respective tests and replaced the literal site origin using environment/format expressions, preserving exact hostname validation and restricting OIDC updates to known SEO paths.
+- Awaiting a second complete Node24 CI run on the corrected commit. **Do not merge, deploy production, install workflow to main, dispatch live updates, or modify supplier products until all tests pass and seller reconciliation has been verified.**
+
 ## 2026-10-25 — Owner requested GitHub implementation of seller-safe Etsy SEO edits (STAGED / NOT DEPLOYED)
 - Owner objective: Correct future physical listing metadata and current listings through the repository, never modify SKU or PrintShrimp fulfilment handover.
 - Isolated branch: `fix/etsy-specific-metadata-20261025` based on production-linked `feature/canva-oauth-callback`. No commits to that production branch or `main`; no Netlify deployment or merchant write.
