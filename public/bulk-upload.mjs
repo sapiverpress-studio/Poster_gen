@@ -268,6 +268,56 @@ async function start(e){
   if(!state?.bundlesOnly&&seen.every(r=>r&&['ready_for_approval','publishing','published'].includes(r.phase))&&seen.some(r=>r.phase==='ready_for_approval')){deploy.hidden=false;deploy.disabled=false;}
  }
 }
+// Recover the two Streak bundles using six *existing* published master records.
+// The protected first call is read-only; the existing bundle route reserves
+// exactly two new review records and is idempotent for identical six inputs.
+const streakRecoveryButton=document.getElementById('streak-recover-two-trios');
+const streakRecoveryStatus=document.getElementById('streak-trio-recovery-status');
+streakRecoveryButton?.addEventListener('click',async()=>{
+ if(busy)return;
+ if(state?.trioIds?.length===2){
+  streakRecoveryStatus.textContent='Two trio records are already saved. Opening existing reviews; no new records created.';
+  await inspect().catch(e=>message('Cannot check the saved trio reviews: '+e.message));
+  return;
+ }
+ busy=true;streakRecoveryButton.disabled=true;
+ try{
+  streakRecoveryStatus.textContent='Finding six published Streak artworks by original SHA-256; no PNGs will be uploaded…';
+  const recovered=await api('/poster/bulk/streak-trios/recover',{method:'POST'});
+  if(recovered?.phase!=='recovered'||recovered.sourceCount!==6||recovered.bundleCount!==2||
+     recovered.items?.length!==6||recovered.trios?.length!==2||recovered.inputs?.length!==2)
+   throw Error('Exact six-poster Streak recovery is incomplete. No new bundles requested.');
+  // Do not overwrite the receipts of a different collection in this tab.
+  if(state?.items?.some(x=>x.id)&&
+     (state.items.length!==6||state.items.some((x,i)=>x.id&&x.id!==recovered.items[i].id)))
+   throw Error('A different collection is saved in this browser tab. Open the uploader in a fresh tab for Streak recovery, without re-uploading anything.');
+  const quota=await api('/poster/bulk/status');
+  if(quota.remaining<2)throw Error('Only '+quota.remaining+' monthly slots remain. The two bundle reviews require two free slots; your published singles remain unchanged.');
+  streakRecoveryStatus.textContent='Six published, supplier-linked originals found. Reserving exactly two A4 trio reviews…';
+  const request={
+   items:recovered.items.map(({id,sha256,folder,listingTitle,sectionTitle,printSizes})=>({id,sha256,folder,listingTitle,sectionTitle,printSizes})),
+   trios:recovered.trios.map(({title,listingTitle,sectionTitle,size,members,tags,description})=>({title,listingTitle,sectionTitle,size,members,tags,description})),
+   inputs:recovered.inputs.map(({title,discount})=>({title,discount}))
+  };
+  const result=await api('/poster/bulk/trios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)});
+  if(result.ids?.length!==2||result.skus?.length!==2)
+   throw Error('Two distinct bundle receipts were not confirmed. Inspect saved records; never upload the singles again.');
+  const recoveredState={
+   version:3,signature:'streak-existing-six-20261103',kind:'artwork',
+   selectedShopSection:'Streak',websiteFolder:'',storeOnly:false,
+   bundles:recovered.trios.map((b,i)=>({...b,input:{title:recovered.inputs[i].title,discount:recovered.inputs[i].discount,sku:result.skus[i]}})),
+   trioIds:result.ids,items:recovered.items.map(x=>({...x,id:x.id}))
+  };
+  state=recoveredState;
+  save();
+  streakRecoveryStatus.textContent='Two Streak bundle reviews are reserved using your existing six published posters. Nothing has been republished.';
+  await inspect();
+  message('Streak recovered: the six original listings are retained. Review the TWO new trio products below as their supplier quotes become available.');
+ }catch(err){
+  streakRecoveryStatus.textContent='Recovery stopped safely: '+err.message+' Do not re-upload the six existing posters.';
+ }finally{busy=false;streakRecoveryButton.disabled=false;}
+});
+
 form?.addEventListener('submit',start);
 deploy?.addEventListener('click',async()=>{
  if(busy||!state||state.bundlesOnly)return;busy=true;deploy.disabled=true;
