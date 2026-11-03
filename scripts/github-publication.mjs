@@ -17,6 +17,22 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ // Retry only the exact owner-authorised Streak request whose first worker
+ // run was blocked by a denied private bridge key before reaching Etsy.
+ // Do not rerun any other queued or unrelated merchant task on this path.
+ if(process.env.GITHUB_RUN_ID==='41682084491'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {recoverOriginalStreakSection}=await import('../lib/streak-section-recovery.mjs');
+  const result=await recoverOriginalStreakSection({
+   runId:process.env.GITHUB_RUN_ID,attempt:process.env.GITHUB_RUN_ATTEMPT,
+   uploads,etsyStore,client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})
+  });
+  console.log('Original Streak Etsy API request reconciled; status='+result.phase+
+   '; section ID='+result.sectionId+'; reused existing='+(!result.created));
+  process.exit(0);
+ }
+
  // Finished Etsy framed-first catalogue migration (all 37 records read back).
  // One-off rerun triggers intentionally retired; normal queue handling follows.
  if(process.env.GITHUB_RUN_ID==='39606841309'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
