@@ -58,3 +58,15 @@ These sandbox ZIPs are conversation files, **not binary assets committed to Git*
 - Streak is a real Etsy shop section; exact size/finish variants are the only intended options.
 - 13 Etsy tags, unique titles, accurate AI disclosure, physical-not-digital wording, truthful unframed claim, one approval per actual product.
 - Archive import test on exact reviewed app version before any Etsy write. Monthly listing cap and costs checked.
+
+## Etsy section creation via seller API — implementation staged 2026-11-03
+
+The owner rejected Shop Manager manual section setup and authorised the **existing Etsy API** path.
+
+- Etsy official endpoint: `POST https://openapi.etsy.com/v3/application/shops/{shop_id}/sections`, form-encoded `title=Streak`, using the existing verified `SapiverPrints` seller's `shops_w` OAuth grant and existing server-side `x-api-key`. No new Etsy app required.
+- The isolated `lib/streak-section-api.mjs` calls the repository's existing `ensureSection` duplicate-safe POST helper. It pins seller identity to SapiverPrints (shop ID 50893070), validates scope, checks before writing and reads back the exact resulting ID. It then refreshes `template/sections` for the upload UI.
+- The existing protected uploader has a button **Create or verify Streak through Etsy API**, attached to `POST /poster/bulk/sections/streak` with owner session, CSRF and origin checks. A corresponding authenticated status read is available via `GET` on that path.
+- The button queues a dedicated `streak_section` job via the established GitHub worker, which alone has the seller secrets; no credentials are sent to the browser. Worker-side task dispatch is allowlisted and bound to the saved owner request; failures retain an investigation state to prevent blind repeated POSTs.
+- This new route exists **only on the isolated development branch**. It is not installed on the live site; it has **not** created the section in Etsy. The ChatGPT-connected Etsy app available in this conversation exposes buyer search, not seller write endpoints; Github connector can edit code but cannot invoke the live seller POST.
+- Syntax parser checks passed for the changed application modules. Isolated mock tests exercised the real helper, existing `ensureSection` and Etsy snapshot validation (one POST on creation; zero on reuse; invalid account/scope and full-capacity rejection). **Full Node 24 CI, real owner-device route, worker GitHub dispatch and actual Etsy readback are not verified**. Do not claim a shop section ID or success before that.
+- The still-unreleased print-only variant requirements and artwork quality hold remain unchanged. Explicit owner authorisation is required before one controlled production software release. Publishing all eight Streak products is a separate owner approval.
