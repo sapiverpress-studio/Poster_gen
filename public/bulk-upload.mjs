@@ -310,7 +310,7 @@ streakRecoveryButton?.addEventListener('click',async()=>{
   };
   state=recoveredState;
   save();
-  streakRecoveryStatus.textContent='Two Streak bundle reviews are reserved using your existing six published posters. Nothing has been republished.';
+  streakRecoveryStatus.textContent='Two Streak bundle reviews are reserved using your existing six published posters. Nothing has been republished.'+(recovered.sourceDifferences?.length?' The currently published images for '+recovered.sourceDifferences.join(', ')+' differ from the original ZIP fingerprints; check the bundle previews before approval.':'');
   await inspect();
   message('Streak recovered: the six original listings are retained. Review the TWO new trio products below as their supplier quotes become available.');
  }catch(err){
