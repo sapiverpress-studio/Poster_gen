@@ -4,7 +4,7 @@ import {previewInternationalMigration,applyAllInternationalMigration} from '../l
 
 function merchant({mutateAfterFirst=false,failFirst=false}={}){
  const ids=[201,202,203],profiles=new Map(ids.map(id=>[id,11])),log=[],records=new Map();
- let firstChanged=false;
+ let firstChanged=false,changedBefore=false;
  const money=price=>({amount:Math.round(price*100),divisor:100,currency_code:'GBP'});
  const destination=(iso,price=0)=>({
   destination_country_iso:iso,primary_cost:money(price),secondary_cost:money(0),
@@ -16,7 +16,7 @@ function merchant({mutateAfterFirst=false,failFirst=false}={}){
   origin_postal_code:'RM6 6AX',
   shipping_profile_destinations:[destination('GB'),destination('US'),destination('CA'),destination('AU'),destination('NZ',14.99)]};
  const row=id=>({listing_id:id,shop_id:456,listing_type:'physical',state:'active',
-  title:mutateAfterFirst&&firstChanged&&id===203?'Changed after approval':'Original '+id,
+  title:(changedBefore||mutateAfterFirst&&firstChanged)&&id===203?'Changed after approval':'Original '+id,
   skus:['SP-'+id],shipping_profile_id:profiles.get(id),description:'Art',tags:['art']});
  const client={session:async()=>({shop_name:'SapiverPrints',shop_id:456}),
   api:async (path,options)=>{
@@ -43,7 +43,7 @@ function merchant({mutateAfterFirst=false,failFirst=false}={}){
   if(opts?.onlyIfNew&&records.has(key))return {modified:false};
   records.set(key,value);return {modified:true};
  }};
- return {client,store,log,records,profiles};
+ return {client,store,log,records,profiles,changeUnmigratedBeforeApproval:()=>{changedBefore=true}};
 }
 
 test('one owner approval verifies selected listing then exactly the remaining two',async()=>{
@@ -78,4 +78,16 @@ test('no approval, disabled switch, or failed first PATCH never touches remainin
   assert.equal(m.profiles.get(202),11);
   assert.equal(m.profiles.get(203),11);
  }
+});
+
+
+test('stale owner approval re-audits before any PATCH and rejects changed listings',async()=>{
+ const m=merchant(),plan=await previewInternationalMigration({client:m.client});
+ m.changeUnmigratedBeforeApproval();
+ await assert.rejects(applyAllInternationalMigration({
+  client:m.client,store:m.store,plan,approvalHash:plan.approvalHash,
+  selectedListingId:201,approved:true,enabled:true
+ }),/selection changed since approval/);
+ assert.equal(m.log.filter(x=>x.method==='PATCH').length,0);
+ assert.ok([...m.profiles.values()].every(id=>id===11));
 });
