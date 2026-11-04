@@ -140,3 +140,31 @@ listings excluded because they already have international/other delivery.
 - The existing NZ shipping charge is £14.99 (first item) and £0 additional;
   confirm after first listing is updated. International supplier costs,
   especially framed bundles, must still be monitored.
+
+
+## 2026-11-04 one-click completion
+
+A final owner-authorised simplification was integrated after the worldwide
+activation switches were enabled.
+
+- Owner's verified read-only Etsy preview showed 47 eligible existing physical
+  listings and two unrelated-profile listings excluded from changes.
+- PR #70 code has been integrated into production-source
+  `feature/canva-oauth-callback`. Its staged full Node24 CI run
+  `41814073103` passed; the latest Netlify preview was Ready.
+- The owner-only page now offers one `Enable 5-country delivery for N existing
+  listings` button, with fresh review hash and CSRF session binding. It
+  automatically selects one reviewed listing first. After Etsy verifies that
+  listing's delivery-profile change and the original SKU, metadata and
+  inventory, the worker re-reads the full seller catalogue and checks that
+  the exact remaining listing snapshot is unchanged before migrating the rest.
+- An unsuccessful test or unexpected inventory/profile response stops all
+  further merchant updates; existing records retain their investigation
+  locks, and no automatic retry is attempted. No new Etsy listings,
+  PrintShrimp products, orders or wallet payment settings are created.
+- Importantly: this release only exposes the protected final action.
+  It does not pretend to press the button, access the user's owner cookie,
+  or claim that the 47 listings have already migrated.
+- This documentation commit intentionally triggers one production build to
+  synchronize Netlify's published site with the source branch and newly
+  configured production-scoped environment variables.
