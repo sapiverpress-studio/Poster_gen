@@ -89,3 +89,40 @@ export function makeEightListingPlan({items,trios,inputs}){
   sku:settings[i].sku,listingTitle:settings[i].title,discount:settings[i].discount
  }))};
 }
+
+export function validateTrioOnly(items,trios){
+ if(!Array.isArray(items)||!Array.isArray(trios)||![[3,1],[6,2]].some(([n,m])=>items.length===n&&trios.length===m))
+  fail('Trio-only ZIP needs three posters and one bundle.md, or six posters and two separate bundle manifests');
+ if(items.length===6)return validateTwoTrios(items,trios);
+ const folder=new Map();
+ for(const item of items){
+  const key=String(item.folder||'').split('/').at(-1).toLowerCase();
+  if(!key||folder.has(key))fail('Three unique poster folders required');
+  folder.set(key,item);
+ }
+ const trio=trios[0];
+ if(!trio||trio.members?.length!==3)fail('Exactly one three-print bundle required');
+ const memberPosters=trio.members.map(name=>{
+  const item=folder.get(name.toLowerCase());
+  if(!item)fail('Trio-only bundle references an unknown poster: '+name);
+  if(!item.printSizes?.includes(trio.size)||item.sectionTitle!==trio.sectionTitle)
+   fail('Trio-only member size or shop section differs from the manifest');
+  return item;
+ });
+ if(new Set(memberPosters).size!==3)fail('Trio-only ZIP references the same artwork twice');
+ return [{...trio,number:1,memberPosters}];
+}
+export function makeTrioOnlyPlan({items,trios,inputs}){
+ const bundles=validateTrioOnly(items,trios);
+ if(!Array.isArray(inputs)||inputs.length!==bundles.length)
+  fail('Each trio-only Etsy listing requires its own reviewed title and supplier SKU');
+ const settings=inputs.map((input,i)=>validateBundleInput({...input,trio:bundles[i]}));
+ if(new Set(settings.map(x=>x.sku.toLowerCase())).size!==settings.length)
+  fail('Trio-only listings cannot share one supplier bundle SKU');
+ return {version:1,mode:'trios-only',totalListings:bundles.length,individualListings:0,
+  bundleListings:bundles.map((b,i)=>({
+   number:b.number,memberFolders:b.members,memberTitles:b.memberPosters.map(p=>p.listingTitle),
+   size:b.size,sectionTitle:b.sectionTitle,tags:[...b.tags],description:b.description,framed:b.framed===true,
+   sku:settings[i].sku,listingTitle:settings[i].title,discount:settings[i].discount
+  }))};
+}
