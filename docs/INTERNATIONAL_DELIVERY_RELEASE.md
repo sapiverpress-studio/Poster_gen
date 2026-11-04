@@ -49,9 +49,8 @@ No changes to artwork, SKU, inventory, paper, frame variants or supplier product
   listings associated with `PrintShrimp — Posters`; one-field Etsy PATCH
   `shipping_profile_id` with exact shop/SKU/source-ID checks, an
   owner-approved preview hash, persisted one-time ledger claim, fresh
-  listing+inventory readback, stop-on-ambiguity. This module **is not wired**
-  to an owner UI or automatic worker. It cannot change anything merely by
-  existing in a deployed bundle.
+  listing+inventory readback and stop-on-ambiguity. It is now connected to the
+  owner-only site and the signed seller worker; both release switches default off.
 - `test/international-delivery.test.mjs` and
   `test/international-migration.test.mjs`: deterministic seller fixtures,
   no real Etsy/PrintShrimp orders.
@@ -70,13 +69,13 @@ No changes to artwork, SKU, inventory, paper, frame variants or supplier product
 5. Prepare a private poster and trio; confirm exact source files, original SKU,
    international profile and customer variations in Etsy GET response. Publish
    only with normal per-product approval.
-6. Add an owner-authenticated read-only **Preview international migration**
-   action to the uploader. Do not create a public unauthenticated mutation API.
-   Review exactly which existing listing IDs will change.
-7. After explicit owner approval, perform **one** guarded PATCH on a verified
-   listing; read it and its full inventory back, then repeat a separately
-   approved batch for the remaining eligible active listings. Check completion
-   individually; never retry an uncertain PATCH automatically.
+6. Open the authenticated **Review international Etsy delivery** link from
+   the bulk uploader. Run the read-only preview, review the exact seller profile
+   and eligible listing IDs, and confirm the count before any writes.
+7. With both website and worker migration release switches enabled, the owner
+   explicitly approves the first listing. After its PATCH and full inventory
+   readback succeed, refresh the preview and independently approve the rest.
+   Every update is individually checked and any uncertainty stops the batch.
 8. Verify a paid PrintShrimp international test order with exact artwork,
    size/frame, production cost, tracking and seller obligations before enabling
    auto-payment; wallet was £0 in owner's screenshot.
@@ -97,3 +96,11 @@ https://printshrimp.com/pages/etsy-integration
 
 **Never confuse this code being present with the account having been
 migrated or orders having been fulfilled successfully.**
+
+## Continued engineering checkpoint — 2026-11-04
+- Integrated read-only `shipping_preview` and owner-approved `shipping_apply` into the established GitHub OIDC worker and queue, with a separate `POSTER_INTERNATIONAL_MIGRATION_ENABLED` release switch (default OFF).
+- Added authenticated `/poster/catalogue/international` form and a restrained link within the existing bulk uploader. It previews eligible Etsy listing IDs, excludes unrelated delivery profiles, requires the exact approval hash and a CSRF-protected owner confirmation, applies one listing first, then permits a separate remaining-batch approval.
+- New code reads omitted Etsy profile destination entries using the authoritative shipping-destinations API. Every intended listing preserves its SKU and existing full inventory; uncertain writes retain a lock and stop without retry. No PrintShrimp order, product or bundle write occurs during shipping migration.
+- GitHub Node 24 tests are mock-backed; a successful CI run is not proof of a production deployment or real seller-account changes.
+- **Single global listing distinction:** Printify documents single-listing regional POD fulfilment, whereas Etsy still states one origin per listing. This remains an Etsy disclosure/accuracy consideration; no automatic duplication of the original 47 listings is planned.
+- Release blocked on accurate dispatch-origin representation, supplier pricing/variant economics (especially NZ framed), and an explicitly approved single production release. No live listings have been changed.
