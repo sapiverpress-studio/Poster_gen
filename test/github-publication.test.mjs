@@ -287,3 +287,17 @@ test('signed worker may store one A3-removal receipt but cannot access arbitrary
   assert.equal((await rpc({op:'get',store:'sapiver-poster-uploads',key:bad,type:'json'})).status,403);
  }
 });
+
+test('GitHub bridge accepts only scoped international preview and migration storage keys',async()=>{
+ const s=memory(),bridge=createGithubBridge({env,store:()=>s,authenticate:async()=>({})});
+ const read=async key=>bridge(new Request(origin+'/poster/github-worker',{method:'POST',
+  body:JSON.stringify({op:'get',store:'sapiver-poster-uploads',key,type:'json'})}));
+ for(const key of ['catalogue/international-migration','catalogue/international-first-verified',
+   'catalogue/international-approval/'+'a'.repeat(32),'international-delivery-migration/123']){
+  assert.equal((await read(key)).status,200,key);
+ }
+ for(const key of ['catalogue/international-approval/other','international-delivery-migration/foo',
+   'catalogue/international-migration/private','catalogue/international-approval/../primary']){
+  assert.equal((await read(key)).status,403,key);
+ }
+});
