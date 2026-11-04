@@ -39,7 +39,7 @@ function fixture({shopId=50893070,missingIndex=-1,missingSupplier=-1,updatedInde
   uploads:{
    get:async key=>{reads.push(key);return map.get(key)||null;},
    list:async function*({prefix,paginate}){assert.equal(prefix,'products/');assert.equal(paginate,true);
-    yield {blobs:[...map.keys()].filter(k=>/^products\\/[A-Za-z0-9_-]{32}\\/record$/.test(k)).map(key=>({key}))};},
+    yield {blobs:[...map.keys()].filter(k=>/^products\/[A-Za-z0-9_-]{32}\/record$/.test(k)).map(key=>({key}))};},
    setJSON:async()=>{throw Error('Read-only recovery wrote to storage');}
   },
   client:{session:async()=>({shop_id:shopId})},
