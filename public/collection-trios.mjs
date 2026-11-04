@@ -13,7 +13,7 @@ export function parseTrioDetails(text,{filename='bundle.md'}={}){
  const fields={};
  for(const line of rows.slice(0,idx)){
   if(!line.trim())continue;
-  const m=/^(Title|Listing title|Section|Size|Members|Tags):[ \t]*(.+)$/i.exec(line);
+  const m=/^(Title|Listing title|Section|Size|Members|Tags|Finishes):[ \t]*(.+)$/i.exec(line);
   if(!m)fail(filename+': unknown bundle field');
   const key=m[1].toLowerCase();
   if(Object.hasOwn(fields,key))fail(filename+': duplicate '+key);
@@ -21,6 +21,9 @@ export function parseTrioDetails(text,{filename='bundle.md'}={}){
  }
  const {title,section,sz}= {title:fields.title,section:fields.section,sz:fields.size};
  const listingTitle=fields['listing title'],size=sz;
+ const finishes=fields.finishes||'Print Only';
+ const framed=finishes==='Print Only, Black Frame, White Frame, Oak Frame';
+ if(!framed&&finishes!=='Print Only')fail(filename+': Finishes must be Print Only or all four matched frame options');
  const tags=String(fields.tags||'').split(',').map(x=>x.trim());
  const members=String(fields.members||'').split(',').map(x=>x.trim());
  const description=rows.slice(idx+1).join('\n').trim();
@@ -32,9 +35,9 @@ export function parseTrioDetails(text,{filename='bundle.md'}={}){
  if(tags.length!==13||!unique(tags)||tags.some(x=>!x||x.length>20||/[<>\u0000-\u001f]/.test(x)))fail(filename+': exactly 13 distinct Etsy tags, maximum 20 characters each');
  if(description.length<100||description.length>9000||/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(description))fail(filename+': bundle description must be 100–9000 characters');
  if(!requiredDisclosure.test(description))fail(filename+': description needs an accurate AI assistance disclosure');
- if(!/\b(?:three|3)\b/i.test(description)||!/\b(?:unframed|prints only)\b/i.test(description))fail(filename+': description must state three unframed prints');
+ if(!/\b(?:three|3)\b/i.test(description)||(!framed&&!/\b(?:unframed|prints only)\b/i.test(description)))fail(filename+': description must state three printed artworks and describe the finish accurately');
  if(!description.includes(size))fail(filename+': description must explain exact fixed '+size+' size');
- return {title,listingTitle,sectionTitle:section,size,members,tags,description};
+ return {title,listingTitle,sectionTitle:section,size,members,tags,description,framed};
 }
 export function validateTwoTrios(items,trios){
  if(!Array.isArray(items)||items.length!==6||!Array.isArray(trios)||trios.length!==2)fail('Eight-listing collection needs exactly six individual posters and two different trio manifests');
@@ -82,7 +85,7 @@ export function makeEightListingPlan({items,trios,inputs}){
  if(settings[0].sku.toLowerCase()===settings[1].sku.toLowerCase())fail('Two PrintShrimp bundles require different SKUs');
  return {version:1,totalListings:8,individualListings:items.length,bundleListings:bundles.map((b,i)=>({
   number:b.number,memberFolders:b.members,memberTitles:b.memberPosters.map(p=>p.listingTitle),
-  size:b.size,sectionTitle:b.sectionTitle,tags:[...b.tags],description:b.description,
+  size:b.size,sectionTitle:b.sectionTitle,tags:[...b.tags],description:b.description,framed:b.framed===true,
   sku:settings[i].sku,listingTitle:settings[i].title,discount:settings[i].discount
  }))};
 }
