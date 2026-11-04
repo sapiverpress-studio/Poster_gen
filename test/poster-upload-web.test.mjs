@@ -326,3 +326,27 @@ test('one-click five-market approval requires fresh owner preview and dispatches
  assert.equal((await handler(post({approvalHash:hash,confirm:'yes'}))).status,409);
  assert.equal(calls.length,1);
 });
+
+test('owner-only international review identifies excluded titles and exact Etsy delivery profiles',async()=>{
+ const f=fixture();
+ await f.uploads.setJSON('catalogue/international-migration',{
+  phase:'ready',id:'x'.repeat(32),plan:{shopId:456,sourceId:11,targetId:99,
+   numberToUpdate:0,excluded:49,candidates:[],approvalHash:'h'.repeat(64)},
+  exceptionsReport:{activePhysical:49,verifiedMigrated:47,exceptionCount:2,
+   exceptions:[
+    {listingId:701,title:'Garden Fox',profileId:777,profileName:'Legacy Shipping',migrationReceipt:'none'},
+    {listingId:702,title:'Poster <unsafe>',profileId:99,profileName:'PrintShrimp — International Test',migrationReceipt:'none'}
+   ]}
+ });
+ const res=await f.handler(request('/poster/catalogue/international'),f.context);
+ assert.equal(res.status,200);
+ const html=await res.text();
+ assert.match(html,/Listings left outside the international update/);
+ assert.match(html,/47 original listings verified as migrated/);
+ assert.match(html,/Garden Fox/);
+ assert.match(html,/Etsy listing 701/);
+ assert.match(html,/Legacy Shipping/);
+ assert.match(html,/PrintShrimp — International Test/);
+ assert.match(html,/Poster &lt;unsafe&gt;/);
+ assert.doesNotMatch(html,/Poster <unsafe>/);
+});
