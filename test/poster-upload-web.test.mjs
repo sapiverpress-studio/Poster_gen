@@ -272,3 +272,25 @@ test('international shipping apply requires fresh hash, explicit consent and sin
  assert.equal((await handler(post({approvalHash:hash,confirm:'yes'}))).status,409);
  assert.equal(calls.length,1);
 });
+
+test('stalled read-only preview becomes safely retryable without unlocking seller writes',async()=>{
+ const f=fixture();
+ const key='catalogue/international-migration';
+ const stale={id:'m'.repeat(32),phase:'preview_queued',createdAt:Date.now()-600000};
+ await f.uploads.setJSON(key,stale);
+ const requestForm=()=>request('/poster/catalogue/international','POST',
+  new URLSearchParams({csrf:'owner-csrf',operation:'preview'}).toString(),
+  {'Content-Type':'application/x-www-form-urlencoded'});
+ const html=await (await f.handler(request('/poster/catalogue/international'),f.context)).text();
+ assert.match(html,/Retry stalled read-only preview/);
+ assert.equal((await f.handler(requestForm(),f.context)).status,303);
+ const next=await f.uploads.get(key);
+ assert.equal(next.phase,'preview_queued');
+ assert.notEqual(next.id,stale.id);
+ assert.equal((await f.handler(requestForm(),f.context)).status,409);
+ const current=await f.uploads.get(key);
+ await f.uploads.setJSON(key,{...current,phase:'needs_investigation'});
+ assert.equal((await f.handler(requestForm(),f.context)).status,409);
+ await Promise.all(f.pending);
+ assert.equal(f.sent.length,1);
+});
