@@ -294,3 +294,35 @@ test('stalled read-only preview becomes safely retryable without unlocking selle
  await Promise.all(f.pending);
  assert.equal(f.sent.length,1);
 });
+
+
+test('one-click five-market approval requires fresh owner preview and dispatches exactly one guarded job',async()=>{
+ const uploads=memory(),calls=[];
+ const enabled=n=>n==='POSTER_INTERNATIONAL_MIGRATION_ENABLED'?'true':env(n);
+ const handler=createPosterUploadHandler({env:enabled,uploads,
+  dispatchJob:async(id,action)=>{calls.push({id,action});return 'jobs/'+'m'.repeat(32);}});
+ const id='c'.repeat(32),hash='a'.repeat(64);
+ const plan={approvalHash:hash,numberToUpdate:2,shopId:456,sourceId:11,targetId:99,
+  candidates:[{listingId:201,title:'Example one',skus:['SP-201']},
+   {listingId:202,title:'Example two',skus:['SP-202']}]};
+ await uploads.setJSON('catalogue/international-migration',
+  {id,phase:'ready',plan,checkedAt:Date.now(),createdAt:Date.now(),firstVerified:false});
+ const html=await (await handler(request('/poster/catalogue/international'))).text();
+ assert.match(html,/Enable 5-country delivery for 2 existing listings/);
+ assert.doesNotMatch(html,/First listing to test<select/);
+ const post=(fields)=>request('/poster/catalogue/international','POST',
+  new URLSearchParams({csrf:'owner-csrf',operation:'all',...fields}).toString(),
+  {'Content-Type':'application/x-www-form-urlencoded'});
+ assert.equal((await handler(post({approvalHash:'wrong',confirm:'yes'}))).status,409);
+ assert.equal((await handler(post({approvalHash:hash,confirm:'no'}))).status,409);
+ assert.equal(calls.length,0);
+ assert.equal((await handler(post({approvalHash:hash,confirm:'yes'}))).status,303);
+ assert.equal(calls.length,1);
+ assert.equal(calls[0].action,'shipping_apply');
+ const state=await uploads.get('catalogue/international-migration');
+ assert.equal(state.phase,'apply_queued');
+ assert.equal(state.scope,'all');
+ assert.equal(state.selectedListingId,201);
+ assert.equal((await handler(post({approvalHash:hash,confirm:'yes'}))).status,409);
+ assert.equal(calls.length,1);
+});
