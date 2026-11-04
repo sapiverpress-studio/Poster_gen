@@ -18,7 +18,8 @@ function fixture({descriptionChanged=false,missingSecond=false,wrongSupplier=fal
   store.set('trio-frames/'+id,{phase:'needs_investigation'});
   memberIds.forEach((memberId,n)=>{
    store.set('uploads/'+memberId+'/state',{type:'physical',phase:'published',listingId:n?null:8000+i,
-    plan:{inventory:{products:frames.map(frame=>({property_values:[
+    supplierProductId:'PS-'+i+'-'+n,
+    plan:{identity:{sku:'MEMBER-'+i+'-'+n},inventory:{products:frames.map(frame=>({property_values:[
       {property_id:513,values:['A4']},{property_id:514,values:[frame]}],
      offerings:[{price:20,is_enabled:true}]}))}}});
   });
@@ -51,7 +52,7 @@ function fixture({descriptionChanged=false,missingSecond=false,wrongSupplier=fal
  const lookupCalls=[],bundleLookup=async({sku})=>{
   lookupCalls.push(sku);const i=Number(sku.at(-1));
   return {success:true,bundle:{bundle_id:wrongSupplier?'OTHER':'BUNDLE-'+i,
-   sku,items:[0,1,2].map(n=>({sku:'MEMBER-'+i+'-'+n,quantity:1,size:'A4'}))}};
+   sku,items:[0,1,2].map(n=>({sku:'MEMBER-'+i+'-'+n,product_id:'PS-'+i+'-'+n,quantity:1,size:'A4'}))}};
  };
  const diagnoseCalls=[],diagnose=async({id})=>{
   diagnoseCalls.push(id);
@@ -67,6 +68,8 @@ test('two exact published Woodland listing and supplier records are inspected wi
  assert.deepEqual(result.results.map(x=>x.listingId),WOODLAND_TRIO_LISTING_IDS);
  assert.deepEqual(result.results.map(x=>x.etsy.originalDescriptionMatches),[true,true]);
  assert.deepEqual(result.results.map(x=>x.supplier.bundleIdMatches),[true,true]);
+ assert.deepEqual(result.results.map(x=>x.supplier.memberProductIdMatches),[true,true]);
+ assert.deepEqual(result.results[0].supplier.actualMemberSkus,['member-0-0','member-0-1','member-0-2']);
  assert.deepEqual(result.results.map(x=>x.sources.templateFrameMembers),[3,3]);
  assert.deepEqual(result.results.map(x=>x.sources.etsySingles),[1,1]);
  assert.ok(f.etsyRequests.every(s=>/^\/listings\/(?:4600182933|4600180569)(?:\/inventory)?$/.test(s)));
@@ -75,8 +78,14 @@ test('two exact published Woodland listing and supplier records are inspected wi
  assert.equal(result.results[0].upgrade,'needs_investigation');
 });
 test('edited Etsy descriptions and changed supplier IDs remain visible, not silently repaired',async()=>{
- const r=await auditWoodlandTrioFrames(fixture({descriptionChanged:true,wrongSupplier:true}));
+ const f=fixture({descriptionChanged:true,wrongSupplier:true});
+ const r=await auditWoodlandTrioFrames(f);
  assert.equal(r.results[0].etsy.originalDescriptionMatches,false);
+ assert.equal(r.results[0].etsy.descriptionComparison.characterCountDifference,7);
+ assert.equal(r.results[0].etsy.descriptionComparison.normalizedWhitespaceEquivalent,false);
+ assert.equal(r.results[0].preflightWithLiveDescription.phase,'blocked');
+ assert.equal(f.diagnoseCalls.length,3);
+ assert.equal(f.writes.length,0);
  assert.equal(r.results[0].supplier.bundleIdMatches,false);
  assert.equal(r.results[0].preflight.phase,'blocked');
 });
@@ -96,4 +105,11 @@ test('the one-off GitHub workflow guard runs before ordinary queued worker actio
  assert.ok(fragment.indexOf("'npm'")<fragment.indexOf("auditWoodlandTrioFrames"));
  assert.match(fragment,/process.exit\(0\)/);
  assert.doesNotMatch(fragment,/runGithubJobs|\.api\(.+method:'PUT'/);
+ const detailed="GITHUB_RUN_ID==='41789751309'&&process.env.GITHUB_RUN_ATTEMPT==='2'";
+ const c=script.indexOf(detailed);
+ assert.ok(c>0&&c<b);
+ const detailedBlock=script.slice(c,a);
+ assert.match(detailedBlock,/WOODLAND_TRIO_DETAIL_READ_ONLY/);
+ assert.match(detailedBlock,/--ignore-scripts/);
+ assert.match(detailedBlock,/process.exit\(0\)/);
 });
