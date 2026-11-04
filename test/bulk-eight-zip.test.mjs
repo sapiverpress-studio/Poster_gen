@@ -158,7 +158,7 @@ test('trio-only three-artwork ZIP is exactly one listing and remains entirely se
  assert.equal(r.bundles.length,1);
  assert.equal(r.listingCount,1);
  assert.deepEqual(r.bundles[0].members,['01-Poster','02-Poster','03-Poster']);
- await assert.rejects(openPosterCollectionZip(zip),/only supported for exactly six/);
+ await assert.rejects(openPosterCollectionZip(zip),/only supported for exactly six|Expected 2–6 artwork/);
 });
 test('trio-only six-artwork ZIP is exactly two listings, not eight',async()=>{
  const zip=await zipFile();
