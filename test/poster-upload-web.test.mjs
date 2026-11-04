@@ -350,3 +350,27 @@ test('owner-only international review identifies excluded titles and exact Etsy 
  assert.match(html,/Poster &lt;unsafe&gt;/);
  assert.doesNotMatch(html,/Poster <unsafe>/);
 });
+
+test('owner-only Streak trio repair requires exact two exclusions and queues only one seller task',async()=>{
+ const uploads=memory(),sent=[],enabled=n=>n==='POSTER_INTERNATIONAL_MIGRATION_ENABLED'?'true':env(n);
+ const handler=createPosterUploadHandler({env:enabled,uploads,dispatchJob:async(id,action)=>{sent.push({id,action});return 'jobs/'+'q'.repeat(32);}});
+ const key='catalogue/international-migration',id='u'.repeat(32),hash='a'.repeat(64);
+ await uploads.setJSON(key,{id,phase:'ready',checkedAt:Date.now(),plan:{
+  shopId:456,sourceId:11,targetId:319546214912,candidates:[],numberToUpdate:0,approvalHash:hash},
+  exceptionsReport:{exceptionCount:2,verifiedMigrated:47,activePhysical:49,exceptions:[
+   {listingId:4609483175,profileId:319538204746,title:'Streak Set 1',migrationReceipt:'none'},
+   {listingId:4609504500,profileId:319538213678,title:'Streak Set 2',migrationReceipt:'none'}]}
+ });
+ const html=await (await handler(request('/poster/catalogue/international'))).text();
+ assert.match(html,/Fix both Streak sets — 5-country delivery/);
+ const post=hashValue=>request('/poster/catalogue/international','POST',
+  new URLSearchParams({csrf:'owner-csrf',operation:'fix_streak_trios',confirm:'yes',approvalHash:hashValue}).toString(),
+  {'Content-Type':'application/x-www-form-urlencoded'});
+ assert.equal((await handler(post('invalid'))).status,409);
+ assert.equal(sent.length,0);
+ assert.equal((await handler(post(hash))).status,303);
+ assert.deepEqual(sent.map(x=>x.action),['shipping_apply']);
+ assert.equal((await uploads.get(key)).scope,'streak_trios');
+ assert.equal((await handler(post(hash))).status,409);
+ assert.equal(sent.length,1);
+});
