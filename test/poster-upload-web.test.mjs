@@ -306,7 +306,7 @@ test('one-click five-market approval requires fresh owner preview and dispatches
   candidates:[{listingId:201,title:'Example one',skus:['SP-201']},
    {listingId:202,title:'Example two',skus:['SP-202']}]};
  await uploads.setJSON('catalogue/international-migration',
-  {id,phase:'ready',plan,checkedAt:Date.now(),createdAt:Date.now(),firstVerified:false});
+  {id,phase:'ready',plan,checkedAt:Date.now()-60*60*1000,createdAt:Date.now()-60*60*1000,firstVerified:false});
  const html=await (await handler(request('/poster/catalogue/international'))).text();
  assert.match(html,/Enable 5-country delivery for 2 existing listings/);
  assert.doesNotMatch(html,/First listing to test<select/);
