@@ -252,3 +252,23 @@ test('international delivery owner page permits read-only preview and blocks dup
  await Promise.all(f.pending);
  assert.equal(f.sent.filter(x=>x[0].endsWith('/poster/upload-run')).length,1);
 });
+
+test('international shipping apply requires fresh hash, explicit consent and single-use request',async()=>{
+ const uploads=memory(),calls=[];
+ const enabled=n=>n==='POSTER_INTERNATIONAL_MIGRATION_ENABLED'?'true':env(n);
+ const handler=createPosterUploadHandler({env:enabled,uploads,dispatchJob:async(id,action)=>{calls.push({id,action});return 'jobs/'+'k'.repeat(32);}});
+ const id='i'.repeat(32),hash='b'.repeat(64),plan={approvalHash:hash,numberToUpdate:2,shopId:456,sourceId:11,targetId:99,
+  candidates:[{listingId:101,skus:['SP-ONE']},{listingId:102,skus:['SP-TWO']}]};
+ await uploads.setJSON('catalogue/international-migration',{id,phase:'ready',plan,checkedAt:Date.now(),createdAt:Date.now(),firstVerified:false});
+ const post=(fields)=>request('/poster/catalogue/international','POST',
+   new URLSearchParams({csrf:'owner-csrf',operation:'first',...fields}).toString(),
+   {'Content-Type':'application/x-www-form-urlencoded'});
+ assert.equal((await handler(post({approvalHash:hash,confirm:'no'}))).status,409);
+ assert.equal((await handler(post({approvalHash:'wrong',confirm:'yes'}))).status,409);
+ assert.equal(calls.length,0);
+ assert.equal((await handler(post({approvalHash:hash,confirm:'yes'}))).status,303);
+ assert.deepEqual(calls.map(x=>x.action),['shipping_apply']);
+ assert.equal((await uploads.get('catalogue/international-migration')).phase,'apply_queued');
+ assert.equal((await handler(post({approvalHash:hash,confirm:'yes'}))).status,409);
+ assert.equal(calls.length,1);
+});
