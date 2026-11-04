@@ -84,3 +84,18 @@ test('a ZIP supplied short Etsy title survives real physical preparation without
  assert.match(prepared.plan.body.description,/Atmospheric club jazz artwork/);
  assert.equal(prepared.plan.inventory.products.length,12);
 });
+
+test('pinned production shipping refuses old UK-only single preview without any Etsy or supplier writes',async()=>{
+ const f=await fixture({modern:true,direct:true});
+ await prepareUploadedPoster({...f,mockups:async()=>['one','two','three','four'].map(x=>Buffer.from(x))});
+ const a=await f.uploads.get(assetKey(id));
+ await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing'});
+ const pinned=n=>n==='POSTER_REQUIRED_SHIPPING_PROFILE_ID'?'319546214912':
+  n==='POSTER_INTERNATIONAL_SHIPPING_ENABLED'?'true':f.env(n);
+ await assert.rejects(publishUploadedPoster({...f,env:pinned,approvalHash:a.approvalHash}),
+  /expected approved international delivery profile/);
+ assert.equal(f.calls.filter(([,o])=>['POST','PATCH','PUT'].includes(o.method)).length,0);
+ assert.equal(f.posts(),0);
+ const missingFlag=n=>n==='POSTER_REQUIRED_SHIPPING_PROFILE_ID'?'319546214912':f.env(n);
+ await assert.rejects(prepareUploadedPoster({...f,env:missingFlag}),/Required international delivery is disabled/);
+});

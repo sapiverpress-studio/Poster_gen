@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {verifyInternationalDeliveryProfile, verifyPhysicalDeliveryProfile, INTERNATIONAL_PROFILE_TITLE} from '../lib/international-delivery.mjs';
+import {verifyInternationalDeliveryProfile, verifyPhysicalDeliveryProfile, INTERNATIONAL_PROFILE_TITLE, requiredPhysicalDeliveryMode, verifyRequiredPhysicalProfile} from '../lib/international-delivery.mjs';
 import {discoverPhysicalSetup} from '../lib/physical-shop-setup.mjs';
 import {shipping,processing,returns,carriers} from './fixtures/poster-template.mjs';
 
@@ -51,4 +51,24 @@ test('physical-shop discovery selects the requested existing profile with no wri
  assert.equal(other.phase,'ready');
  assert.equal(other.selection.shippingProfileId,99);
  assert.ok(calls.every(x=>!x.includes('/listings')));
+});
+
+test('pinned 5-country profile cannot silently revert to old UK-only shipping',()=>{
+ const good=n=>({POSTER_INTERNATIONAL_SHIPPING_ENABLED:'true',
+  POSTER_REQUIRED_SHIPPING_PROFILE_ID:'319546214912'})[n];
+ assert.equal(requiredPhysicalDeliveryMode(good),'international');
+ assert.doesNotThrow(()=>verifyRequiredPhysicalProfile({env:good,
+  deliveryMode:'international',shippingProfileId:319546214912}));
+ for(const shippingProfileId of [11,319538204746,319538213678,99]){
+  assert.throws(()=>verifyRequiredPhysicalProfile({env:good,
+    deliveryMode:'international',shippingProfileId}),/expected approved international/);
+ }
+ assert.throws(()=>verifyRequiredPhysicalProfile({env:good,
+  deliveryMode:'domestic',shippingProfileId:319546214912}),/expected approved international/);
+ const disabled=n=>n==='POSTER_REQUIRED_SHIPPING_PROFILE_ID'?'319546214912':
+   n==='POSTER_INTERNATIONAL_SHIPPING_ENABLED'?'false':undefined;
+ assert.throws(()=>requiredPhysicalDeliveryMode(disabled),/international delivery is disabled/);
+ const malformed=n=>n==='POSTER_REQUIRED_SHIPPING_PROFILE_ID'?'none':
+   n==='POSTER_INTERNATIONAL_SHIPPING_ENABLED'?'true':undefined;
+ assert.throws(()=>requiredPhysicalDeliveryMode(malformed),/Invalid required/);
 });
