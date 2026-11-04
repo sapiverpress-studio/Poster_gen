@@ -282,15 +282,25 @@ streakRecoveryButton?.addEventListener('click',async()=>{
  }
  busy=true;streakRecoveryButton.disabled=true;
  try{
-  streakRecoveryStatus.textContent='Finding six published Streak artworks by original SHA-256; no PNGs will be uploaded…';
+  streakRecoveryStatus.textContent='Finding the five original posters and the existing published The Blame listing. No PNGs will be uploaded…';
   const recovered=await api('/poster/bulk/streak-trios/recover',{method:'POST'});
   if(recovered?.phase!=='recovered'||recovered.sourceCount!==6||recovered.bundleCount!==2||
      recovered.items?.length!==6||recovered.trios?.length!==2||recovered.inputs?.length!==2)
    throw Error('Exact six-poster Streak recovery is incomplete. No new bundles requested.');
-  // Do not overwrite the receipts of a different collection in this tab.
-  if(state?.items?.some(x=>x.id)&&
-     (state.items.length!==6||state.items.some((x,i)=>x.id&&x.id!==recovered.items[i].id)))
-   throw Error('A different collection is saved in this browser tab. Open the uploader in a fresh tab for Streak recovery, without re-uploading anything.');
+  // A saved older Streak tab can reference the one failed original
+  // upload for The Blame. Replace only that pointer, never other products.
+  if(state?.items?.some(x=>x.id)){
+   const oldBlame='kvKouwHsR_qX2JUa4tWaM7A9EyTbBUar';
+   const otherIds=['MTLLSgqzYTFxW9ncjbnPumIzQGigHFon','lr8EJelnbwar0m88Ptoj0AvF7eA8FuQ2','YAOBgMka_vvvJ9St5M5X9J9NLZeUn_Lf','zmInOlFQGvzdiTbt2M7aQGflUbUIAgHp','WZdlBvUE-8IRIegj4Y9m9CMirYFPVH4b'];
+   const same=state.items.length===6&&state.items.every((x,i)=>
+    !x.id||x.id===recovered.items[i].id);
+   const staleBlameOnly=state.version===3&&state.selectedShopSection==='Streak'&&
+    state.items.length===6&&state.items[0]?.id===oldBlame&&
+    recovered.blameListingId===4609470767&&
+    otherIds.every((id,i)=>state.items[i+1]?.id===id&&recovered.items[i+1]?.id===id);
+   if(!same&&!staleBlameOnly)
+    throw Error('A different collection is saved in this browser tab. Open Streak in a fresh tab without re-uploading any posters.');
+  }
   const quota=await api('/poster/bulk/status');
   if(quota.remaining<2)throw Error('Only '+quota.remaining+' monthly slots remain. The two bundle reviews require two free slots; your published singles remain unchanged.');
   streakRecoveryStatus.textContent='Six published, supplier-linked originals found. Reserving exactly two A4 trio reviews…';
