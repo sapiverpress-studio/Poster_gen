@@ -50,7 +50,7 @@ export async function openPosterCollectionZip(file,{allowLegacySix=false,mode='i
  }
  const posterEntries=entries.filter(e=>e.ext!=='trio'),trioEntries=entries.filter(e=>e.ext==='trio');
  if(cur!==central.byteLength||posterEntries.length<BULK_MIN_COUNT*2||posterEntries.length>BULK_MAX_COUNT*2||posterEntries.length%2!==0||!(mode==='trios-only'?[1,2].includes(trioEntries.length):[0,2].includes(trioEntries.length))||entries.length!==posterEntries.length+trioEntries.length)
-  fail('Expected 2–6 artwork folders and, for a six-poster set, exactly bundle-1.md and bundle-2.md');
+  fail(mode==='trios-only'?'Trio-only ZIP requires three artworks with bundle-1.md or six artworks with both bundle manifests':'Expected 2–6 artwork folders and, for a six-poster set, exactly bundle-1.md and bundle-2.md');
  const depths=new Set(posterEntries.map(x=>x.name.split('/').length));
  if(depths.size!==1||![2,3].includes([...depths][0]))fail('Use 2 to 6 poster subfolders, optionally inside one collection folder');
  if([...depths][0]===3&&new Set(posterEntries.map(x=>x.name.split('/')[0])).size!==1)fail('Use only one enclosing collection folder');
