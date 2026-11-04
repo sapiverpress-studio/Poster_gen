@@ -8,7 +8,7 @@ function fixture({descriptionChanged=false,missingSecond=false,wrongSupplier=fal
  const frames=['Print Only','Black Frame','White Frame','Oak Frame'];
  WOODLAND_TRIO_LISTING_IDS.forEach((listingId,i)=>{
   if(i===1&&missingSecond)return;
-  const id=String(i+1).repeat(32),memberIds=Array.from({length:3},(_,n)=>String(i+3+n).repeat(32));
+  const id=String(i+1).repeat(32),memberIds=Array.from({length:3},(_,n)=>String(i*3+3+n).repeat(32));
   const sku='SP-WOOD-TRIO-'+i,body={title:'Woodland Nature Trio '+i,description:'Three separate unframed A4 woodland prints.'};
   store.set('products/'+id+'/record',{type:'physical_bundle',productId:id,etsyListingId:listingId,currentRevision:id});
   store.set('uploads/'+id+'/state',{type:'physical_bundle',phase:'published',productId:id,listingId,sku,
