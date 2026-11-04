@@ -13,7 +13,7 @@ const details=i=>'Title: Jazz Nocturne '+i+'\nListing title: Nocturne Art Print 
 function png(){
  const b=Buffer.alloc(33);b.set([137,80,78,71,13,10,26,10],0);b.writeUInt32BE(13,8);b.write('IHDR',12);b.writeUInt32BE(3394,16);b.writeUInt32BE(4800,20);b[24]=8;b[25]=2;return b;
 }
-async function zipFile({itemCount=6,folder='Jazz Collection/',badText=false,nested=false,extra=false,compress=true,dirs=true,trios=true}={}){
+async function zipFile({itemCount=6,folder='Jazz Collection/',badText=false,nested=false,extra=false,compress=true,dirs=true,trios=true,trioOnly=false}={}){
  const zip=new yazl.ZipFile();
  if(folder)zip.addEmptyDirectory(folder);
  for(let i=1;i<=itemCount;i++){
@@ -24,6 +24,7 @@ async function zipFile({itemCount=6,folder='Jazz Collection/',badText=false,nest
   zip.addBuffer(Buffer.from(badText&&i===3?details(i).replace('home bar','jazz art'):details(i)),pref+'details.md',{compress});
  }
  if(itemCount===6&&trios){for(let n=1;n<=2;n++)zip.addBuffer(Buffer.from(trioDetails(n)),folder+'bundle-'+n+'.md',{compress});}
+ if(itemCount===3&&trioOnly)zip.addBuffer(Buffer.from(trioDetails(1)),folder+'bundle-1.md',{compress});
  if(extra)zip.addBuffer(Buffer.from('unrelated'),'other.md');
  zip.end();const parts=[];for await(const x of zip.outputStream)parts.push(x);
  return new File(parts,'Six-Posters.zip',{type:'application/zip'});
@@ -147,4 +148,28 @@ test('two trio manifests preserve different descriptions, titles, tags and non-o
  assert.notEqual(one.description,two.description);
  assert.notEqual(one.listingTitle,two.listingTitle);
  assert.notDeepEqual(one.tags,two.tags);
+});
+
+test('trio-only three-artwork ZIP is exactly one listing and remains entirely separate from singles',async()=>{
+ const zip=await zipFile({itemCount:3,trioOnly:true,folder:'Jeff Collection/'});
+ const r=await openPosterCollectionZip(zip,{mode:'trios-only'});
+ assert.equal(r.mode,'trios-only');
+ assert.equal(r.items.length,3);
+ assert.equal(r.bundles.length,1);
+ assert.equal(r.listingCount,1);
+ assert.deepEqual(r.bundles[0].members,['01-Poster','02-Poster','03-Poster']);
+ await assert.rejects(openPosterCollectionZip(zip),/only supported for exactly six/);
+});
+test('trio-only six-artwork ZIP is exactly two listings, not eight',async()=>{
+ const zip=await zipFile();
+ const r=await openPosterCollectionZip(zip,{mode:'trios-only'});
+ assert.deepEqual([r.items.length,r.bundles.length,r.listingCount],[6,2,2]);
+ assert.equal((await openPosterCollectionZip(zip)).listingCount,8);
+});
+test('trio-only mode refuses unsupported counts or missing manifests without creating products',async()=>{
+ for(const n of [2,4,5]){
+  await assert.rejects(openPosterCollectionZip(await zipFile({itemCount:n}),{mode:'trios-only'}),/Trio-only/);
+ }
+ await assert.rejects(openPosterCollectionZip(await zipFile({itemCount:3}),{mode:'trios-only'}),/Trio-only/);
+ await assert.rejects(openPosterCollectionZip(await zipFile({itemCount:6,trios:false}),{mode:'trios-only'}),/Trio-only/);
 });
