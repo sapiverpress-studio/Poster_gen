@@ -104,3 +104,39 @@ migrated or orders having been fulfilled successfully.**
 - GitHub Node 24 tests are mock-backed; a successful CI run is not proof of a production deployment or real seller-account changes.
 - **Single global listing distinction:** Printify documents single-listing regional POD fulfilment, whereas Etsy still states one origin per listing. This remains an Etsy disclosure/accuracy consideration; no automatic duplication of the original 47 listings is planned.
 - Release blocked on accurate dispatch-origin representation, supplier pricing/variant economics (especially NZ framed), and an explicitly approved single production release. No live listings have been changed.
+
+
+## 2026-11-04 owner-approved activation
+
+The shop owner explicitly instructed the assistant to enable selling in GB, US,
+CA, AU and NZ through the existing uploader and selected Etsy delivery profile.
+The authenticated seller read-only audit completed successfully, finding
+47 active physical listings with the original UK-only profile, and two other
+listings excluded because they already have international/other delivery.
+
+- Netlify site `sapiver-poster-gen-auth`: production-scoped function/runtime
+  environment variables `POSTER_INTERNATIONAL_SHIPPING_ENABLED` and
+  `POSTER_INTERNATIONAL_MIGRATION_ENABLED` set to `true`.
+- GitHub main-branch `poster-publication.yml`: corresponding worker environment
+  flags set to `true` under explicit owner approval. The worker retains pinned
+  `main` OIDC identity and checks out `feature/canva-oauth-callback`.
+- This document revision intentionally triggers a production rebuild so that
+  Netlify function runtime can read the new feature settings. Confirm the exact
+  deployed commit and route before requesting the owner to apply changes.
+- The authenticated application still requires a current, valid, exact-hash,
+  CSRF-protected owner form approval to change Etsy shipping profiles. No code
+  commit or environment update alone applies the new shipping profile to listings.
+- Migration flow: owner selects one existing listing; worker checks its SKU,
+  metadata and inventory before/after changing only `shipping_profile_id`;
+  after confirmed readback, a fresh preview and separate owner approval
+  selects the remaining eligible listings. Shop-specific API checks prevent
+  accidental writes to other Etsy shops.
+- PrintShrimp Etsy import/tracking switches are ON in owner's screenshots;
+  automatic wallet payment is OFF and balance was £0. This activation does not
+  enable PrintShrimp automatic payment or claim a live international order test.
+- A single Etsy shipping origin remains a policy risk for regionally printed
+  POD even when the sales workflow is technically supported. Owner was informed;
+  do not fabricate courier identity or dispatch location.
+- The existing NZ shipping charge is £14.99 (first item) and £0 additional;
+  confirm after first listing is updated. International supplier costs,
+  especially framed bundles, must still be monitored.
