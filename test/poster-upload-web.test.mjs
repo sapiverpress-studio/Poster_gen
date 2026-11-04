@@ -236,3 +236,19 @@ test('visibility action requires owner confirmation, current Etsy audit, CSRF an
  assert.equal((await status.json()).phase,'queued');
  assert.equal(f.sent.length,0);
 });
+
+test('international delivery owner page permits read-only preview and blocks duplicate jobs or unapproved listing changes',async()=>{
+ const f=fixture(),page=await f.handler(request('/poster/catalogue/international'),f.context);
+ assert.equal(page.status,200);
+ assert.match(await page.text(),/International Etsy delivery/);
+ const post=(operation,extra={})=>request('/poster/catalogue/international','POST',
+  new URLSearchParams({csrf:'owner-csrf',operation,...extra}).toString(),
+  {'Content-Type':'application/x-www-form-urlencoded'});
+ assert.equal((await f.handler(post('preview',{csrf:'wrong'}),f.context)).status,403);
+ assert.equal((await f.handler(post('preview'),f.context)).status,303);
+ assert.equal((await f.uploads.get('catalogue/international-migration')).phase,'preview_queued');
+ assert.equal((await f.handler(post('preview'),f.context)).status,409);
+ assert.equal((await f.handler(post('first',{confirm:'yes',approvalHash:'not-verified'}),f.context)).status,409);
+ await Promise.all(f.pending);
+ assert.equal(f.sent.filter(x=>x[0].endsWith('/poster/upload-run')).length,1);
+});
