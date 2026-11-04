@@ -35,7 +35,8 @@ export function parseTrioDetails(text,{filename='bundle.md'}={}){
  if(tags.length!==13||!unique(tags)||tags.some(x=>!x||x.length>20||/[<>\u0000-\u001f]/.test(x)))fail(filename+': exactly 13 distinct Etsy tags, maximum 20 characters each');
  if(description.length<100||description.length>9000||/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(description))fail(filename+': bundle description must be 100–9000 characters');
  if(!requiredDisclosure.test(description))fail(filename+': description needs an accurate AI assistance disclosure');
- if(!/\b(?:three|3)\b/i.test(description)||(!framed&&!/\b(?:unframed|prints only)\b/i.test(description)))fail(filename+': description must state three printed artworks and describe the finish accurately');
+ if(!/\b(?:three|3)\b/i.test(description))fail(filename+': description must state three printed artworks');
+ if(!framed&&!/\b(?:unframed|prints only)\b/i.test(description))fail(filename+': description must state three unframed prints');
  if(!description.includes(size))fail(filename+': description must explain exact fixed '+size+' size');
  return {title,listingTitle,sectionTitle:section,size,members,tags,description,framed};
 }
