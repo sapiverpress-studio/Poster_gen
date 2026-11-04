@@ -21,7 +21,7 @@ function showTrioFields(archive,signature){
  previewArchive=archive;previewSignature=signature;trioForm?.replaceChildren();
  if(!archive.bundles?.length){return;}
  const heading=text('h3','This ZIP contains 8 Etsy listings: six individual posters and two different sets of three.');
- trioForm.append(heading,text('p','The two sets each have independent Etsy text and 13 tags. The system allocates the distinct PrintShrimp bundle SKUs automatically from verified component products. All three prints in a set are unframed.'));
+ trioForm.append(heading,text('p','Each trio has separate descriptions, tags and a distinct verified PrintShrimp bundle SKU. Choose whether all three can also be purchased together with matching Black, White or Oak frames.'));
  for(let i=0;i<2;i++){
   const b=archive.bundles[i],n=i+1,fieldset=document.createElement('fieldset');
   const legend=text('legend','Trio '+n+': '+b.title);
@@ -34,6 +34,10 @@ function showTrioFields(archive,signature){
   const discount=document.createElement('select');discount.name='trio'+n+'Discount';
   for(const pct of [0,10,15]){const option=document.createElement('option');option.value=String(pct);option.textContent=pct+'%';if(Number(state?.bundles?.[i]?.input?.discount??15)===pct)option.selected=true;discount.append(option);}
   discountLabel.append(discount);fieldset.append(discountLabel);
+  const frameLabel=document.createElement('label'),frame=document.createElement('input');
+  frame.type='checkbox';frame.name='trio'+n+'Frames';frame.checked=state?.bundles?.[i]?.framed??true;
+  frameLabel.append(frame,text('span',' Offer Print Only and sets of three matching Black, White or Oak frames'));
+  fieldset.append(frameLabel);
   const details=document.createElement('details');details.append(text('summary','Read this trio’s distinct Etsy description and tags'));
   details.append(text('pre',b.description),text('p','Tags: '+b.tags.join(', ')));fieldset.append(details);
   trioForm.append(fieldset);
@@ -54,7 +58,8 @@ form?.elements?.collection?.addEventListener?.('change',()=>{onZipChosen().catch
 function inputPlans(archive){
  if(!archive.bundles.length)return null;
  const inputs=archive.bundles.map((_,i)=>({sku:'SP-PENDING-TRIO-'+(i+1),title:trioInput(i+1,'Title')?.value?.trim(),discount:Number(trioInput(i+1,'Discount')?.value)}));
- return makeEightListingPlan({items:archive.items,trios:archive.bundles,inputs});
+ const trios=archive.bundles.map((b,i)=>({...b,framed:trioInput(i+1,'Frames')?.checked===true}));
+ return makeEightListingPlan({items:archive.items,trios,inputs});
 }
 async function api(url,{method='GET',body,headers={}}={}){
  let res;try{res=await fetch(url,{method,body,credentials:'same-origin',headers:{'X-Poster-CSRF':csrf,...headers}});}
@@ -105,7 +110,7 @@ async function prepareTwoTrios(){
   const submitted={
    items:state.items.map(x=>({id:x.id,sha256:x.sha256,folder:x.folder,listingTitle:x.listingTitle,sectionTitle:x.sectionTitle,printSizes:x.printSizes})),
    trios:state.bundles.map(b=>({title:b.title,listingTitle:b.listingTitle,sectionTitle:b.sectionTitle,size:b.size,
-    members:b.members,tags:b.tags,description:b.description})),
+    members:b.members,tags:b.tags,description:b.description,framed:b.framed===true})),
    inputs:state.bundles.map(b=>b.input)
   };
   const result=await api('/poster/bulk/trios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(submitted)});
@@ -245,13 +250,13 @@ async function start(e){
    const storeOnly=form.elements.storeOnly?.checked===true||quota.remaining<archive.listingCount;
    const artworkHashes=await checkAll(archive);
    state={version:archive.bundles.length?3:2,signature:sig,kind:form.elements.kind.value,selectedShopSection:selected,websiteFolder:form.elements.websiteFolder?.value||'',storeOnly,
-    bundles:archive.bundles.map((b,i)=>({...b,input:{sku:collectionPlan.bundleListings[i].sku,title:collectionPlan.bundleListings[i].listingTitle,discount:collectionPlan.bundleListings[i].discount}})),trioIds:[],
+    bundles:archive.bundles.map((b,i)=>({...b,framed:collectionPlan.bundleListings[i].framed===true,input:{sku:collectionPlan.bundleListings[i].sku,title:collectionPlan.bundleListings[i].listingTitle,discount:collectionPlan.bundleListings[i].discount}})),trioIds:[],
     items:archive.items.map((i,n)=>({filename:i.filename,folder:i.folder,title:i.title,listingTitle:i.listingTitle,sectionTitle:i.sectionTitle,description:i.description,tags:i.tags,printSizes:i.printSizes,sha256:artworkHashes[n],uploadFilename:collectionUploadFilename(i.title,artworkHashes[n]),id:null}))};save();
   }else{
    if(state.items.some((v,i)=>v.filename!==archive.items[i].filename||v.folder!==archive.items[i].folder||v.listingTitle!==archive.items[i].listingTitle||v.sectionTitle!==archive.items[i].sectionTitle||v.title!==archive.items[i].title||v.description!==archive.items[i].description||v.tags.join(',')!==archive.items[i].tags.join(',')||JSON.stringify(v.printSizes||['A5','A4','A3'])!==JSON.stringify(archive.items[i].printSizes)))
     throw Error('This ZIP differs from the saved collection. Do not reuse existing product receipts with different descriptions.');
    const artworkHashes=await checkAll(archive);
-   if(state.version===3&&JSON.stringify(state.bundles.map(b=>({...b,input:null})))!==JSON.stringify(archive.bundles.map(b=>({...b,input:null}))))
+   if(state.version===3&&JSON.stringify(state.bundles.map(b=>({...b,input:null,framed:false})))!==JSON.stringify(archive.bundles.map(b=>({...b,input:null,framed:false}))))
      throw Error('Trio descriptions, member assignments or tags changed since first upload; do not replace the saved eight-product collection.');
     if(state.items.some((v,i)=>v.sha256!==artworkHashes[i]))
     throw Error('Artwork differs from the original saved ZIP. Do not reuse an existing upload ID with changed images.');
