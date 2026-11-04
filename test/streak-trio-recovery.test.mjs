@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {findPublishedStreakTrioSources,STREAK_APPROVED_UPLOAD_IDS} from '../lib/streak-trio-recovery.mjs';
+import {findPublishedStreakTrioSources,STREAK_APPROVED_UPLOAD_IDS,STREAK_BLAME_ACTIVE_LISTING_ID} from '../lib/streak-trio-recovery.mjs';
 import {validateTwoTrios} from '../public/collection-trios.mjs';
 
 const originalNames=['The Blame','Democracy','The Experts','Another Meeting','Comment Section','Historic Disaster'];
@@ -35,7 +35,13 @@ function fixture({shopId=50893070,missingIndex=-1,missingSupplier=-1,updatedInde
    pendingRevision:null,etsyListingId:5000+i,supplierProductId});
  });
  return {
-  uploads:{get:async key=>{reads.push(key);return map.get(key)||null;},setJSON:async()=>{throw Error('Read-only recovery wrote to storage');}},
+  map,
+  uploads:{
+   get:async key=>{reads.push(key);return map.get(key)||null;},
+   list:async function*({prefix,paginate}){assert.equal(prefix,'products/');assert.equal(paginate,true);
+    yield {blobs:[...map.keys()].filter(k=>/^products\\/[A-Za-z0-9_-]{32}\\/record$/.test(k)).map(key=>({key}))};},
+   setJSON:async()=>{throw Error('Read-only recovery wrote to storage');}
+  },
   client:{session:async()=>({shop_id:shopId})},
   reads
  };
@@ -70,6 +76,44 @@ test('fail closed on missing original receipt, missing supplier, wrong title/sec
   [{duplicateSha:1},/published sources are not distinct/]
  ]){
   await assert.rejects(findPublishedStreakTrioSources(fixture(opts)),match);
+ }
+});
+test('links the existing active The Blame Etsy listing rather than the failed first upload',async()=>{
+ const f=fixture(),original=STREAK_APPROVED_UPLOAD_IDS[0],replacement='b'.repeat(32);
+ const old=f.map.get('uploads/'+original+'/state');
+ f.map.set('uploads/'+original+'/state',{...old,phase:'publishing',stage:'queued',listingId:null,supplierProductId:null});
+ f.map.set('products/'+original+'/record',{...f.map.get('products/'+original+'/record'),phase:'publishing',currentRevision:null,pendingRevision:original,etsyListingId:null,supplierProductId:null});
+ f.map.set('uploads/'+replacement+'/state',{...old,productId:replacement,phase:'published',stage:'complete',listingId:STREAK_BLAME_ACTIVE_LISTING_ID,supplierProductId:'PS-replacement',
+  masterKey:'uploads/'+replacement+'/master.png',plan:{identity:{sku:'SP-STREAK-BLAME-NEW'}},
+  image:{sha256:'f'.repeat(64)}});
+ f.map.set('products/'+replacement+'/record',{...f.map.get('products/'+original+'/record'),productId:replacement,phase:'published',type:'physical',currentRevision:replacement,
+  pendingRevision:null,etsyListingId:STREAK_BLAME_ACTIVE_LISTING_ID,supplierProductId:'PS-replacement'});
+ const result=await findPublishedStreakTrioSources(f);
+ assert.equal(result.blameListingId,STREAK_BLAME_ACTIVE_LISTING_ID);
+ assert.equal(result.items[0].id,replacement);
+ assert.equal(result.items[0].sha256,'f'.repeat(64));
+ assert.deepEqual(result.items.slice(1).map(x=>x.id),STREAK_APPROVED_UPLOAD_IDS.slice(1));
+ assert.deepEqual(result.sourceDifferences,['The Blame']);
+ assert.equal(result.bundleCount,2);
+ assert.equal(result.trios[0].members.includes('01-Blame'),true);
+});
+test('will not link another Etsy listing or a supplier-unverified replacement',async()=>{
+ for(const mode of ['missing','other-id','no-supplier','duplicate']){
+  const f=fixture(),original=STREAK_APPROVED_UPLOAD_IDS[0],newId='b'.repeat(32),old=f.map.get('uploads/'+original+'/state');
+  f.map.set('uploads/'+original+'/state',{...old,phase:'publishing',listingId:null,supplierProductId:null});
+  const basic={...f.map.get('products/'+original+'/record'),productId:newId,currentRevision:newId,phase:'published',
+   pendingRevision:null,etsyListingId:STREAK_BLAME_ACTIVE_LISTING_ID,supplierProductId:'PS-replacement'};
+  const asset={...old,phase:'published',productId:newId,listingId:STREAK_BLAME_ACTIVE_LISTING_ID,supplierProductId:'PS-replacement',
+   masterKey:'uploads/'+newId+'/master.png'};
+  if(mode!=='missing'){
+   f.map.set('products/'+newId+'/record',{...basic,supplierProductId:mode==='no-supplier'?null:basic.supplierProductId});
+   f.map.set('uploads/'+newId+'/state',{...asset,listingId:mode==='other-id'?STREAK_BLAME_ACTIVE_LISTING_ID+1:asset.listingId});
+  }
+  if(mode==='duplicate'){
+   const dup='c'.repeat(32);
+   f.map.set('products/'+dup+'/record',{...basic,productId:dup,currentRevision:dup});
+  }
+  await assert.rejects(findPublishedStreakTrioSources(f),/Blame.*(exactly one|supplier|disagree)/);
  }
 });
 test('rejects unexpected Etsy seller identity',async()=>{
