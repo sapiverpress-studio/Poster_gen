@@ -113,7 +113,7 @@ test('will not link another Etsy listing or a supplier-unverified replacement',a
    const dup='c'.repeat(32);
    f.map.set('products/'+dup+'/record',{...basic,productId:dup,currentRevision:dup});
   }
-  await assert.rejects(findPublishedStreakTrioSources(f),/Blame.*(exactly one|supplier|disagree)/);
+  await assert.rejects(findPublishedStreakTrioSources(f),/Blame.*(exactly one|PrintShrimp|disagree)/);
  }
 });
 test('rejects unexpected Etsy seller identity',async()=>{
