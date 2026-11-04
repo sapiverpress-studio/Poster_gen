@@ -261,7 +261,7 @@ test('international shipping apply requires fresh hash, explicit consent and sin
   candidates:[{listingId:101,skus:['SP-ONE']},{listingId:102,skus:['SP-TWO']}]};
  await uploads.setJSON('catalogue/international-migration',{id,phase:'ready',plan,checkedAt:Date.now(),createdAt:Date.now(),firstVerified:false});
  const post=(fields)=>request('/poster/catalogue/international','POST',
-   new URLSearchParams({csrf:'owner-csrf',operation:'first',...fields}).toString(),
+   new URLSearchParams({csrf:'owner-csrf',operation:'first',selectedListingId:'101',...fields}).toString(),
    {'Content-Type':'application/x-www-form-urlencoded'});
  assert.equal((await handler(post({approvalHash:hash,confirm:'no'}))).status,409);
  assert.equal((await handler(post({approvalHash:'wrong',confirm:'yes'}))).status,409);
