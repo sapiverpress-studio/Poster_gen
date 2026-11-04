@@ -87,11 +87,13 @@ test('absent second saved trio refuses a fabricated replacement',async()=>{
 });
 test('the one-off GitHub workflow guard runs before ordinary queued worker actions',()=>{
  const script=readFileSync(new URL('../scripts/github-publication.mjs',import.meta.url),'utf8');
- const entry="GITHUB_RUN_ID==='41789870058'&&process.env.GITHUB_RUN_ATTEMPT==='2'";
+ const entry="GITHUB_RUN_ID==='41789870058'&&process.env.GITHUB_RUN_ATTEMPT==='3'";
  const a=script.indexOf(entry),b=script.indexOf("const jobs=await collectGithubJobs");
  assert.ok(a>0&&b>a);
  const fragment=script.slice(a,b);
  assert.match(fragment,/auditWoodlandTrioFrames/);
+ assert.match(fragment,/--ignore-scripts/);
+ assert.ok(fragment.indexOf("'npm'")<fragment.indexOf("auditWoodlandTrioFrames"));
  assert.match(fragment,/process.exit\(0\)/);
  assert.doesNotMatch(fragment,/runGithubJobs|\.api\(.+method:'PUT'/);
 });

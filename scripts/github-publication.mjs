@@ -17,15 +17,24 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
- // This previously FAILED frame-audit run may be rerun exactly once,
- // under explicit owner diagnosis authorisation, as a read-only investigation.
- // It occurs BEFORE queue collection or any merchant write, and exits even
- // if provider readback fails. No old failed trio claim is retried.
- if(process.env.GITHUB_RUN_ID==='41789870058'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
-  const {createEtsySession}=await import('../lib/etsy-session.mjs');
-  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-  const {auditWoodlandTrioFrames}=await import('../lib/woodland-trio-frame-diagnostic.mjs');
+ // Attempt 2 of the original failed frame-audit exited at module import
+ // before the read-only report, because sharp was not installed on this path.
+ // Attempt 3 only loads image dependencies with scripts disabled, then performs
+ // the exact-two-listing diagnosis and EXITS before collecting queued work.
+ // Neither attempt can replay a merchant mutation, clear a claim or publish.
+ if(process.env.GITHUB_RUN_ID==='41789870058'&&process.env.GITHUB_RUN_ATTEMPT==='3'){
+  let stage='dependencies';
   try{
+   const {execFileSync}=await import('node:child_process');
+   execFileSync('npm',['ci','--ignore-scripts','--no-audit','--no-fund'],{
+    stdio:'ignore',timeout:180000,
+    env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR}
+   });
+   stage='imports';
+   const {createEtsySession}=await import('../lib/etsy-session.mjs');
+   const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+   const {auditWoodlandTrioFrames}=await import('../lib/woodland-trio-frame-diagnostic.mjs');
+   stage='readbacks';
    const result=await auditWoodlandTrioFrames({
     uploads,client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),
     env:workerEnv
@@ -33,7 +42,7 @@ try{
    console.log('WOODLAND_TRIO_FRAME_READ_ONLY '+JSON.stringify(result));
    process.exit(0);
   }catch{
-   console.log('WOODLAND_TRIO_FRAME_READ_ONLY unavailable; no saved records or merchants changed');
+   console.log('WOODLAND_TRIO_FRAME_READ_ONLY unavailable_at='+stage+'; no saved records or merchants changed');
    process.exit(1);
   }
  }
