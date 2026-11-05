@@ -525,7 +525,7 @@ deployTrios?.addEventListener('click',async()=>{
   const pending=live.filter(r=>r.phase==='ready_for_approval');
   if(!pending.length)return;
   if(!confirm('Deploy '+pending.length+' reviewed supplier bundle listings to Etsy? Each trio has its own title, description, three SKUs and quoted profit. Up to '+pending.length+' new Etsy listing fees apply. No paid PrintShrimp order is created.'))return;
-  for(let i=0;i<2;i++){
+  for(let i=0;i<state.trioIds.length;i++){
    if(live[i].phase!=='ready_for_approval')continue;
    const r=await api('/poster/uploads/'+state.trioIds[i]+'/approve',{method:'POST',
     headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},
