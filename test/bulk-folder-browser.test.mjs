@@ -19,7 +19,7 @@ test('new six-poster collections without BOTH trio manifests stop before uploadi
  function el(){return {children:[],style:{},listeners:{},append(...v){this.children.push(...v);},replaceChildren(){this.children=[];},addEventListener(k,v){this.listeners[k]=v;},querySelector(){return button;}};}
  const button=el();
  globalThis.document={getElementById(id){if(!nodes.has(id))nodes.set(id,el());return nodes.get(id);},querySelector(){return {content:'csrf'};},createElement:el};
- const form=document.getElementById('bulk-collection-form');form.elements={collection:{get files(){return[file];}},kind:{value:'artwork'}};
+ const form=document.getElementById('bulk-collection-form');form.elements={collection:{get files(){return[file];}},kind:{value:'artwork'},uploadMode:{value:'eight-listings'}};
  globalThis.sessionStorage={getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)};
  Object.defineProperty(globalThis,'crypto',{value:webcrypto,configurable:true});
  globalThis.fetch=async(url,options={})=>{if(url==='/poster/uploads')created.push(JSON.parse(options.body));return Response.json({phase:'unavailable'},{status:503});};
