@@ -71,3 +71,22 @@ test('single ZIP upload consumes one slot, or stores privately if no slot remain
   }finally{delete globalThis.document;delete globalThis.sessionStorage;delete globalThis.fetch;}
  }
 });
+
+test('tapping upload with no ZIP explains the missing file and creates no products',async()=>{
+ const nodes=new Map(),saved=new Map();let requests=0;
+ function el(){return {children:[],style:{},listeners:{},append(...v){this.children.push(...v);},replaceChildren(){this.children=[];},addEventListener(k,v){this.listeners[k]=v;},querySelector(){return submit;}};}
+ const submit=el();
+ globalThis.document={getElementById(id){if(!nodes.has(id))nodes.set(id,el());return nodes.get(id);},querySelector(){return {content:'csrf'};},createElement:el};
+ const form=document.getElementById('bulk-collection-form');
+ form.elements={collection:{files:[]},uploadMode:{value:'four-listings'}};
+ globalThis.sessionStorage={getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)};
+ globalThis.fetch=async()=>{requests++;throw Error('No network calls allowed');};
+ try{
+  await import('../public/bulk-upload.mjs?mobile-empty-zip-feedback');
+  await form.listeners.submit({preventDefault(){}});
+  assert.match(nodes.get('bulk-status').textContent,/Choose a ZIP matching the selected upload type/);
+  assert.equal(requests,0);
+  assert.equal(saved.size,0);
+  assert.equal(submit.disabled,false);
+ }finally{delete globalThis.document;delete globalThis.sessionStorage;delete globalThis.fetch;}
+});
