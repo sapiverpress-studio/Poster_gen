@@ -532,7 +532,7 @@ deployTrios?.addEventListener('click',async()=>{
     body:new URLSearchParams({csrf,approvalHash:live[i].review.approvalHash})});
    if(r.phase!=='publishing')throw Error('Trio '+(i+1)+' approval needs investigation; do not recreate it');
   }
-  message('Both distinct trio listings have been approved and queued; waiting for Etsy IDs and supplier read-back.');
+  message(pending.length+' trio collection listing'+(pending.length===1?'':'s')+' queued; awaiting Etsy IDs and supplier read-back.');
   await inspect();
  }catch(error){message('Trio publication stopped safely: '+error.message+' Existing records are retained.');}
  finally{busy=false;deployTrios.disabled=false;}
