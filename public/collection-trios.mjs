@@ -1,4 +1,4 @@
-// Metadata contracts for the TWO separate sets of three in a six-poster ZIP.
+// Metadata contracts for a single three-print collection or two separate sets of three.
 // Pure shared browser/Node validation. Never manufacture a bundle listing from poster copy.
 const fail=s=>{throw Error(s);};
 const SKU=/^[A-Za-z0-9_-]{1,100}$/;
@@ -89,6 +89,18 @@ export function makeEightListingPlan({items,trios,inputs}){
   size:b.size,sectionTitle:b.sectionTitle,tags:[...b.tags],description:b.description,framed:b.framed===true,
   sku:settings[i].sku,listingTitle:settings[i].title,discount:settings[i].discount
  }))};
+}
+
+export function makeFourListingPlan({items,trios,inputs}){
+ const bundles=validateTrioOnly(items,trios);
+ if(items.length!==3||bundles.length!==1)fail('One-trio collection needs exactly three individual posters and one bundle');
+ if(!Array.isArray(inputs)||inputs.length!==1)fail('The trio needs its own reviewed Etsy title and supplier SKU');
+ const b=bundles[0],setting=validateBundleInput({...inputs[0],trio:b});
+ return {version:1,mode:'four-listings',totalListings:4,individualListings:3,bundleListings:[{
+  number:1,memberFolders:b.members,memberTitles:b.memberPosters.map(p=>p.listingTitle),
+  size:b.size,sectionTitle:b.sectionTitle,tags:[...b.tags],description:b.description,framed:b.framed===true,
+  sku:setting.sku,listingTitle:setting.title,discount:setting.discount
+ }]};
 }
 
 export function validateTrioOnly(items,trios){
