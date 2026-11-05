@@ -524,7 +524,7 @@ deployTrios?.addEventListener('click',async()=>{
   if(!live.every(r=>['ready_for_approval','publishing','published'].includes(r.phase)))throw Error('Trio review still preparing; wait for both exact prices and images');
   const pending=live.filter(r=>r.phase==='ready_for_approval');
   if(!pending.length)return;
-  if(!confirm('Deploy '+pending.length+' reviewed supplier bundle listings to Etsy? Each trio has its own title, description, three SKUs and quoted profit. Up to '+pending.length+' new Etsy listing fees apply. No paid PrintShrimp order is created.'))return;
+  if(!confirm('Deploy '+pending.length+' reviewed three-print collection listing(s) to Etsy? Each has its own supplier bundle SKU and priced listing. No PrintShrimp order is created.'))return;
   for(let i=0;i<state.trioIds.length;i++){
    if(live[i].phase!=='ready_for_approval')continue;
    const r=await api('/poster/uploads/'+state.trioIds[i]+'/approve',{method:'POST',
