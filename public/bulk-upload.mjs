@@ -114,12 +114,14 @@ function buildCards(results=[]){
   cards.append(article);
  }
 }
-async function prepareTwoTrios(){
- if(!state||state.version!==3||state.storeOnly||state.bundlesOnly||state.trioIds?.length===2||preparingTrios)return;
+async function prepareCollectionTrios(){
+ const needed=state?.bundles?.length||0;
+ if(!state||![3,4].includes(state.version)||!needed||state.storeOnly||state.bundlesOnly||state.trioIds?.length||preparingTrios)return;
+ if(state.items.length!==needed*3)throw Error('Saved collection mode does not match poster count');
  if(!state.items.every((x,i)=>seen[i]?.phase==='published'&&x.id))return;
  preparingTrios=true;
  try{
-  message('All six single posters are published. Reserving two separate supplier-bundle reviews…');
+  message('All '+state.items.length+' individual posters are published. Reserving '+needed+' trio collection reviews…');
   const submitted={
    items:state.items.map(x=>({id:x.id,sha256:x.sha256,folder:x.folder,listingTitle:x.listingTitle,sectionTitle:x.sectionTitle,printSizes:x.printSizes})),
    trios:state.bundles.map(b=>({title:b.title,listingTitle:b.listingTitle,sectionTitle:b.sectionTitle,size:b.size,
@@ -127,7 +129,7 @@ async function prepareTwoTrios(){
    inputs:state.bundles.map(b=>b.input)
   };
   const result=await api('/poster/bulk/trios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(submitted)});
-  if(result.ids?.length!==2||result.skus?.length!==2||result.skus.some(s=>!/^[A-Za-z0-9_-]{1,100}$/.test(s))||result.skus[0]===result.skus[1])throw Error('Two unique supplier bundle identities not confirmed. Inspect saved collection before retrying');
+  if(result.ids?.length!==needed||result.skus?.length!==needed||result.skus.some(s=>!/^[A-Za-z0-9_-]{1,100}$/.test(s))||new Set(result.skus.map(s=>s.toLowerCase())).size!==needed)throw Error('Supplier bundle identities not confirmed. Inspect saved products before retrying');
   state.bundles.forEach((b,i)=>{b.input.sku=result.skus[i];});
   state.trioIds=result.ids;save();
  }finally{preparingTrios=false;}
@@ -135,9 +137,9 @@ async function prepareTwoTrios(){
 async function showTrioReviews(){
  if(!trioReviews||!state?.trioIds?.length)return;
  const statuses=await Promise.all(state.trioIds.map(id=>api('/poster/uploads/'+id)));
- trioReviews.replaceChildren(text('h3','Two distinct three-print collection listings'));
+ trioReviews.replaceChildren(text('h3',state.trioIds.length+' separate three-print Etsy collection listing'+(state.trioIds.length===1?'':'s')));
  let ready=0;
- for(let i=0;i<2;i++){
+ for(let i=0;i<state.trioIds.length;i++){
   const b=state.bundles[i],r=statuses[i],card=document.createElement('article'),rev=r.review;
   card.append(text('h4','Trio '+(i+1)+': '+b.title));
   card.append(text('p','Includes: '+b.members.join(', ')+' · fixed '+b.size+' · PrintShrimp '+b.input.sku));
@@ -158,9 +160,9 @@ async function showTrioReviews(){
  if(!all&&statuses.some(x=>['preparing','publishing'].includes(x.phase))){
   clearTimeout(pollHandle);pollHandle=setTimeout(()=>inspect().catch(e=>message(e.message)),9000);
  }
- if(statuses.every(x=>x.phase==='draft_verified'))message('Six individual Etsy listings published; both three-print sets are verified Etsy drafts (inactive). PrintShrimp fulfilment and activation are not verified.');
-  else if(statuses.every(x=>x.phase==='published'))message('Eight Etsy listings active; PrintShrimp automatic order fulfilment still requires a real order-flow check.');
- else if(ready===2)message('Both trio-specific Etsy reviews are ready. Check their different descriptions, tags and supplier costs before deploying.');
+ if(statuses.every(x=>x.phase==='draft_verified'))message(state.items.length+' individual Etsy listings published; '+statuses.length+' trio draft'+(statuses.length===1?' is':'s are')+' verified but inactive.');
+ else if(statuses.every(x=>x.phase==='published'))message((state.items.length+statuses.length)+' Etsy listings active. PrintShrimp order fulfilment still needs real-order testing.');
+ else if(ready===statuses.length)message('Trio review'+(ready===1?' is':'s are')+' ready. Check the descriptions, costs and frame options.');
 }
 async function inspect(){
  if(!state)return;
@@ -173,14 +175,14 @@ async function inspect(){
   }
  }
  seen=results;
- if(state.version===3&&results.every(r=>r?.phase==='published')&&!state.trioIds?.length&&!state.storeOnly&&!state.bundlesOnly)await prepareTwoTrios();
+ if(state.bundles?.length&&results.every(r=>r?.phase==='published')&&!state.trioIds?.length&&!state.storeOnly&&!state.bundlesOnly)await prepareCollectionTrios();
  const ready=results.filter(r=>r?.phase==='ready_for_approval').length;
  const allReviewed=results.every(r=>r&&['ready_for_approval','publishing','published'].includes(r.phase));
  const allStored=results.every(r=>r?.phase==='stored');
  const canApprove=allReviewed&&ready>0;
  buildCards(results);
  drawOnly();
- if(state.version===3&&state.trioIds?.length===2)await showTrioReviews();
+ if(state.bundles?.length&&state.trioIds?.length===state.bundles.length)await showTrioReviews();
  deploy.hidden=!canApprove||state.bundlesOnly===true;deploy.disabled=!canApprove||busy||state.bundlesOnly===true;
  deploy.textContent=ready===state.items.length?'Deploy all '+state.items.length+' approved posters':'Deploy remaining '+ready+' reviewed posters';
  if(state.bundlesOnly===true)message(state.trioIds?.length===2?'Only TWO bundle reviews reserved. No new singles were created.':'Bundles-only selected: verify six existing Etsy and PrintShrimp products. Do not deploy six singles.');
