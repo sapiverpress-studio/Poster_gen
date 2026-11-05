@@ -17,9 +17,9 @@ function trio(n,group){
  sectionTitle:'Nature',size:'A4',members:group,tags:tags(n),description:'Three unframed A4 prints designed as a distinct British Woodland Verse group '+n+'. Includes '+group.join(', ')+
  '. These prints are physical artwork without frames, chosen and reviewed by Sapiver Prints with AI-assisted illustration and text creation. The exact three separate prints are included.'};
 }
-function setup(){
+function setup(count=6){
  const uploads=store(),dispatched=[],items=[];
- for(let n=0;n<6;n++){
+ for(let n=0;n<count;n++){
   const id=String(n+1).repeat(32),sha256=(n+1).toString(16).repeat(64),folder='Collection/'+names[n],
    sku='SP-WOOD-'+names[n].toUpperCase(),listingId=4598000000+n;
   const meta={etsyTitle:'Woodland '+names[n]+' Print',sectionTitle:'Nature',printSizes:['A5','A4']};
@@ -28,8 +28,8 @@ function setup(){
   uploads.m.set('products/'+id+'/record',{productId:id,type:'physical',phase:'published',createdAt:now,publicationSlotAt:now});
   items.push({id,sha256,folder,listingTitle:meta.etsyTitle,sectionTitle:'Nature',printSizes:meta.printSizes});
  }
- const body={items,trios:[trio(1,names.slice(0,3)),trio(2,names.slice(3))],
- inputs:[{sku:'SP-WOODLAND-TRIO-ONE',title:'Woodland A4 Print Set First',discount:15},{sku:'SP-WOODLAND-TRIO-TWO',title:'Woodland A4 Print Set Second',discount:10}]};
+ const body={items,trios:[trio(1,names.slice(0,3)),trio(2,names.slice(3))].slice(0,count/3),
+ inputs:[{sku:'SP-WOODLAND-TRIO-ONE',title:'Woodland A4 Print Set First',discount:15},{sku:'SP-WOODLAND-TRIO-TWO',title:'Woodland A4 Print Set Second',discount:10}].slice(0,count/3)};
  const handler=createPosterUploadHandler({env,uploads,clock:()=>now,dispatchJob:async(id,action)=>{dispatched.push({id,action});}});
  return {handler,uploads,body,dispatched};
 }
@@ -99,4 +99,31 @@ test('manually typed client SKUs are ignored: server assigns distinct PrintShrim
  const second=await a.handler(request('/poster/bulk/trios',a.body),{waitUntil(){}});
  assert.equal(second.status,200);
  assert.deepEqual((await second.json()).skus,out.skus);
+});
+
+test('three already published posters reserve exactly one fourth trio listing and retain the six-pack path',async()=>{
+ const {handler,uploads,body,dispatched}=setup(3);
+ const response=await handler(request('/poster/bulk/trios',body),{waitUntil(){}});
+ assert.equal(response.status,201,await response.clone().text());
+ const result=await response.json();
+ assert.deepEqual([result.totalListings,result.individualListings,result.bundleListings],[4,3,1]);
+ assert.equal(result.ids.length,1);
+ assert.equal(result.skus.length,1);
+ assert.equal(dispatched.length,1);
+ assert.equal(dispatched[0].action,'prepare');
+ const trioAsset=uploads.m.get('uploads/'+result.ids[0]+'/state');
+ assert.deepEqual(trioAsset.trio.members,names.slice(0,3));
+ assert.deepEqual(trioAsset.memberIds,body.items.map(x=>x.id));
+ assert.equal((await monthlyUploadStatus({uploads,clock:()=>now})).used,4);
+ const again=await handler(request('/poster/bulk/trios',body),{waitUntil(){}});
+ assert.equal(again.status,200);
+ assert.deepEqual((await again.json()).ids,result.ids);
+ assert.equal(dispatched.length,1);
+});
+test('four-listing reservation rejects missing published source without using the fourth monthly slot',async()=>{
+ const a=setup(3);a.uploads.m.get('uploads/'+a.body.items[0].id+'/state').phase='preparing';
+ const response=await a.handler(request('/poster/bulk/trios',a.body),{waitUntil(){}});
+ assert.equal(response.status,409);
+ assert.equal((await monthlyUploadStatus({uploads:a.uploads,clock:()=>now})).used,3);
+ assert.equal(a.dispatched.length,0);
 });
