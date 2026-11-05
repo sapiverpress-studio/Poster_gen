@@ -191,7 +191,7 @@ async function inspect(){
  else if(allReviewed)message('Publication is underway or complete. Check the individual listings below.');
  else if(results.some(r=>r?.phase==='needs_investigation'))message('An item needs investigation. Existing product IDs are retained. Do not re-create failed merchant listings.');
  else message('Collection saved. Preparation continues in GitHub. Keep this page open, or return to refresh progress.');
- if(!allReviewed&&results.some(r=>r?.phase==='preparing'||r?.phase==='publishing')){
+ if(results.some(r=>r?.phase==='preparing'||r?.phase==='publishing')){
   clearTimeout(pollHandle);pollHandle=setTimeout(()=>inspect().catch(e=>message(e.message)),8000);
  }
 }
