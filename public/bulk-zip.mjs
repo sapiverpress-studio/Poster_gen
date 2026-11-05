@@ -51,7 +51,7 @@ export async function openPosterCollectionZip(file,{allowLegacySix=false,mode='i
  const posterEntries=entries.filter(e=>e.ext!=='trio'),trioEntries=entries.filter(e=>e.ext==='trio');
  const validManifestCounts=mode==='trios-only'?[1,2]:mode==='four-listings'?[1]:mode==='eight-listings'?[2]:[0,2];
  if(cur!==central.byteLength||posterEntries.length<BULK_MIN_COUNT*2||posterEntries.length>BULK_MAX_COUNT*2||posterEntries.length%2!==0||!validManifestCounts.includes(trioEntries.length)||entries.length!==posterEntries.length+trioEntries.length)
-  fail(mode==='trios-only'?'Trio-only ZIP requires three artworks with bundle-1.md or six artworks with both bundle manifests':'Expected 2–6 artwork folders and, for a six-poster set, exactly bundle-1.md and bundle-2.md');
+  fail(mode==='trios-only'?'Trio-only ZIP requires three artworks with bundle-1.md or six artworks with both bundle manifests':mode==='single'?'Individual mode requires one artwork folder, no bundle manifest':mode==='four-listings'?'Trio mode requires three artwork folders and bundle-1.md':mode==='eight-listings'?'Six-pack mode requires six artwork folders and both bundle manifests':'Expected 2–6 artwork folders and, for a six-poster set, exactly bundle-1.md and bundle-2.md');
  const depths=new Set(posterEntries.map(x=>x.name.split('/').length));
  if(depths.size!==1||![2,3].includes([...depths][0]))fail('Use 2 to 6 poster subfolders, optionally inside one collection folder');
  if([...depths][0]===3&&new Set(posterEntries.map(x=>x.name.split('/')[0])).size!==1)fail('Use only one enclosing collection folder');
