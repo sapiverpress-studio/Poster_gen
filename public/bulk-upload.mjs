@@ -517,7 +517,7 @@ if(state&&(![2,3,4].includes(state.version)||(state.items.length<BULK_MIN_COUNT|
 }
 
 deployTrios?.addEventListener('click',async()=>{
- if(busy||!state?.trioIds||state.trioIds.length!==2)return;
+ if(busy||!state?.trioIds?.length||state.trioIds.length!==state.bundles?.length)return;
  busy=true;deployTrios.disabled=true;
  try{
   const live=await Promise.all(state.trioIds.map(id=>api('/poster/uploads/'+id)));
