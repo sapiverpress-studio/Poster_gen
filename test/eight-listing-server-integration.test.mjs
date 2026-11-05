@@ -139,3 +139,18 @@ test('new trio reservation fails closed if the seller snapshot lacks Trio Collec
  assert.equal((await monthlyUploadStatus({uploads:f.uploads,clock:()=>now})).used,3);
  assert.equal(f.dispatched.length,0);
 });
+
+test('Trio Collection section setup is owner-only, queued exactly once and never creates a listing',async()=>{
+ const f=setup(3);
+ const first=await f.handler(request('/poster/bulk/sections/trio',{}),{waitUntil(){}});
+ assert.equal(first.status,202,await first.clone().text());
+ const queued=await first.json();
+ assert.equal(queued.title,'Trio Collection');
+ assert.equal(queued.phase,'queued');
+ assert.equal(f.dispatched.length,1);
+ assert.equal(f.dispatched[0].action,'trio_section');
+ const again=await f.handler(request('/poster/bulk/sections/trio',{}),{waitUntil(){}});
+ assert.equal(again.status,409);
+ assert.equal(f.dispatched.length,1);
+ assert.equal((await monthlyUploadStatus({uploads:f.uploads,clock:()=>now})).used,3);
+});
