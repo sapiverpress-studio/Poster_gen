@@ -1,4 +1,23 @@
-## CURRENT PROJECT SNAPSHOT — 2026-11-05: Mode-first poster ZIP uploader STAGED; no production deployment
+## CURRENT PROJECT SNAPSHOT — 2026-11-05: Trio Collection Etsy section and ZIP uploader release prepared
+
+- **Owner authorisation:** Add the separate Etsy shop section named exactly `Trio Collection`, put new trio-set Etsy listings into it, keep their singles in existing shop sections, and release the completed website changes.
+- **IMPLEMENTED / VERIFIED IN CI (not yet live):** On `feature/three-upload-choices-20261105` (PR #75), the owner-only upload page has explicit 1 / 4 / 8 listing ZIP choices and now exposes an explicit `Create or verify Trio Collection on Etsy` button for three- or six-artwork uploads. New GET/POST `/poster/bulk/sections/trio` endpoints, signed allowlisted worker action `trio_section`, exact seller+scope checks, idempotent create-or-reuse, Etsy read-back and fresh shop-section snapshot were added.
+- **Trio placement:** The new 3+1 / 6+2 bundle reservation checks that the real authenticated Etsy shop-section snapshot contains `Trio Collection`, before reserving bundle slots; adds `targetShopSectionTitle` only to new bundle assets. Existing standalone individuals retain their source sections. Bundle preparation resolves the exact Etsy numeric `shop_section_id`; publish rechecks that same section before POST, and verifies draft and active listing section readback. Old already-prepared bundle records without the marker are not modified.
+- **Preserves:** Owner CSRF, Streak section route, existing Woodland/Streak recovery, SKU/PrintShrimp identity, the 52/month limit, saved upload receipts, international shipping release gates, manual final owner approval and automatic order fulfilment OFF. No existing Etsy listing is changed.
+- **Verified tests:** GitHub CI Node 24 run `41996967121` PASSED on `e76cda9ca414fcd4e9dc49396f7b6d42022e33aa` with all project tests. Added section API creation/idempotency/validation tests, owner-action route test, no-section fail-closed, and 1/4/8 ZIP regressions. GitHub CI uses mocks; it is not a merchant acceptance test.
+- **NOT VERIFIED:** The actual seller's section has NOT been created/verified in Etsy from this chat. Etsy access for section writes is intentionally held only by the signed GitHub worker, behind a logged-in owner action, rather than in the ChatGPT Etsy read-only integration. Empty shop sections do not appear publicly until a listing is active; bundle activation remains separately gated by `POSTER_BUNDLE_ACTIVATION_ENABLED`.
+- **Deployment:** User has approved production release in the current chat. Next: complete one reviewed production merge/release of PR #75, verify Netlify Ready on exact commit, then the owner clicks `Create or verify Trio Collection on Etsy` on the released authenticated uploader and inspects verified Etsy section ID before uploading a trio. Do not claim the Etsy section exists or is public before its exact read-back.
+
+### 2026-11-05 — Trio Collection section integration and release check
+- Stage / purpose: fulfil explicitly requested separate shop section for three-print bundles and simplify ZIP modes.
+- Changed: `lib/streak-section-api.mjs`, `lib/github-web.mjs`, `lib/github-publication.mjs`, `lib/poster-upload-web.mjs`, `netlify/functions/poster-upload.mjs`, `lib/collection-bundle-publication.mjs`, `lib/product-web.mjs`, `public/bulk-upload.mjs`, `public/streak-section.mjs`, focused tests and this status, within PR #75.
+- Verified: Node24 GitHub CI run `41996967121` success. Etsy official documentation supports custom sections and creation via `shops_w`; `shop_section_id` is a supported listing field.
+- Not yet verified / blocked: seller-authenticated POST/readback, actual section existence, framed bundle supplier acceptance, public listing activation and live mobile end-to-end flow.
+- Deploy / credit impact: off-production GitHub staging only so far; one owner-approved Netlify production release pending. No Work credits.
+- Risks / decisions: fail closed without section or on uncertain Etsy response, use unchanged individual SKUs, never silently retry a section POST; section creation requires owner authentication.
+- Next authorised action: merge once exact CI confirms; verify Netlify deploy; owner presses section setup control.
+
+## PRIOR PROJECT SNAPSHOT — 2026-11-05: Mode-first poster ZIP uploader STAGED; no production deployment
 
 - **Owner request:** One clear first click selecting Individual poster (1 PNG → 1 Etsy listing), Singular trio (3 PNGs → 3 individual Etsy listings + one three-print set listing = 4), or Six-pack (6 PNGs → 6 individuals + two separate set listings = 8); ZIP chosen second.
 - **Implementation branch:** `feature/three-upload-choices-20261105`, from production-linked `feature/canva-oauth-callback`. Production application branch, seller shop, supplier catalogue and worker on `main` are unchanged.
