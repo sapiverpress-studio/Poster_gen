@@ -19,6 +19,8 @@ function trio(n,group){
 }
 function setup(count=6){
  const uploads=store(),dispatched=[],items=[];
+ uploads.m.set('template/catalog',{shopId:50893070});
+ uploads.m.set('template/sections',{shopId:50893070,checkedAt:now,sections:[{id:72001,title:'Nature'},{id:72002,title:'Trio Collection'}]});
  for(let n=0;n<count;n++){
   const id=String(n+1).repeat(32),sha256=(n+1).toString(16).repeat(64),folder='Collection/'+names[n],
    sku='SP-WOOD-'+names[n].toUpperCase(),listingId=4598000000+n;
@@ -126,4 +128,14 @@ test('four-listing reservation rejects missing published source without using th
  assert.equal(response.status,409);
  assert.equal((await monthlyUploadStatus({uploads:a.uploads,clock:()=>now})).used,3);
  assert.equal(a.dispatched.length,0);
+});
+
+test('new trio reservation fails closed if the seller snapshot lacks Trio Collection',async()=>{
+ const f=setup(3);
+ f.uploads.m.set('template/sections',{shopId:50893070,checkedAt:now,sections:[{id:72001,title:'Nature'}]});
+ const response=await f.handler(request('/poster/bulk/trios',f.body),{waitUntil(){}});
+ assert.equal(response.status,409);
+ assert.match((await response.json()).error,/Trio Collection/);
+ assert.equal((await monthlyUploadStatus({uploads:f.uploads,clock:()=>now})).used,3);
+ assert.equal(f.dispatched.length,0);
 });
