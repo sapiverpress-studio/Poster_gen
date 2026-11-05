@@ -39,6 +39,22 @@ test('exactly six poster folders are read and 13 tags parsed',async()=>{
   const img=await archive.artwork(entry);assert.equal(img.name,entry.filename);assert.equal(img.size,33);
  }
 });
+test('explicit ZIP choices create exactly one, four or eight Etsy listings',async()=>{
+ const single=await openPosterCollectionZip(await zipFile({itemCount:1}),{mode:'single'});
+ assert.deepEqual([single.items.length,single.bundles.length,single.listingCount],[1,0,1]);
+ const oneTrio=await openPosterCollectionZip(await zipFile({itemCount:3,trioOnly:true}),{mode:'four-listings'});
+ assert.deepEqual([oneTrio.items.length,oneTrio.bundles.length,oneTrio.listingCount],[3,1,4]);
+ assert.deepEqual(oneTrio.bundles[0].members,['01-Poster','02-Poster','03-Poster']);
+ const six=await openPosterCollectionZip(await zipFile(),{mode:'eight-listings'});
+ assert.deepEqual([six.items.length,six.bundles.length,six.listingCount],[6,2,8]);
+});
+test('ZIP selection cannot silently produce a different number of listings',async()=>{
+ await assert.rejects(openPosterCollectionZip(await zipFile({itemCount:3}),{mode:'four-listings'}),/Trio mode|bundle-1.md/i);
+ await assert.rejects(openPosterCollectionZip(await zipFile({itemCount:3,trioOnly:true}),{mode:'single'}),/Individual mode|Expected/i);
+ await assert.rejects(openPosterCollectionZip(await zipFile({itemCount:1}),{mode:'eight-listings'}),/Six-pack mode/i);
+ await assert.rejects(openPosterCollectionZip(await zipFile(),{mode:'four-listings'}),/Trio mode|Expected/i);
+ await assert.rejects(openPosterCollectionZip(await zipFile({itemCount:1}),{mode:'individuals-and-trios'}),/2 to 6/i);
+});
 test('Six subfolders at ZIP root with two bundle manifests also work',async()=>{
  const archive=await openPosterCollectionZip(await zipFile({folder:''}));
  assert.equal(archive.items.length,6);assert.equal(archive.bundles.length,2);
@@ -76,7 +92,7 @@ test('bulk keeps the owner written short Etsy title and exact thirteen tags',()=
 });
 test('bulk form uses dynamic batch quota guidance, not a blanket six-slot storage rule',()=>{
  let body=bulkCollectionBody({monthly:{used:47,limit:52,remaining:5,label:'October 2026'}});
- assert.match(body,/ZIP size determines/);assert.doesNotMatch(body,/name="storeOnly" type="checkbox" checked/);assert.doesNotMatch(body,/type="file"[^>]+disabled/);
+ assert.match(body,/name="uploadMode" value="single"/);assert.match(body,/name="uploadMode" value="four-listings"/);assert.match(body,/name="uploadMode" value="eight-listings"/);assert.doesNotMatch(body,/name="storeOnly" type="checkbox" checked/);assert.doesNotMatch(body,/type="file"[^>]+disabled/);
  body=bulkCollectionBody({monthly:{used:46,limit:52,remaining:6,label:'October 2026'}});
  assert.doesNotMatch(body,/type="file"[^>]+disabled/);
  assert.match(body,/2 to 6 posters/);
