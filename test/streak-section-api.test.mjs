@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createStreakSectionThroughEtsyApi} from '../lib/streak-section-api.mjs';
+import {createStreakSectionThroughEtsyApi,createTrioCollectionSectionThroughEtsyApi,verifiedTrioSectionId} from '../lib/streak-section-api.mjs';
 
 function fixture({titles=['Wall Art','Nature'],shopId=50893070,shopName='SapiverPrints',scope='shops_r shops_w listings_r listings_w'}={}){
  let sections=titles.map((title,i)=>({shop_section_id:90000000+i,title}));
@@ -68,4 +68,26 @@ test('does not retry an uncertain POST and cannot silently duplicate Streak',asy
  await assert.rejects(createStreakSectionThroughEtsyApi(f),/Uncertain/);
  await assert.rejects(createStreakSectionThroughEtsyApi(f),/already reserved/);
  assert.equal(f.writes.length,1);
+});
+
+test('Trio Collection is created once via owner-authorised Etsy seller API and returns its exact section ID',async()=>{
+ const f=fixture();
+ const created=await createTrioCollectionSectionThroughEtsyApi(f);
+ assert.equal(created.title,'Trio Collection');
+ assert.equal(created.phase,'verified');
+ assert.equal(created.created,true);
+ assert.equal(f.writes.length,1);
+ assert.equal(f.writes[0].body,'title=Trio+Collection');
+ assert.equal(verifiedTrioSectionId({results:f.sections()}),created.sectionId);
+ const repeat=await createTrioCollectionSectionThroughEtsyApi(f);
+ assert.equal(repeat.created,false);
+ assert.equal(repeat.sectionId,created.sectionId);
+ assert.equal(f.writes.length,1);
+});
+test('Trio Collection lookup blocks missing or ambiguous Etsy sections',()=>{
+ assert.throws(()=>verifiedTrioSectionId({results:[]}),/Trio Collection/);
+ assert.throws(()=>verifiedTrioSectionId({results:[
+  {title:'Trio Collection',shop_section_id:45},{title:'trio collection',shop_section_id:46}
+ ]}),/Trio Collection/);
+ assert.throws(()=>verifiedTrioSectionId({results:[{title:'Trio Collection',shop_section_id:0}]}),/Trio Collection/);
 });

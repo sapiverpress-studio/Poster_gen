@@ -19,7 +19,7 @@ test('new six-poster collections without BOTH trio manifests stop before uploadi
  function el(){return {children:[],style:{},listeners:{},append(...v){this.children.push(...v);},replaceChildren(){this.children=[];},addEventListener(k,v){this.listeners[k]=v;},querySelector(){return button;}};}
  const button=el();
  globalThis.document={getElementById(id){if(!nodes.has(id))nodes.set(id,el());return nodes.get(id);},querySelector(){return {content:'csrf'};},createElement:el};
- const form=document.getElementById('bulk-collection-form');form.elements={collection:{get files(){return[file];}},kind:{value:'artwork'}};
+ const form=document.getElementById('bulk-collection-form');form.elements={collection:{get files(){return[file];}},kind:{value:'artwork'},uploadMode:{value:'eight-listings'}};
  globalThis.sessionStorage={getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)};
  Object.defineProperty(globalThis,'crypto',{value:webcrypto,configurable:true});
  globalThis.fetch=async(url,options={})=>{if(url==='/poster/uploads')created.push(JSON.parse(options.body));return Response.json({phase:'unavailable'},{status:503});};
@@ -29,22 +29,22 @@ test('new six-poster collections without BOTH trio manifests stop before uploadi
   await handler({preventDefault(){}});
   assert.equal(created.length,0);
   assert.equal(saved.size,0);
-  assert.match(nodes.get('bulk-status').textContent,/two distinct trio listings/);
+  assert.match(nodes.get('bulk-status').textContent,/Six-pack mode/);
   file=await zip(false);
   await handler({preventDefault(){}});
   assert.equal(created.length,0);
   assert.equal(saved.size,0);
-  assert.match(nodes.get('bulk-status').textContent,/bundle-1.md and bundle-2.md/);
+  assert.match(nodes.get('bulk-status').textContent,/bundle manifests/);
  }finally{delete globalThis.document;delete globalThis.sessionStorage;delete globalThis.fetch;}
 });
-test('two-item collection consumes only two slots, or stores both privately if fewer than two remain',async()=>{
- for(const remaining of [1,2,3]){
+test('single ZIP upload consumes one slot, or stores privately if no slot remains',async()=>{
+ for(const remaining of [0,1,2]){
   const nodes=new Map(),saved=new Map(),created=[],live=new Map();
   function element(){return {children:[],style:{},listeners:{},append(...v){this.children.push(...v);},replaceChildren(){this.children=[];},addEventListener(k,v){this.listeners[k]=v;},querySelector(){return submit;}};}
   const submit=element();
   globalThis.document={getElementById(id){if(!nodes.has(id))nodes.set(id,element());return nodes.get(id);},querySelector(){return {content:'csrf'};},createElement:element};
   const form=document.getElementById('bulk-collection-form');
-  form.elements={collection:{files:[await zip(false,2)]},kind:{value:'artwork'},storeOnly:{checked:false}};
+  form.elements={collection:{files:[await zip(false,1)]},kind:{value:'artwork'},uploadMode:{value:'single'},storeOnly:{checked:false}};
   globalThis.sessionStorage={getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)};
   Object.defineProperty(globalThis,'crypto',{value:webcrypto,configurable:true});
   globalThis.fetch=async(url,options={})=>{
@@ -64,10 +64,10 @@ test('two-item collection consumes only two slots, or stores both privately if f
    await import('../public/bulk-upload.mjs?two-slot-'+remaining);
    await form.listeners.submit({preventDefault(){}});
    const session=JSON.parse(saved.get('sapiver-physical-bulk-v1'));
-   assert.equal(session.items.length,2);
-   assert.equal(created.length,2);
-   assert.ok(created.every(v=>v.storeOnly===(remaining<2)));
-   assert.equal(session.storeOnly,remaining<2);
+   assert.equal(session.items.length,1);
+   assert.equal(created.length,1);
+   assert.ok(created.every(v=>v.storeOnly===(remaining<1)));
+   assert.equal(session.storeOnly,remaining<1);
   }finally{delete globalThis.document;delete globalThis.sessionStorage;delete globalThis.fetch;}
  }
 });

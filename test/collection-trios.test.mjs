@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseTrioDetails,validateTwoTrios,makeEightListingPlan,validateBundleInput} from '../public/collection-trios.mjs';
+import {parseTrioDetails,validateTwoTrios,makeFourListingPlan,makeEightListingPlan,validateBundleInput} from '../public/collection-trios.mjs';
 const tags=i=>['woodland wall art','nature picture set','british animal art','kids reading nook','forest wall decor','woodland nursery','animal print trio','art set of three','wildlife art','nature room prints','animal verse prints','bedroom wall prints',i===1?'woodland animals':'forest nature art'].join(', ');
 function trioText(i,members){
  return ['Title: Woodland Trio '+i,'Listing title: British Woodland Trio '+i+' Set of 3 A4 Prints',
@@ -61,4 +61,15 @@ test('reject reused PrintShrimp bundle SKU or malformed untrusted SKU',()=>{
 test('correct members cannot be silently moved to a different Etsy section',()=>{
  const b=tri();b[0].sectionTitle='Music Learning';
  assert.throws(()=>validateTwoTrios(items,b),/actual Etsy section/);
+});
+
+test('exactly three individuals plus one trio create a separate fourth Etsy listing',()=>{
+ const three=items.slice(0,3),bundle=tri()[0];
+ const plan=makeFourListingPlan({items:three,trios:[bundle],inputs:[
+  {sku:'SP-WOODLAND-TRIO-SINGLE',title:'Woodland Collection Set of 3 A4 Prints',discount:15}
+ ]});
+ assert.deepEqual([plan.totalListings,plan.individualListings,plan.bundleListings.length],[4,3,1]);
+ assert.deepEqual(plan.bundleListings[0].memberFolders,['1-animal','2-animal','3-animal']);
+ assert.equal(plan.bundleListings[0].listingTitle,'Woodland Collection Set of 3 A4 Prints');
+ assert.throws(()=>makeFourListingPlan({items:three,trios:[bundle],inputs:[]}),/title and supplier SKU/);
 });

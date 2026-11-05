@@ -1,5 +1,5 @@
 import {openPosterCollectionZip,collectionUploadFilename,BULK_MIN_COUNT,BULK_MAX_COUNT} from './bulk-zip.mjs';
-import {makeEightListingPlan} from './collection-trios.mjs';
+import {makeFourListingPlan,makeEightListingPlan} from './collection-trios.mjs';
 
 const form=document.getElementById('bulk-collection-form'),status=document.getElementById('bulk-status');
 const cards=document.getElementById('bulk-cards'),deploy=document.getElementById('bulk-deploy');
@@ -12,17 +12,30 @@ let state=null,seen=[],pollHandle=null,busy=false;
 function text(tag,value){const el=document.createElement(tag);el.textContent=value;return el;}
 function save(){try{sessionStorage.setItem(KEY,JSON.stringify(state));}catch{throw Error('Session storage unavailable. Use the single uploader to avoid duplicate products.');}}
 function read(){
- try{const v=JSON.parse(sessionStorage.getItem(KEY)||'null');return [1,2,3].includes(v?.version)&&(v.items?.length>=BULK_MIN_COUNT&&v.items?.length<=BULK_MAX_COUNT||v.items?.length===8)&&v.items.every(i=>typeof i.filename==='string'&&(!i.id||ID.test(i.id)))?v:null;}catch{return null;}
+ try{const v=JSON.parse(sessionStorage.getItem(KEY)||'null');return [1,2,3,4].includes(v?.version)&&(v.items?.length>=BULK_MIN_COUNT&&v.items?.length<=BULK_MAX_COUNT||v.items?.length===8)&&v.items.every(i=>typeof i.filename==='string'&&(!i.id||ID.test(i.id)))?v:null;}catch{return null;}
 }
 function message(value){status.textContent=value;}
 let previewSignature='',previewArchive=null,preparingTrios=false;
+const modeChoices=['single','four-listings','eight-listings'];
+const chosenMode=()=>form?.elements?.uploadMode?.value||'';
+function showSelectedMode(){
+ const selected=chosenMode(),fields=document.getElementById('bulk-upload-fields');
+ if(fields)fields.hidden=!modeChoices.includes(selected);
+ const trioSetup=document.getElementById('bulk-trio-section-setup');if(trioSetup)trioSetup.hidden=!['four-listings','eight-listings'].includes(selected);
+ if(state?.uploadMode&&selected!==state.uploadMode)message('An earlier collection is saved. Resume or inspect it before choosing a different upload.');
+}
+document.getElementById('bulk-mode-choices')?.addEventListener?.('change',()=>{
+ previewSignature='';previewArchive=null;trioForm?.replaceChildren();
+ if(form?.elements?.collection)form.elements.collection.value='';
+ showSelectedMode();
+});
 function trioInput(n,key){return form?.elements?.namedItem('trio'+n+key);}
 function showTrioFields(archive,signature){
  previewArchive=archive;previewSignature=signature;trioForm?.replaceChildren();
  if(!archive.bundles?.length){return;}
- const heading=text('h3','This ZIP contains 8 Etsy listings: six individual posters and two different sets of three.');
+ const heading=text('h3',archive.bundles.length===1?'This ZIP creates 4 Etsy listings: three individual posters and one collection of three.':'This ZIP creates 8 Etsy listings: six individual posters and two collections of three.');
  trioForm.append(heading,text('p','Each trio has separate descriptions, tags and a distinct verified PrintShrimp bundle SKU. Choose whether all three can also be purchased together with matching Black, White or Oak frames.'));
- for(let i=0;i<2;i++){
+ for(let i=0;i<archive.bundles.length;i++){
   const b=archive.bundles[i],n=i+1,fieldset=document.createElement('fieldset');
   const legend=text('legend','Trio '+n+': '+b.title);
   fieldset.append(legend,text('p','Includes: '+b.members.join(', ')+' · '+b.size+' · '+b.sectionTitle));
@@ -48,10 +61,11 @@ async function onZipChosen(){
  const file=form?.elements?.collection?.files?.[0];
  if(!file)return;
  try{
-  message('Validating six artworks and two different trio descriptions…');
-  const archive=await openPosterCollectionZip(file,{allowLegacySix:state?.version===2});
+  const mode=chosenMode();if(!modeChoices.includes(mode))throw Error('Choose Individual, Singular trio or Six-pack first');
+  message('Checking ZIP against the selected upload type…');
+  const archive=await openPosterCollectionZip(file,{mode});
   showTrioFields(archive,signature(file));
-  message(archive.listingCount===8?'Eight products detected: six individual posters and two separate three-print sets. Check the two titles before uploading; bundle SKUs are assigned automatically.':archive.items.length+' individual posters detected.');
+  message(archive.bundles.length?archive.listingCount+' Etsy listings detected: '+archive.items.length+' individual posters and '+archive.bundles.length+' trio collection'+(archive.bundles.length===1?'':'s')+'. Review each trio title before uploading.':archive.listingCount+' individual poster listing detected.');
  }catch(error){previewArchive=null;previewSignature='';trioForm?.replaceChildren();message('ZIP rejected: '+error.message+'. No products created.');}
 }
 form?.elements?.collection?.addEventListener?.('change',()=>{onZipChosen().catch(e=>message(e.message));});
@@ -59,7 +73,7 @@ function inputPlans(archive){
  if(!archive.bundles.length)return null;
  const inputs=archive.bundles.map((_,i)=>({sku:'SP-PENDING-TRIO-'+(i+1),title:trioInput(i+1,'Title')?.value?.trim(),discount:Number(trioInput(i+1,'Discount')?.value)}));
  const trios=archive.bundles.map((b,i)=>({...b,framed:trioInput(i+1,'Frames')?.checked===true}));
- return makeEightListingPlan({items:archive.items,trios,inputs});
+ return (archive.bundles.length===1?makeFourListingPlan:makeEightListingPlan)({items:archive.items,trios,inputs});
 }
 async function api(url,{method='GET',body,headers={}}={}){
  let res;try{res=await fetch(url,{method,body,credentials:'same-origin',headers:{'X-Poster-CSRF':csrf,...headers}});}
@@ -101,12 +115,14 @@ function buildCards(results=[]){
   cards.append(article);
  }
 }
-async function prepareTwoTrios(){
- if(!state||state.version!==3||state.storeOnly||state.bundlesOnly||state.trioIds?.length===2||preparingTrios)return;
+async function prepareCollectionTrios(){
+ const needed=state?.bundles?.length||0;
+ if(!state||![3,4].includes(state.version)||!needed||state.storeOnly||state.bundlesOnly||state.trioIds?.length||preparingTrios)return;
+ if(state.items.length!==needed*3)throw Error('Saved collection mode does not match poster count');
  if(!state.items.every((x,i)=>seen[i]?.phase==='published'&&x.id))return;
  preparingTrios=true;
  try{
-  message('All six single posters are published. Reserving two separate supplier-bundle reviews…');
+  message('All '+state.items.length+' individual posters are published. Reserving '+needed+' trio collection reviews…');
   const submitted={
    items:state.items.map(x=>({id:x.id,sha256:x.sha256,folder:x.folder,listingTitle:x.listingTitle,sectionTitle:x.sectionTitle,printSizes:x.printSizes})),
    trios:state.bundles.map(b=>({title:b.title,listingTitle:b.listingTitle,sectionTitle:b.sectionTitle,size:b.size,
@@ -114,7 +130,7 @@ async function prepareTwoTrios(){
    inputs:state.bundles.map(b=>b.input)
   };
   const result=await api('/poster/bulk/trios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(submitted)});
-  if(result.ids?.length!==2||result.skus?.length!==2||result.skus.some(s=>!/^[A-Za-z0-9_-]{1,100}$/.test(s))||result.skus[0]===result.skus[1])throw Error('Two unique supplier bundle identities not confirmed. Inspect saved collection before retrying');
+  if(result.ids?.length!==needed||result.skus?.length!==needed||result.skus.some(s=>!/^[A-Za-z0-9_-]{1,100}$/.test(s))||new Set(result.skus.map(s=>s.toLowerCase())).size!==needed)throw Error('Supplier bundle identities not confirmed. Inspect saved products before retrying');
   state.bundles.forEach((b,i)=>{b.input.sku=result.skus[i];});
   state.trioIds=result.ids;save();
  }finally{preparingTrios=false;}
@@ -122,9 +138,9 @@ async function prepareTwoTrios(){
 async function showTrioReviews(){
  if(!trioReviews||!state?.trioIds?.length)return;
  const statuses=await Promise.all(state.trioIds.map(id=>api('/poster/uploads/'+id)));
- trioReviews.replaceChildren(text('h3','Two distinct three-print collection listings'));
+ trioReviews.replaceChildren(text('h3',state.trioIds.length+' separate three-print Etsy collection listing'+(state.trioIds.length===1?'':'s')));
  let ready=0;
- for(let i=0;i<2;i++){
+ for(let i=0;i<state.trioIds.length;i++){
   const b=state.bundles[i],r=statuses[i],card=document.createElement('article'),rev=r.review;
   card.append(text('h4','Trio '+(i+1)+': '+b.title));
   card.append(text('p','Includes: '+b.members.join(', ')+' · fixed '+b.size+' · PrintShrimp '+b.input.sku));
@@ -145,9 +161,9 @@ async function showTrioReviews(){
  if(!all&&statuses.some(x=>['preparing','publishing'].includes(x.phase))){
   clearTimeout(pollHandle);pollHandle=setTimeout(()=>inspect().catch(e=>message(e.message)),9000);
  }
- if(statuses.every(x=>x.phase==='draft_verified'))message('Six individual Etsy listings published; both three-print sets are verified Etsy drafts (inactive). PrintShrimp fulfilment and activation are not verified.');
-  else if(statuses.every(x=>x.phase==='published'))message('Eight Etsy listings active; PrintShrimp automatic order fulfilment still requires a real order-flow check.');
- else if(ready===2)message('Both trio-specific Etsy reviews are ready. Check their different descriptions, tags and supplier costs before deploying.');
+ if(statuses.every(x=>x.phase==='draft_verified'))message(state.items.length+' individual Etsy listings published; '+statuses.length+' trio draft'+(statuses.length===1?' is':'s are')+' verified but inactive.');
+ else if(statuses.every(x=>x.phase==='published'))message((state.items.length+statuses.length)+' Etsy listings active. PrintShrimp order fulfilment still needs real-order testing.');
+ else if(ready===statuses.length)message('Trio review'+(ready===1?' is':'s are')+' ready. Check the descriptions, costs and frame options.');
 }
 async function inspect(){
  if(!state)return;
@@ -160,14 +176,14 @@ async function inspect(){
   }
  }
  seen=results;
- if(state.version===3&&results.every(r=>r?.phase==='published')&&!state.trioIds?.length&&!state.storeOnly&&!state.bundlesOnly)await prepareTwoTrios();
+ if(state.bundles?.length&&results.every(r=>r?.phase==='published')&&!state.trioIds?.length&&!state.storeOnly&&!state.bundlesOnly)await prepareCollectionTrios();
  const ready=results.filter(r=>r?.phase==='ready_for_approval').length;
  const allReviewed=results.every(r=>r&&['ready_for_approval','publishing','published'].includes(r.phase));
  const allStored=results.every(r=>r?.phase==='stored');
  const canApprove=allReviewed&&ready>0;
  buildCards(results);
  drawOnly();
- if(state.version===3&&state.trioIds?.length===2)await showTrioReviews();
+ if(state.bundles?.length&&state.trioIds?.length===state.bundles.length)await showTrioReviews();
  deploy.hidden=!canApprove||state.bundlesOnly===true;deploy.disabled=!canApprove||busy||state.bundlesOnly===true;
  deploy.textContent=ready===state.items.length?'Deploy all '+state.items.length+' approved posters':'Deploy remaining '+ready+' reviewed posters';
  if(state.bundlesOnly===true)message(state.trioIds?.length===2?'Only TWO bundle reviews reserved. No new singles were created.':'Bundles-only selected: verify six existing Etsy and PrintShrimp products. Do not deploy six singles.');
@@ -176,7 +192,7 @@ async function inspect(){
  else if(allReviewed)message('Publication is underway or complete. Check the individual listings below.');
  else if(results.some(r=>r?.phase==='needs_investigation'))message('An item needs investigation. Existing product IDs are retained. Do not re-create failed merchant listings.');
  else message('Collection saved. Preparation continues in GitHub. Keep this page open, or return to refresh progress.');
- if(!allReviewed&&results.some(r=>r?.phase==='preparing'||r?.phase==='publishing')){
+ if(results.some(r=>r?.phase==='preparing'||r?.phase==='publishing')){
   clearTimeout(pollHandle);pollHandle=setTimeout(()=>inspect().catch(e=>message(e.message)),8000);
  }
 }
@@ -227,13 +243,15 @@ async function start(e){
  if(busy)return;
  busy=true;form.querySelector('button[type="submit"]').disabled=true;deploy.disabled=true;
  try{
+  const mode=chosenMode();if(!modeChoices.includes(mode))throw Error('Select Individual poster, Singular trio or Six-pack before choosing a ZIP.');
+  if(state?.uploadMode&&mode!==state.uploadMode)throw Error('An earlier upload type is saved. Do not overwrite its product receipts.');
   const file=form.elements.collection.files[0];
-  if(!file||!file.name.toLowerCase().endsWith('.zip'))throw Error('Choose a ZIP containing 2 to 6 posters.');
+  if(!file||!file.name.toLowerCase().endsWith('.zip'))throw Error('Choose a ZIP matching the selected upload type.');
   const sig=signature(file);
   if(state&&state.signature!==sig)throw Error('A different collection is already saved in this browser. Finish or inspect it before starting another. To avoid duplicates, do not overwrite its receipts.');
   message('Reading ZIP and validating names, artwork and descriptions…');
-  const archive=previewSignature===sig&&previewArchive?previewArchive:await openPosterCollectionZip(file,{allowLegacySix:state?.version===2});
-  if(!state&&archive.bundles.length&&previewSignature!==sig){showTrioFields(archive,sig);throw Error('Check both bundle SKUs and titles above, then submit again. Nothing has been uploaded yet.');}
+  const archive=previewSignature===sig&&previewArchive&&previewArchive.mode===mode?previewArchive:await openPosterCollectionZip(file,{mode});
+  if(!state&&archive.bundles.length&&previewSignature!==sig){showTrioFields(archive,sig);throw Error('Review the trio collection titles above, then submit again. Nothing has been uploaded yet.');}
   const collectionPlan=archive.bundles.length?inputPlans(archive):null;
   // Never reserve monthly slots or create merchant products for an unverified section.
   const shop=await api('/poster/bulk/sections');
@@ -249,14 +267,14 @@ async function start(e){
    const quota=await api('/poster/bulk/status');
    const storeOnly=form.elements.storeOnly?.checked===true||quota.remaining<archive.listingCount;
    const artworkHashes=await checkAll(archive);
-   state={version:archive.bundles.length?3:2,signature:sig,kind:form.elements.kind.value,selectedShopSection:selected,websiteFolder:form.elements.websiteFolder?.value||'',storeOnly,
+   state={version:4,uploadMode:mode,signature:sig,kind:form.elements.kind.value,selectedShopSection:selected,websiteFolder:form.elements.websiteFolder?.value||'',storeOnly,
     bundles:archive.bundles.map((b,i)=>({...b,framed:collectionPlan.bundleListings[i].framed===true,input:{sku:collectionPlan.bundleListings[i].sku,title:collectionPlan.bundleListings[i].listingTitle,discount:collectionPlan.bundleListings[i].discount}})),trioIds:[],
     items:archive.items.map((i,n)=>({filename:i.filename,folder:i.folder,title:i.title,listingTitle:i.listingTitle,sectionTitle:i.sectionTitle,description:i.description,tags:i.tags,printSizes:i.printSizes,sha256:artworkHashes[n],uploadFilename:collectionUploadFilename(i.title,artworkHashes[n]),id:null}))};save();
   }else{
    if(state.items.some((v,i)=>v.filename!==archive.items[i].filename||v.folder!==archive.items[i].folder||v.listingTitle!==archive.items[i].listingTitle||v.sectionTitle!==archive.items[i].sectionTitle||v.title!==archive.items[i].title||v.description!==archive.items[i].description||v.tags.join(',')!==archive.items[i].tags.join(',')||JSON.stringify(v.printSizes||['A5','A4','A3'])!==JSON.stringify(archive.items[i].printSizes)))
     throw Error('This ZIP differs from the saved collection. Do not reuse existing product receipts with different descriptions.');
    const artworkHashes=await checkAll(archive);
-   if(state.version===3&&JSON.stringify(state.bundles.map(b=>({...b,input:null,framed:false})))!==JSON.stringify(archive.bundles.map(b=>({...b,input:null,framed:false}))))
+   if(state.bundles?.length&&JSON.stringify(state.bundles.map(b=>({...b,input:null,framed:false})))!==JSON.stringify(archive.bundles.map(b=>({...b,input:null,framed:false}))))
      throw Error('Trio descriptions, member assignments or tags changed since first upload; do not replace the saved eight-product collection.');
     if(state.items.some((v,i)=>v.sha256!==artworkHashes[i]))
     throw Error('Artwork differs from the original saved ZIP. Do not reuse an existing upload ID with changed images.');
@@ -267,7 +285,7 @@ async function start(e){
    const artwork=await archive.artwork(archive.items[i]);
    await uploadItem(item,artwork,i);
   }
-  message(state.storeOnly?'The six originals are safely stored privately; no listing slots used.':'Six individual posters queued; the two separate trio products will be prepared once all six have been published.');await inspect();
+  message(state.storeOnly?'All '+state.items.length+' posters are stored privately; no Etsy listing slots used.':state.items.length+' individual poster'+(state.items.length===1?'':'s')+' queued; '+state.bundles.length+' trio collection'+(state.bundles.length===1?'':'s')+' will be prepared after individual publication.');await inspect();
  }catch(err){message('Stopped safely: '+err.message+' All successfully started products are retained; check the product dashboard.');}
  finally{busy=false;form.querySelector('button[type="submit"]').disabled=false;
   if(!state?.bundlesOnly&&seen.every(r=>r&&['ready_for_approval','publishing','published'].includes(r.phase))&&seen.some(r=>r.phase==='ready_for_approval')){deploy.hidden=false;deploy.disabled=false;}
@@ -481,38 +499,41 @@ onlyResume?.addEventListener('click',async()=>{
 state=read();
 drawOnly();
 if(state?.woodlandRequestId)pollWoodlandSetup().catch(()=>{});
+if(state?.uploadMode&&form?.elements?.uploadMode)form.elements.uploadMode.value=state.uploadMode;
+else if(state?.version===3&&state.items?.length===6&&form?.elements?.uploadMode)form.elements.uploadMode.value='eight-listings';
+showSelectedMode();
 if(state&&form?.elements?.websiteFolder)form.elements.websiteFolder.value=state.websiteFolder||'';
 if(state&&form?.elements?.storeOnly)form.elements.storeOnly.checked=state.storeOnly===true;
 if(state&&form?.elements?.shopSection){
  const chosen=state.selectedShopSection||'';
  if([...form.elements.shopSection.options].some(x=>x.value===chosen))form.elements.shopSection.value=chosen;
 }
-if(state&&(![2,3].includes(state.version)||(state.items.length<BULK_MIN_COUNT||state.items.length>BULK_MAX_COUNT))){
+if(state&&(![2,3,4].includes(state.version)||(state.items.length<BULK_MIN_COUNT||state.items.length>BULK_MAX_COUNT))){
  busy=true;form.querySelector('button[type="submit"]').disabled=true;deploy.hidden=true;
  buildCards();
- message('Your saved legacy collection is retained. New collections use 2 to 6 folders with poster.png and details.md. Open the individual product links below or the saved-products dashboard to finish existing work; do not upload it again.');
+ message('Your saved legacy collection is retained. New uploads use 1, 3 or 6 folders. Open saved product links to complete existing work; do not upload again.');
 }else if(state){
  message('Saved '+state.items.length+'-poster collection found. Re-select the SAME ZIP if upload is incomplete, or wait for the existing product reviews.');
  inspect().catch(e=>message('Could not load saved collection status: '+e.message));
 }
 
 deployTrios?.addEventListener('click',async()=>{
- if(busy||!state?.trioIds||state.trioIds.length!==2)return;
+ if(busy||!state?.trioIds?.length||state.trioIds.length!==state.bundles?.length)return;
  busy=true;deployTrios.disabled=true;
  try{
   const live=await Promise.all(state.trioIds.map(id=>api('/poster/uploads/'+id)));
   if(!live.every(r=>['ready_for_approval','publishing','published'].includes(r.phase)))throw Error('Trio review still preparing; wait for both exact prices and images');
   const pending=live.filter(r=>r.phase==='ready_for_approval');
   if(!pending.length)return;
-  if(!confirm('Deploy '+pending.length+' reviewed supplier bundle listings to Etsy? Each trio has its own title, description, three SKUs and quoted profit. Up to '+pending.length+' new Etsy listing fees apply. No paid PrintShrimp order is created.'))return;
-  for(let i=0;i<2;i++){
+  if(!confirm('Deploy '+pending.length+' reviewed three-print collection listing(s) to Etsy? Each has its own supplier bundle SKU and priced listing. No PrintShrimp order is created.'))return;
+  for(let i=0;i<state.trioIds.length;i++){
    if(live[i].phase!=='ready_for_approval')continue;
    const r=await api('/poster/uploads/'+state.trioIds[i]+'/approve',{method:'POST',
     headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},
     body:new URLSearchParams({csrf,approvalHash:live[i].review.approvalHash})});
    if(r.phase!=='publishing')throw Error('Trio '+(i+1)+' approval needs investigation; do not recreate it');
   }
-  message('Both distinct trio listings have been approved and queued; waiting for Etsy IDs and supplier read-back.');
+  message(pending.length+' trio collection listing'+(pending.length===1?'':'s')+' queued; awaiting Etsy IDs and supplier read-back.');
   await inspect();
  }catch(error){message('Trio publication stopped safely: '+error.message+' Existing records are retained.');}
  finally{busy=false;deployTrios.disabled=false;}

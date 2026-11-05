@@ -25,5 +25,5 @@ test('six-poster bulk uploader offers local private folders without changing Ets
  assert.match(html,/<option value="Nature">Nature<\/option>/);
  assert.match(html,/name="storeOnly" type="checkbox"/);
  assert.doesNotMatch(html,/name="storeOnly" type="checkbox" checked/);
- assert.match(html,/ZIP size determines whether the collection fits/);
+ assert.match(html,/Four listings need four slots/);
 });
