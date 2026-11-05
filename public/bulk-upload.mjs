@@ -263,9 +263,15 @@ async function start(e){
    if(!allowed.has(poster.sectionTitle))throw Error('Section: '+poster.sectionTitle+' in '+poster.folder+'/details.md is not an existing Etsy shop section. Refresh the Etsy catalogue or correct the ZIP; no slots used.');
    if(selected&&poster.sectionTitle!==selected)throw Error('You selected '+selected+', but '+poster.folder+'/details.md specifies '+poster.sectionTitle+'. Update details.md or use the per-poster selection. No products started.');
   }
+  let newUploadStoreOnly=null;
   if(!state){
    const quota=await api('/poster/bulk/status');
-   const storeOnly=form.elements.storeOnly?.checked===true||quota.remaining<archive.listingCount;
+   newUploadStoreOnly=form.elements.storeOnly?.checked===true||quota.remaining<archive.listingCount;
+   if(archive.bundles.length&&!newUploadStoreOnly&&!allowed.has('Trio Collection'))
+    throw Error('Trio Collection is not verified on Etsy. Press "Create or verify Trio Collection on Etsy" above, wait for confirmation, then check the ZIP again. No products have been created.');
+  }
+  if(!state){
+   const storeOnly=newUploadStoreOnly;
    const artworkHashes=await checkAll(archive);
    state={version:4,uploadMode:mode,signature:sig,kind:form.elements.kind.value,selectedShopSection:selected,websiteFolder:form.elements.websiteFolder?.value||'',storeOnly,
     bundles:archive.bundles.map((b,i)=>({...b,framed:collectionPlan.bundleListings[i].framed===true,input:{sku:collectionPlan.bundleListings[i].sku,title:collectionPlan.bundleListings[i].listingTitle,discount:collectionPlan.bundleListings[i].discount}})),trioIds:[],
