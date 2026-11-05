@@ -242,13 +242,15 @@ async function start(e){
  if(busy)return;
  busy=true;form.querySelector('button[type="submit"]').disabled=true;deploy.disabled=true;
  try{
+  const mode=chosenMode();if(!modeChoices.includes(mode))throw Error('Select Individual poster, Singular trio or Six-pack before choosing a ZIP.');
+  if(state?.uploadMode&&mode!==state.uploadMode)throw Error('An earlier upload type is saved. Do not overwrite its product receipts.');
   const file=form.elements.collection.files[0];
-  if(!file||!file.name.toLowerCase().endsWith('.zip'))throw Error('Choose a ZIP containing 2 to 6 posters.');
+  if(!file||!file.name.toLowerCase().endsWith('.zip'))throw Error('Choose a ZIP matching the selected upload type.');
   const sig=signature(file);
   if(state&&state.signature!==sig)throw Error('A different collection is already saved in this browser. Finish or inspect it before starting another. To avoid duplicates, do not overwrite its receipts.');
   message('Reading ZIP and validating names, artwork and descriptions…');
-  const archive=previewSignature===sig&&previewArchive?previewArchive:await openPosterCollectionZip(file,{allowLegacySix:state?.version===2});
-  if(!state&&archive.bundles.length&&previewSignature!==sig){showTrioFields(archive,sig);throw Error('Check both bundle SKUs and titles above, then submit again. Nothing has been uploaded yet.');}
+  const archive=previewSignature===sig&&previewArchive&&previewArchive.mode===mode?previewArchive:await openPosterCollectionZip(file,{mode});
+  if(!state&&archive.bundles.length&&previewSignature!==sig){showTrioFields(archive,sig);throw Error('Review the trio collection titles above, then submit again. Nothing has been uploaded yet.');}
   const collectionPlan=archive.bundles.length?inputPlans(archive):null;
   // Never reserve monthly slots or create merchant products for an unverified section.
   const shop=await api('/poster/bulk/sections');
@@ -264,14 +266,14 @@ async function start(e){
    const quota=await api('/poster/bulk/status');
    const storeOnly=form.elements.storeOnly?.checked===true||quota.remaining<archive.listingCount;
    const artworkHashes=await checkAll(archive);
-   state={version:archive.bundles.length?3:2,signature:sig,kind:form.elements.kind.value,selectedShopSection:selected,websiteFolder:form.elements.websiteFolder?.value||'',storeOnly,
+   state={version:4,uploadMode:mode,signature:sig,kind:form.elements.kind.value,selectedShopSection:selected,websiteFolder:form.elements.websiteFolder?.value||'',storeOnly,
     bundles:archive.bundles.map((b,i)=>({...b,framed:collectionPlan.bundleListings[i].framed===true,input:{sku:collectionPlan.bundleListings[i].sku,title:collectionPlan.bundleListings[i].listingTitle,discount:collectionPlan.bundleListings[i].discount}})),trioIds:[],
     items:archive.items.map((i,n)=>({filename:i.filename,folder:i.folder,title:i.title,listingTitle:i.listingTitle,sectionTitle:i.sectionTitle,description:i.description,tags:i.tags,printSizes:i.printSizes,sha256:artworkHashes[n],uploadFilename:collectionUploadFilename(i.title,artworkHashes[n]),id:null}))};save();
   }else{
    if(state.items.some((v,i)=>v.filename!==archive.items[i].filename||v.folder!==archive.items[i].folder||v.listingTitle!==archive.items[i].listingTitle||v.sectionTitle!==archive.items[i].sectionTitle||v.title!==archive.items[i].title||v.description!==archive.items[i].description||v.tags.join(',')!==archive.items[i].tags.join(',')||JSON.stringify(v.printSizes||['A5','A4','A3'])!==JSON.stringify(archive.items[i].printSizes)))
     throw Error('This ZIP differs from the saved collection. Do not reuse existing product receipts with different descriptions.');
    const artworkHashes=await checkAll(archive);
-   if(state.version===3&&JSON.stringify(state.bundles.map(b=>({...b,input:null,framed:false})))!==JSON.stringify(archive.bundles.map(b=>({...b,input:null,framed:false}))))
+   if(state.bundles?.length&&JSON.stringify(state.bundles.map(b=>({...b,input:null,framed:false})))!==JSON.stringify(archive.bundles.map(b=>({...b,input:null,framed:false}))))
      throw Error('Trio descriptions, member assignments or tags changed since first upload; do not replace the saved eight-product collection.');
     if(state.items.some((v,i)=>v.sha256!==artworkHashes[i]))
     throw Error('Artwork differs from the original saved ZIP. Do not reuse an existing upload ID with changed images.');
@@ -282,7 +284,7 @@ async function start(e){
    const artwork=await archive.artwork(archive.items[i]);
    await uploadItem(item,artwork,i);
   }
-  message(state.storeOnly?'The six originals are safely stored privately; no listing slots used.':'Six individual posters queued; the two separate trio products will be prepared once all six have been published.');await inspect();
+  message(state.storeOnly?'All '+state.items.length+' posters are stored privately; no Etsy listing slots used.':state.items.length+' individual poster'+(state.items.length===1?'':'s')+' queued; '+state.bundles.length+' trio collection'+(state.bundles.length===1?'':'s')+' will be prepared after individual publication.');await inspect();
  }catch(err){message('Stopped safely: '+err.message+' All successfully started products are retained; check the product dashboard.');}
  finally{busy=false;form.querySelector('button[type="submit"]').disabled=false;
   if(!state?.bundlesOnly&&seen.every(r=>r&&['ready_for_approval','publishing','published'].includes(r.phase))&&seen.some(r=>r.phase==='ready_for_approval')){deploy.hidden=false;deploy.disabled=false;}
@@ -496,16 +498,19 @@ onlyResume?.addEventListener('click',async()=>{
 state=read();
 drawOnly();
 if(state?.woodlandRequestId)pollWoodlandSetup().catch(()=>{});
+if(state?.uploadMode&&form?.elements?.uploadMode)form.elements.uploadMode.value=state.uploadMode;
+else if(state?.version===3&&state.items?.length===6&&form?.elements?.uploadMode)form.elements.uploadMode.value='eight-listings';
+showSelectedMode();
 if(state&&form?.elements?.websiteFolder)form.elements.websiteFolder.value=state.websiteFolder||'';
 if(state&&form?.elements?.storeOnly)form.elements.storeOnly.checked=state.storeOnly===true;
 if(state&&form?.elements?.shopSection){
  const chosen=state.selectedShopSection||'';
  if([...form.elements.shopSection.options].some(x=>x.value===chosen))form.elements.shopSection.value=chosen;
 }
-if(state&&(![2,3].includes(state.version)||(state.items.length<BULK_MIN_COUNT||state.items.length>BULK_MAX_COUNT))){
+if(state&&(![2,3,4].includes(state.version)||(state.items.length<BULK_MIN_COUNT||state.items.length>BULK_MAX_COUNT))){
  busy=true;form.querySelector('button[type="submit"]').disabled=true;deploy.hidden=true;
  buildCards();
- message('Your saved legacy collection is retained. New collections use 2 to 6 folders with poster.png and details.md. Open the individual product links below or the saved-products dashboard to finish existing work; do not upload it again.');
+ message('Your saved legacy collection is retained. New uploads use 1, 3 or 6 folders. Open saved product links to complete existing work; do not upload again.');
 }else if(state){
  message('Saved '+state.items.length+'-poster collection found. Re-select the SAME ZIP if upload is incomplete, or wait for the existing product reviews.');
  inspect().catch(e=>message('Could not load saved collection status: '+e.message));
