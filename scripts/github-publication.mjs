@@ -89,6 +89,20 @@ try{
   process.exit(0);
  }
 
+ // One strict recovery of the owner-approved Trio Collection section
+ // request whose original worker run failed on the bridge key allowlist.
+ // Do not poll or replay any other queued merchant task on this attempt.
+ if(process.env.GITHUB_RUN_ID==='41998001142'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {recoverOriginalTrioSection}=await import('../lib/streak-section-recovery.mjs');
+  const result=await recoverOriginalTrioSection({
+   runId:process.env.GITHUB_RUN_ID,attempt:process.env.GITHUB_RUN_ATTEMPT,
+   uploads,etsyStore,client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})
+  });
+  console.log('Original Trio Collection Etsy section reconciled; verified='+ (result.phase==='verified')+'; reused existing='+(!result.created));
+  process.exit(0);
+ }
  // Finished Etsy framed-first catalogue migration (all 37 records read back).
  // One-off rerun triggers intentionally retired; normal queue handling follows.
  if(process.env.GITHUB_RUN_ID==='39606841309'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
