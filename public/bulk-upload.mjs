@@ -46,9 +46,11 @@ function showTrioFields(archive,signature){
   const titleLabel=document.createElement('label');titleLabel.append(text('span','Etsy listing title '+n));
   const title=document.createElement('input');title.name='trio'+n+'Title';title.required=true;title.maxLength=140;
   title.value=titleForSelectedZip({state,archive,signature,index:i});
-   if(savedSessionMatchesZip({state,archive,signature})){
+   if(state?.version===4&&state.signature===signature&&state.uploadMode===archive.mode){
     title.readOnly=true;
-    titleLabel.append(text('small',' Existing collection: the previously submitted title is locked. Start another ZIP for a new listing.'));
+    titleLabel.append(text('small',savedSessionMatchesZip({state,archive,signature})?
+     ' Existing saved collection: this title is locked to its previous approval. Start another ZIP for a new listing.':
+     ' A saved collection uses the same ZIP filename and size. This is the selected ZIP title, but the previous title remains locked in its saved product record. Start another ZIP before uploading.'));
    }
    titleLabel.append(title);fieldset.append(titleLabel);
   const discountLabel=document.createElement('label');discountLabel.append(text('span','Discount from the three live individual print prices'));
