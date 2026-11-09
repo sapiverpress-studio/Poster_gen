@@ -17,6 +17,22 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ // Read-only owner-authorised audit of four existing Etsy trio listings.
+ // This run was previously finished; attempt FOUR ONLY, and NEVER polls queue.
+ if(process.env.GITHUB_RUN_ID==='42615571498'&&process.env.GITHUB_RUN_ATTEMPT==='4'){
+  if(process.env.GITHUB_REPOSITORY!=='sapiverpress-studio/Poster_gen'||
+     process.env.GITHUB_REF!=='refs/heads/main'||
+     process.env.GITHUB_WORKFLOW!=='Approved poster publication')
+   throw Error('Wrong Etsy trio-section audit context');
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {auditFourTrioSections}=await import('../lib/four-existing-trios-section-audit.mjs');
+  const report=await auditFourTrioSections({
+   client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})
+  });
+  console.log('FOUR_TRIO_SECTION_READ_ONLY '+JSON.stringify(report));
+  process.exit(0);
+ }
  // Original failed Streak trio run, attempt THREE only. Never replay the
  // publish job or create another Etsy listing. Existing draft was diagnosed
  // read-only on attempt TWO; any changed field fails closed.
