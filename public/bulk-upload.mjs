@@ -40,6 +40,7 @@ function showTrioFields(archive,signature){
  trioForm.append(heading,text('p','Each trio has separate descriptions, tags and a distinct verified PrintShrimp bundle SKU. Choose whether all three can also be purchased together with matching Black, White or Oak frames.'));
  for(let i=0;i<archive.bundles.length;i++){
   const b=archive.bundles[i],n=i+1,fieldset=document.createElement('fieldset');
+  const savedForThisZip=savedSessionMatchesZip({state,archive,signature})?state.bundles?.[i]:null;
   const legend=text('legend','Trio '+n+': '+b.title);
   fieldset.append(legend,text('p','Includes: '+b.members.join(', ')+' · '+b.size+' · '+b.sectionTitle));
   fieldset.append(text('p','PrintShrimp bundle SKU: assigned automatically from the verified component products after review. No manual SKU entry.'));
@@ -55,10 +56,10 @@ function showTrioFields(archive,signature){
    titleLabel.append(title);fieldset.append(titleLabel);
   const discountLabel=document.createElement('label');discountLabel.append(text('span','Discount from the three live individual print prices'));
   const discount=document.createElement('select');discount.name='trio'+n+'Discount';
-  for(const pct of [0,10,15]){const option=document.createElement('option');option.value=String(pct);option.textContent=pct+'%';if(Number(state?.bundles?.[i]?.input?.discount??15)===pct)option.selected=true;discount.append(option);}
+  for(const pct of [0,10,15]){const option=document.createElement('option');option.value=String(pct);option.textContent=pct+'%';if(Number(savedForThisZip?.input?.discount??15)===pct)option.selected=true;discount.append(option);}
   discountLabel.append(discount);fieldset.append(discountLabel);
   const frameLabel=document.createElement('label'),frame=document.createElement('input');
-  frame.type='checkbox';frame.name='trio'+n+'Frames';frame.checked=state?.bundles?.[i]?.framed??true;
+  frame.type='checkbox';frame.name='trio'+n+'Frames';frame.checked=savedForThisZip?.framed??b.framed??true;
   frameLabel.append(frame,text('span',' Offer Print Only and sets of three matching Black, White or Oak frames'));
   fieldset.append(frameLabel);
   const details=document.createElement('details');details.append(text('summary','Read this trio’s distinct Etsy description and tags'));
@@ -76,7 +77,7 @@ async function onZipChosen(){
   const archive=await openPosterCollectionZip(file,{mode});
   showTrioFields(archive,signature(file));
   if(state&&!savedSessionMatchesZip({state,archive,signature:signature(file)}))
-    message('Current ZIP title comes from its bundle manifest. Your previous collection is still saved. Choose "Start another ZIP" to begin this new collection without deleting the previous products.');
+    message('The selected ZIP supplies its own '+(archive.bundles.length?'trio title from bundle-1.md':'poster title from details.md')+'. Your previous collection is still saved. Choose "Start another ZIP" before uploading this collection. Previous products will be retained.');
    else message(archive.bundles.length?archive.listingCount+' Etsy listings detected: '+archive.items.length+' individual posters and '+archive.bundles.length+' trio collection'+(archive.bundles.length===1?'':'s')+'. Title taken from the current ZIP.':archive.listingCount+' individual poster listing detected.');
  }catch(error){previewArchive=null;previewSignature='';trioForm?.replaceChildren();message('ZIP rejected: '+error.message+'. No products created.');}
 }
