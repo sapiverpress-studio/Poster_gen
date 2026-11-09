@@ -17,6 +17,23 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ // Owner-approved original Streak trio draft audit, read-only.
+ // Restricted to the FAILED worker run, second attempt. No queue replay.
+ if(process.env.GITHUB_RUN_ID==='42615571498'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
+  if(process.env.GITHUB_REPOSITORY!=='sapiverpress-studio/Poster_gen'||
+     process.env.GITHUB_REF!=='refs/heads/main'||
+     process.env.GITHUB_WORKFLOW!=='Approved poster publication')
+   throw Error('Invalid trusted Streak trio audit execution context');
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {inspectStreakTrioOriginalDraft}=await import('../lib/streak-trio-original-draft-audit.mjs');
+  const report=await inspectStreakTrioOriginalDraft({
+   uploads,etsyStore,apiKey:env('SHRIMP_APIKEY'),
+   client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})
+  });
+  console.log('STREAK_TRIO_ORIGINAL_READ_ONLY '+JSON.stringify(report));
+  process.exit(0);
+ }
  // Trusted owner-approved workflow, attempt FOUR only; prior attempt failed
  // during a 52-request parallel monthly quota scan before confirmed completion.
  // Attempt TWO exited before library import because sharp is not installed.
