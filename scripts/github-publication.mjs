@@ -32,6 +32,24 @@ try{
   console.log('STREAK_NOV9_TRIO_RECOVERY '+JSON.stringify(result));
   process.exit(['ready_for_approval','existing'].includes(result.phase)?0:1);
  }
+ // One-off exact 2026-11-09 Streak trio recovery. Only creates an
+ // owner-review record; no Etsy draft, supplier order or auto approval.
+ // The separate GitHub workflow is intentionally one-use and removed after.
+ if(process.env.STREAK_NOV9_ONEOFF==='owner-approved-20261109'){
+  if(process.env.GITHUB_REPOSITORY!=='sapiverpress-studio/Poster_gen'||
+     process.env.GITHUB_REF!=='refs/heads/feature/canva-oauth-callback'||
+     process.env.GITHUB_WORKFLOW!=='One-time Streak November Trio Review')
+   throw Error('Wrong one-time Streak recovery execution context');
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {recoverStreakNov9Trio}=await import('../lib/streak-nov9-missing-trio-recovery.mjs');
+  const result=await recoverStreakNov9Trio({
+   uploads,client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),
+   env:workerEnv
+  });
+  console.log('STREAK_NOV9_RECOVERY '+JSON.stringify(result));
+  process.exit(0);
+ }
  // Single-use owner-authorised recovery of the precise Etsy draft found
  // in run 42600068671 attempt 2. Attempt THREE exits without polling or
  // replaying any other merchant work. Never creates an Etsy listing.
