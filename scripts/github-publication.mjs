@@ -17,6 +17,25 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ // Trusted WORKFLOW_DISPATCH run, attempt TWO only. The website's signed
+ // bridge accepts OIDC exclusively from poster-publication.yml on main.
+ // This one-time branch exits BEFORE polling any unrelated saved merchant jobs.
+ if(process.env.GITHUB_RUN_ID==='42609030669'&&
+    process.env.GITHUB_RUN_ATTEMPT==='2'){
+  if(process.env.GITHUB_REPOSITORY!=='sapiverpress-studio/Poster_gen'||
+     process.env.GITHUB_REF!=='refs/heads/main'||
+     process.env.GITHUB_WORKFLOW!=='Approved poster publication')
+   throw Error('Wrong trusted recovery workflow');
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {prepareMissingStreakNov9Trio}=await import('../lib/streak-nov9-missing-trio.mjs');
+  const result=await prepareMissingStreakNov9Trio({
+   uploads,client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),
+   env:workerEnv
+  });
+  console.log('STREAK_NOV9_TRUSTED_RECOVERY '+JSON.stringify(result));
+  process.exit(['ready_for_approval','existing'].includes(result.phase)?0:1);
+ }
  // One-time Streak 9 Nov THREE existing listings -> ONE owner-reviewable
  // trio. No ordinary worker queue processing and no merchant listing writes.
  if(process.env.STREAK_NOV9_TRIO_RECOVERY==='owner-20261109-one-trio-only'){
