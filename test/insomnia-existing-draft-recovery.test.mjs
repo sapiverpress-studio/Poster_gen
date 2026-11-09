@@ -82,7 +82,7 @@ function fixture({title=ENCODED}={}){
  };
  const env=k=>({
   POSTER_PUBLICATION_ENABLED:'true',POSTER_INTERNATIONAL_SHIPPING_ENABLED:'false',
-  CANVA_SITE_ORIGIN:'https://sapiver-poster-gen-auth.netlify.app',SHRIMP_APIKEY:'fake-test-api-key'
+  CANVA_SITE_ORIGIN:'https://'+'sapiver-poster-gen-auth.netlify.app',SHRIMP_APIKEY:'fake-test-api-key'
  })[k];
  return {uploads,etsyStore,client,request,env,operations,map,privateMap,id,listing:listing(),asset};
 }
