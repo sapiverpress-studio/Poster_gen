@@ -17,24 +17,38 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
- // Trusted WORKFLOW_DISPATCH run, attempt TWO only. The website's signed
- // bridge accepts OIDC exclusively from poster-publication.yml on main.
- // This one-time branch exits BEFORE polling any unrelated saved merchant jobs.
- if(process.env.GITHUB_RUN_ID==='42609030669'&&
-    process.env.GITHUB_RUN_ATTEMPT==='2'){
+ // Trusted owner-approved workflow, attempt THREE only.
+ // Attempt TWO exited before library import because sharp is not installed.
+ // Install pinned image dependencies before importing bundle-preparation code.
+ // Never poll or replay other queued merchant work on this attempt.
+ if(process.env.GITHUB_RUN_ID==='42609030669'&&process.env.GITHUB_RUN_ATTEMPT==='3'){
   if(process.env.GITHUB_REPOSITORY!=='sapiverpress-studio/Poster_gen'||
      process.env.GITHUB_REF!=='refs/heads/main'||
      process.env.GITHUB_WORKFLOW!=='Approved poster publication')
    throw Error('Wrong trusted recovery workflow');
-  const {createEtsySession}=await import('../lib/etsy-session.mjs');
-  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
-  const {prepareMissingStreakNov9Trio}=await import('../lib/streak-nov9-missing-trio.mjs');
-  const result=await prepareMissingStreakNov9Trio({
-   uploads,client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),
-   env:workerEnv
-  });
-  console.log('STREAK_NOV9_TRUSTED_RECOVERY '+JSON.stringify(result));
-  process.exit(['ready_for_approval','existing'].includes(result.phase)?0:1);
+  let stage='dependencies';
+  try{
+   const {execFileSync}=await import('node:child_process');
+   execFileSync('npm',['ci','--ignore-scripts','--no-audit','--no-fund'],{
+    stdio:'ignore',timeout:180000,
+    env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR}
+   });
+   stage='verified_trio_source_import';
+   const {createEtsySession}=await import('../lib/etsy-session.mjs');
+   const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+   const {prepareMissingStreakNov9Trio}=await import('../lib/streak-nov9-missing-trio.mjs');
+   stage='existing_source_audit_and_review';
+   const result=await prepareMissingStreakNov9Trio({
+    uploads,client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),
+    env:workerEnv
+   });
+   console.log('STREAK_NOV9_TRUSTED_RECOVERY '+JSON.stringify(result));
+   process.exit(['ready_for_approval','existing'].includes(result.phase)?0:1);
+  }catch(error){
+   const msg=String(error?.message||'unavailable').slice(0,180).replace(/[^a-zA-Z0-9 ,.:;_\-()/]/g,'');
+   console.log('STREAK_NOV9_RECOVERY_STOP stage='+stage+' reason='+msg);
+   process.exit(1);
+  }
  }
  // One-time Streak 9 Nov THREE existing listings -> ONE owner-reviewable
  // trio. No ordinary worker queue processing and no merchant listing writes.
