@@ -17,11 +17,12 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
- // Trusted owner-approved workflow, attempt THREE only.
+ // Trusted owner-approved workflow, attempt FOUR only; prior attempt failed
+ // during a 52-request parallel monthly quota scan before confirmed completion.
  // Attempt TWO exited before library import because sharp is not installed.
  // Install pinned image dependencies before importing bundle-preparation code.
  // Never poll or replay other queued merchant work on this attempt.
- if(process.env.GITHUB_RUN_ID==='42609030669'&&process.env.GITHUB_RUN_ATTEMPT==='3'){
+ if(process.env.GITHUB_RUN_ID==='42609030669'&&process.env.GITHUB_RUN_ATTEMPT==='4'){
   if(process.env.GITHUB_REPOSITORY!=='sapiverpress-studio/Poster_gen'||
      process.env.GITHUB_REF!=='refs/heads/main'||
      process.env.GITHUB_WORKFLOW!=='Approved poster publication')
