@@ -17,6 +17,24 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ // Original failed Streak trio run, attempt THREE only. Never replay the
+ // publish job or create another Etsy listing. Existing draft was diagnosed
+ // read-only on attempt TWO; any changed field fails closed.
+ if(process.env.GITHUB_RUN_ID==='42615571498'&&process.env.GITHUB_RUN_ATTEMPT==='3'){
+  if(process.env.GITHUB_REPOSITORY!=='sapiverpress-studio/Poster_gen'||
+     process.env.GITHUB_REF!=='refs/heads/main'||
+     process.env.GITHUB_WORKFLOW!=='Approved poster publication')
+   throw Error('Wrong Streak trio reconciliation context');
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {verifyExistingStreakTrio}=await import('../lib/streak-trio-inplace-verification.mjs');
+  const result=await verifyExistingStreakTrio({
+   uploads,etsyStore,env:workerEnv,
+   client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})
+  });
+  console.log('STREAK_TRIO_EXISTING_DRAFT_RECOVERY '+JSON.stringify(result));
+  process.exit(result.phase==='draft_verified'?0:1);
+ }
  // Owner-approved original Streak trio draft audit, read-only.
  // Restricted to the FAILED worker run, second attempt. No queue replay.
  if(process.env.GITHUB_RUN_ID==='42615571498'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
