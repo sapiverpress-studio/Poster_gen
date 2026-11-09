@@ -17,6 +17,20 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ // Single-use owner-authorised recovery of the precise Etsy draft found
+ // in run 42600068671 attempt 2. Attempt THREE exits without polling or
+ // replaying any other merchant work. Never creates an Etsy listing.
+ if(process.env.GITHUB_RUN_ID==='42600068671'&&process.env.GITHUB_RUN_ATTEMPT==='3'){
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {recoverInsomniaDraft}=await import('../lib/insomnia-existing-draft-recovery.mjs');
+  const result=await recoverInsomniaDraft({
+   uploads,etsyStore,client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)}),
+   env:workerEnv
+  });
+  console.log('INSOMNIA_INPLACE_RECOVERY '+JSON.stringify(result));
+  process.exit(result.phase==='published'?0:1);
+ }
  // Isolated emergency diagnostic workflow, available only to a specific
  // trusted GitHub Action environment. No ordinary tasks or seller mutations.
  // The workflow runs once on its own filename and is removed after diagnosis.
