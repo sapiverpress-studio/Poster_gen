@@ -75,7 +75,7 @@ async function onZipChosen(){
   message('Checking ZIP against the selected upload type…');
   const archive=await openPosterCollectionZip(file,{mode});
   showTrioFields(archive,signature(file));
-  if(state&&!savedSessionMatchesZip({state,archive,signature(file)}))
+  if(state&&!savedSessionMatchesZip({state,archive,signature:signature(file)}))
     message('Current ZIP title comes from its bundle manifest. Your previous collection is still saved. Choose "Start another ZIP" to begin this new collection without deleting the previous products.');
    else message(archive.bundles.length?archive.listingCount+' Etsy listings detected: '+archive.items.length+' individual posters and '+archive.bundles.length+' trio collection'+(archive.bundles.length===1?'':'s')+'. Title taken from the current ZIP.':archive.listingCount+' individual poster listing detected.');
  }catch(error){previewArchive=null;previewSignature='';trioForm?.replaceChildren();message('ZIP rejected: '+error.message+'. No products created.');}
