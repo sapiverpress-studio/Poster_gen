@@ -1,0 +1,37 @@
+name: Recover missing 9 Nov Streak trio review once
+on:
+  push:
+    branches:
+      - feature/canva-oauth-callback
+    paths:
+      - .github/workflows/streak-nov9-trio-once-20261109.yml
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: sapiver-poster-publication
+  cancel-in-progress: false
+jobs:
+  create-trio-review:
+    if: github.repository == 'sapiverpress-studio/Poster_gen' && github.ref == 'refs/heads/feature/canva-oauth-callback'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/canva-oauth-callback
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install trusted dependencies for original-artwork review rendering
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify 3 existing Streak singles and reserve ONLY one trio review
+        env:
+          STREAK_NOV9_TRIO_RECOVERY: 'owner-20261109-one-trio-only'
+          POSTER_SITE_ORIGIN: ${{ format('https://{0}', 'sapiver-poster-gen-auth.netlify.app') }}
+          ETSY_PRINTS_KEYSTRING: ${{ secrets.ETSY_PRINTS_KEYSTRING }}
+          ETSY_PRINTS_SHARED_SECRET: ${{ secrets.ETSY_PRINTS_SHARED_SECRET }}
+          SHRIMP_APIKEY: ${{ secrets.SHRIMP_APIKEY }}
+          POSTER_INTERNATIONAL_SHIPPING_ENABLED: ${{ vars.POSTER_INTERNATIONAL_SHIPPING_ENABLED }}
+        run: node scripts/github-publication.mjs
