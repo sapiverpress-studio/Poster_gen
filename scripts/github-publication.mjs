@@ -17,6 +17,20 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ // Exact read-only investigation of Insomnia - On Strike. The original
+ // publication worker 42600068671 failed after creating its Etsy draft.
+ // Attempt TWO never polls queued jobs, creates an Etsy listing, or writes.
+ if(process.env.GITHUB_RUN_ID==='42600068671'&&process.env.GITHUB_RUN_ATTEMPT==='2'){
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {auditInsomniaDraft}=await import('../lib/insomnia-draft-diagnostic.mjs');
+  const result=await auditInsomniaDraft({
+   uploads,etsyStore,apiKey:env('SHRIMP_APIKEY'),
+   client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})
+  });
+  console.log('INSOMNIA_READ_ONLY_AUDIT '+JSON.stringify(result));
+  process.exit(0);
+ }
  // One supplementary owner-authorised READ-ONLY verification on attempt 2
  // of the other failed Woodland audit run. No queued job may be consumed,
  // no original upgrade state changed and no merchant request other than GET.
