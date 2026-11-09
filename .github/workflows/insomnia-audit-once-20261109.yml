@@ -1,0 +1,36 @@
+name: One-time Insomnia retained-draft audit
+on:
+  push:
+    branches:
+      - feature/canva-oauth-callback
+    paths:
+      - .github/workflows/insomnia-audit-once-20261109.yml
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: insomnia-read-only-20261109
+  cancel-in-progress: false
+jobs:
+  inspect:
+    if: github.repository == 'sapiverpress-studio/Poster_gen' && github.ref == 'refs/heads/feature/canva-oauth-callback'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/canva-oauth-callback
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install audited read-only dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Inspect only original Insomnia Etsy draft
+        env:
+          INSOMNIA_READ_ONLY_DIAG: 'owner-20261109'
+          POSTER_SITE_ORIGIN: ${{ format('https://{0}', 'sapiver-poster-gen-auth.netlify.app') }}
+          ETSY_PRINTS_KEYSTRING: ${{ secrets.ETSY_PRINTS_KEYSTRING }}
+          ETSY_PRINTS_SHARED_SECRET: ${{ secrets.ETSY_PRINTS_SHARED_SECRET }}
+          SHRIMP_APIKEY: ${{ secrets.SHRIMP_APIKEY }}
+        run: node scripts/github-publication.mjs
