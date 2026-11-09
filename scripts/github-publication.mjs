@@ -17,6 +17,23 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ // Owner-authorised in-place assignment of FOUR existing Etsy trios to
+ // the VERIFIED Trio Collection shop section. Exact trusted worker attempt
+ // FIVE ONLY; do not poll old queues or create listings, bundles or orders.
+ if(process.env.GITHUB_RUN_ID==='42615571498'&&process.env.GITHUB_RUN_ATTEMPT==='5'){
+  if(process.env.GITHUB_REPOSITORY!=='sapiverpress-studio/Poster_gen'||
+     process.env.GITHUB_REF!=='refs/heads/main'||
+     process.env.GITHUB_WORKFLOW!=='Approved poster publication')
+   throw Error('Wrong in-place four-trio section recovery context');
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {assignExistingFourTrios}=await import('../lib/four-existing-trios-section-apply.mjs');
+  const result=await assignExistingFourTrios({
+   etsyStore,client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})
+  });
+  console.log('FOUR_EXISTING_TRIOS_SECTION_ASSIGNMENT '+JSON.stringify(result));
+  process.exit(result.phase==='complete'?0:1);
+ }
  // Read-only owner-authorised audit of four existing Etsy trio listings.
  // This run was previously finished; attempt FOUR ONLY, and NEVER polls queue.
  if(process.env.GITHUB_RUN_ID==='42615571498'&&process.env.GITHUB_RUN_ATTEMPT==='4'){
