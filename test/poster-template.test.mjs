@@ -46,3 +46,12 @@ test('A4/A5 Nature configuration creates eight options and does not alter three-
  assert.equal(templateDraftPlan(settings).inventory.products.length,12);
  assert.throws(()=>templateDraftPlan({...settings,printSizes:['A5','A3']}),/print-size/);
 });
+
+test('Etsy HTML-escaped title readback is equivalent only for exact approved characters',()=>{
+ const p=plan();p.body.title="I'm Not Napping & I'm on Strike Wall Art Print";
+ const l={...p.body,title:"I&#39;m Not Napping &amp; I&#39;m on Strike Wall Art Print",
+  tags:p.body.tags.split(','),shop_id:456,state:'draft',listing_type:'physical',is_personalizable:false};
+ verifyTemplateListing(l,p,{shopId:456,state:'draft'});
+ assert.throws(()=>verifyTemplateListing({...l,title:"I'm Napping & I'm on Strike Wall Art Print"},p,{shopId:456,state:'draft'}),/Listing details changed/);
+ assert.throws(()=>verifyTemplateListing({...l,title:"I&#39;m Not Napping &amp; I&#39;m on Strike Digital Download"},p,{shopId:456,state:'draft'}),/Listing details changed/);
+});
