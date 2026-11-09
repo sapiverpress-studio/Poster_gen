@@ -17,6 +17,22 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ // Isolated emergency diagnostic workflow, available only to a specific
+ // trusted GitHub Action environment. No ordinary tasks or seller mutations.
+ // The workflow runs once on its own filename and is removed after diagnosis.
+ if(process.env.INSOMNIA_READ_ONLY_DIAG==='owner-20261109'){
+  if(process.env.GITHUB_REPOSITORY!=='sapiverpress-studio/Poster_gen'||process.env.GITHUB_REF!=='refs/heads/feature/canva-oauth-callback')
+   throw Error('Wrong read-only diagnostic execution context');
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const {auditInsomniaDraft}=await import('../lib/insomnia-draft-diagnostic.mjs');
+  const result=await auditInsomniaDraft({
+   uploads,etsyStore,apiKey:env('SHRIMP_APIKEY'),
+   client:createEtsySession({store:etsyStore,config:etsySetup(workerEnv)})
+  });
+  console.log('INSOMNIA_READ_ONLY_AUDIT '+JSON.stringify(result));
+  process.exit(0);
+ }
  // Exact read-only investigation of Insomnia - On Strike. The original
  // publication worker 42600068671 failed after creating its Etsy draft.
  // Attempt TWO never polls queued jobs, creates an Etsy listing, or writes.
