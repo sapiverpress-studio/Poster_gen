@@ -37,13 +37,13 @@ test('SVG and PDF parsing rejects active content and validates real documents wi
  await assert.rejects(inspectDigitalFile('fake.pdf',Buffer.from('%PDF-1.7\nnot a document\n%%EOF')));
 });
 test('metadata requires real licensing, price and checked repeat; taxonomy does not invent IDs or ambiguous categories',()=>{
- const m=metadata();assert.equal(m.price,4.99);assert.equal(m.sectionTitle,'Seamless Patterns');assert.equal(selectTaxonomy(m,taxonomies).id,20);assert.equal(selectTaxonomy({...m,kind:'poster'},taxonomies).id,30);assert.throws(()=>selectTaxonomy({...m,taxonomyId:999},taxonomies));assert.throws(()=>selectTaxonomy(m,[...taxonomies,{id:99,name:'Clip Art & Image Files',children:[]}]));
+ const m=metadata();assert.equal(m.price,4.99);assert.equal(m.sectionTitle,'Digital Downloads');assert.equal(selectTaxonomy(m,taxonomies).id,20);assert.equal(selectTaxonomy({...m,kind:'poster'},taxonomies).id,30);assert.throws(()=>selectTaxonomy({...m,taxonomyId:999},taxonomies));assert.throws(()=>selectTaxonomy(m,[...taxonomies,{id:99,name:'Clip Art & Image Files',children:[]}]));
  assert.throws(()=>productMetadata({kind:'pattern',price:5,licence:'x',instructions:'y'},'Leaves.zip','digital'),/repeat/);assert.throws(()=>productMetadata({kind:'poster',price:5},'Poster.zip','digital'),/licence/);assert.throws(()=>productMetadata({kind:'poster',price:1.234,licence:'x',instructions:'y'},'Poster.zip','digital'),/price/);
  const text=digitalListingText(m,[{name:'art.png',format:'png',bytes:123,width:80,height:80}]);assert.match(text.description,/no physical item will be shipped/);assert.doesNotMatch(text.description,/commercial use permitted|300 DPI|A1/);assert.ok(text.tags.length<=13);
 });
 async function publicationFixture({update=false,failFiles=false}={}){
  const uploads=memory(),etsyStore=memory(),calls=[],source=await archiveFixture();const a={phase:'preparing',type:'digital',productId:id,filename:'Green-Leaves.zip',metadata:metadata(),bytes:source.original.length,chunks:1,previewCount:0,sourcePreviewCount:0,createdAt:Date.now()};await uploads.set('uploads/'+id+'/chunks/0',source.original);await uploads.setJSON('uploads/'+id+'/state',a);await recordRevision(uploads,id);
- let listing,files=[],images=[],sections=[{shop_section_id:44,title:'Seamless Patterns'}],created=0;const listingId=555;
+ let listing,files=[],images=[],sections=[{shop_section_id:44,title:'Digital Downloads'}],created=0;const listingId=555;
  const money=n=>({amount:Math.round(Number(n)*100),divisor:100,currency_code:'GBP'});
  if(update){listing={listing_id:listingId,shop_id:456,state:'active',listing_type:'download',title:'Old',description:'Old',price:money(3),tags:['old'],taxonomy_id:20,shop_section_id:44,who_made:'i_did',when_made:'2020_2026',has_variations:false};files=[{listing_file_id:90,listing_id:listingId,filename:'old.zip',size_bytes:999}];await uploads.setJSON(recordKey(id),{productId:id,type:'digital',etsyListingId:listingId,etsyUrl:'https://www.etsy.com/listing/555/old',phase:'published',currentRevision:'q'.repeat(32),pendingRevision:id,metadata:metadata(),files:[]});await uploads.setJSON('uploads/'+id+'/state',{...a,updateProductId:id});}
  const client={session:async()=>({shop_id:456,shop_name:'SapiverPrints'}),api:async(path,o={})=>{calls.push([path,o]);if(path==='/seller-taxonomy/nodes')return {results:taxonomies};if(path==='/shops/456/sections')return {results:sections};
@@ -105,7 +105,7 @@ test('bundle category must be chosen from actual compatible Etsy leaves rather t
 // Seller kit fixtures exercise real ZIP/image decoding without storing customer artwork.
 async function sellerKitFixture(){
  const f=await archiveFixture(),m=metadata();
- const buyer=await zipFiles([{name:'tile.png',data:f.png},{name:'tile.jpg',data:f.jpg},{name:'README.txt',data:Buffer.from(m.instructions)},{name:'LICENSE.txt',data:Buffer.from(m.licence)}]);
+ const buyer=await zipFiles([{name:'tile.png',data:f.png},{name:'tile.jpg',data:f.jpg},{name:'README.txt',data:Buffer.from(m.instructions)},{name:'LICENSE.txt',data:Buffer.from(m.licence)},{name:'ABOUT-SAPIVER-PRINTS.txt',data:Buffer.from('Independent UK creative design studio.')}]);
  const photo=await sharp(f.png).resize(240,180,{fit:'contain',background:'#f7f3ec'}).jpeg().toBuffer();
  const outer=await zipFiles([{name:'UPLOAD-TO-ETSY/green-leaves-buyer.zip',data:buyer},{name:'LISTING-IMAGES/01-pattern.jpg',data:photo},{name:'LISTING-IMAGES/02-tile.jpg',data:photo},{name:'LISTING-IMAGES/03-detail.jpg',data:photo},{name:'SELLER-CHECKLIST.txt',data:Buffer.from('Seller only: check price and approve.')},{name:'QUALITY-CHECK.txt',data:Buffer.from('Seller report')}]);
  return {buyer,photo,outer};
@@ -114,6 +114,39 @@ async function sellerKitFixture(){
 test('seller kit separates customer ZIP and three photographs, preserving original buyer bytes',async()=>{
  const {inspectDigitalUpload,sellerKitDelivery}=await import('../lib/seller-kit.mjs');const f=await sellerKitFixture();
  const k=await inspectDigitalUpload(f.outer),d=sellerKitDelivery(k);assert.equal(k.kit,true);assert.equal(k.previews.length,3);assert.equal(d.files.length,1);assert.equal(d.files[0].name,'green-leaves-buyer.zip');assert.deepEqual(d.files[0].data,f.buyer);assert.ok(d.contents.every(f=>!f.name.startsWith('LISTING-IMAGES/')&&!f.name.includes('SELLER')));assert.equal(k.sellerFiles.length,2);await assert.rejects(inspectArchive(f.outer),/Unsupported customer file/);
+});
+
+test('every seamless-pattern buyer ZIP retains the identical licence, About and instructions, even after splitting',async()=>{
+ const {inspectDigitalUpload,sellerKitDelivery}=await import('../lib/seller-kit.mjs');
+ const artwork=await archiveFixture(),m=metadata();
+ const docs=[
+  {name:'LICENSE.txt',data:Buffer.from(m.licence)},
+  {name:'README.txt',data:Buffer.from(m.instructions)},
+  {name:'ABOUT-SAPIVER-PRINTS.txt',data:Buffer.from('Independent UK creative design studio.')}
+ ];
+ const first=await zipFiles([{name:'tile.png',data:artwork.png},...docs]);
+ const second=await zipFiles([{name:'tile.jpg',data:artwork.jpg},...docs]);
+ const outer=async(a,b)=>zipFiles([
+  {name:'UPLOAD-TO-ETSY/pattern-part-1.zip',data:a},
+  {name:'UPLOAD-TO-ETSY/pattern-part-2.zip',data:b},
+  {name:'LISTING-IMAGES/01-pattern.jpg',data:artwork.jpg}
+ ]);
+ const good=await inspectDigitalUpload(await outer(first,second),{requireDocumentsPerBuyerZip:true});
+ assert.equal(good.packages.length,2);
+ assert.deepEqual(sellerKitDelivery(good).files.map(p=>p.data),[first,second]);
+ const names=good.inspection.files.map(f=>f.name);
+ assert.equal(names.filter(n=>n==='LICENSE.txt').length,1);
+ assert.equal(names.filter(n=>n==='README.txt').length,1);
+ assert.equal(names.filter(n=>n==='ABOUT-SAPIVER-PRINTS.txt').length,1);
+ const noAbout=await zipFiles([{name:'tile.jpg',data:artwork.jpg},...docs.filter(d=>d.name!=='ABOUT-SAPIVER-PRINTS.txt')]);
+ await assert.rejects(inspectDigitalUpload(await outer(first,noAbout),{requireDocumentsPerBuyerZip:true}),/missing about-sapiver-prints.txt/);
+ const altered=await zipFiles([{name:'tile.jpg',data:artwork.jpg},...docs.map(d=>d.name==='LICENSE.txt'?{...d,data:Buffer.from('Conflicting licence')}:d)]);
+ await assert.rejects(inspectDigitalUpload(await outer(first,altered),{requireDocumentsPerBuyerZip:true}),/conflicting customer filenames/);
+ const artDuplicate=await zipFiles([{name:'tile.png',data:artwork.png},...docs]);
+ await assert.rejects(inspectDigitalUpload(await outer(first,artDuplicate),{requireDocumentsPerBuyerZip:true}),/duplicate or conflicting customer filenames/);
+ // Legacy non-pattern seller kits may still use one set of legal documents.
+ const legacy=await inspectDigitalUpload(await outer(first,noAbout));
+ assert.equal(legacy.packages.length,2);
 });
 
 test('seller-kit prepare and publication attach only buyer ZIP, use listing photographs and bypass supplier',async()=>{

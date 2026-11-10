@@ -1,3 +1,30 @@
+## 10 November 2026 — PR #92: full Node24 regression PASSED after simulated-browser correction
+- **First GitHub CI failure:** run `42780029243` failed 20 existing simulated-browser tests. Root cause: new `?type=digital` URL detection needs `window.location.search` and native `URLSearchParams`, omitted from the Node VM test fixture; actual production browsers have both. No core upload engine change was necessary.
+- **Fixture correction:** `test/product-browser.test.mjs` now supplies `window.location.search` and `URLSearchParams`; added explicit digital entry-point and physical default assertions. Commit `39feca64ea98863ab57664624bd6130b4fffb848`.
+- **Retest success:** GitHub Actions `42780242351`, job `129708257073` completed SUCCESS, **531 passed, 0 failed**, including seller-kit validation, duplicate-document safeguards, digital publication, physical upload/PrintShrimp regressions, and digital preselection.
+- **Scope:** PR https://github.com/sapiverpress-studio/Poster_gen/pull/92 targets the Netlify-connected `feature/canva-oauth-callback` branch, retains owner Deploy approval and avoids PrintShrimp for digital. Production browser and real Etsy seller OAuth/write checks still unverified. No Etsy listing, new shop section, order or automatic publishing authorised or executed.
+- **Deployment:** pending at this checkpoint; owner explicitly authorised test and deployment. Must merge only after checks and verify final production Netlify source SHA. No Work credits.
+---
+
+## 10 November 2026 — Guard seamless-pattern Etsy downloads against missing legal documents (development only)
+- **Issue:** Several ZIP attachments generated from one seamless design must be independently usable; the prior generic seller-kit importer prohibited all repeated filenames and therefore could neither accept identical licence documents across packages nor ensure they appeared in every one.
+- **Fix:** `lib/seller-kit.mjs` accepts only **identical** repeated buyer documentation files, de-duplicates them in the listing manifest and still rejects repeated artwork filenames/conflicting documents. An opt-in validation flag requires LICENSE.txt, README.txt and ABOUT-SAPIVER-PRINTS.txt at the root of every buyer ZIP. `lib/digital-product.mjs` enables this strict check for seamless-pattern seller-kit preparation only. Existing generic digital products and physical workflows retain their behaviour.
+- **Tests:** Updated `test/digital-products.test.mjs` seller-kit fixture to contain About and added a two-part test for identical document content, missing About, contradictory licence and duplicate artwork. The exact GitHub importer function also passed isolated mocked-archive checks for accepted two-part and three rejection cases. **The Node 24 full suite and real ZIP/Etsy integration have not yet been run**; no CI-success claim.
+- **Repo:** `feature/digital-pattern-route-20261110`, importer `4bfc0d938202cf0405be2bd39287020a0754e240`, preparation `32bdcc03794add91e52225c3a8170f40246f261e`, tests `1df78484669846640e912728be5454877bab2f78`. All development-only; no Netlify release, Etsy mutation, PrintShrimp action, changed workflow or paid service.
+- **Next:** Run Node 24 regression suite with actual nested buyer ZIP fixtures, test real exported seller kit on authenticated pre-publication review, then obtain separate approval for one production deployment. Do not publish an Etsy listing or create a shop section before the owner approves the release.
+---
+
+## 10 November 2026 — Digital seller-kit intake from Auto Seamless (development branch only)
+
+- Owner requested one-design commercial file ZIP from Pattern Forge **only** on `/auto-seamless/`, and a separate digital Etsy publishing route accessible from the existing Poster Gen Bulk Collection page.
+- Development branch: `feature/digital-pattern-route-20261110`, based on deployed application branch `feature/canva-oauth-callback` at `7619dac68944d093a9b4d5350461060e94f9ff05`.
+- Changes: `lib/product-web.mjs` adds a separate digital seller-kit entry linking to authenticated `/poster/upload?type=digital`; `public/poster-upload.mjs` preselects Digital Download / Seamless Pattern from that link. Existing physical 1/3/6-pack ZIP parsing and PrintShrimp remain unchanged. `lib/product-metadata.mjs` selects the flat shop section `Digital Downloads` for new digital patterns; the existing guarded `ensureSection` workflow reuses or creates it during owner-approved digital publication. No live section was created in this development stage.
+- Existing `lib/seller-kit.mjs` and `lib/digital-product.mjs` already validate nested seller-kit ZIPs, approve revisions, upload Etsy digital downloads with file read-back and avoid PrintShrimp; no duplicate publishing engine added.
+- Tests: existing digital-products test fixtures updated for the new section mapping; full Node 24 regression and live merchant integration are **not yet verified**. Do not claim this branch is live.
+- Release/credit impact: staged feature branch commit only, no site deployment, customer listing, shop section mutation, Etsy charge or supplier order. Separate owner-approved production software release and original per-product Deploy approval remain necessary.
+
+---
+
 ## CURRENT PROJECT SNAPSHOT — 2026-11-09: Missing Streak trio recovered; exact original Etsy draft VERIFIED, NOT ACTIVE
 
 - **Original trio:** Huggles – Six Minutes, Insomnia – On Strike, Edge – So Many Opinions. Three separate individual listings are already published. Original trio product ID `hzKirH1Ca7OCWmgxKxiAbB1OGeV-auFw`; SKU `SP-TRIO-9661EA52B86E24784FC9A50D`.
