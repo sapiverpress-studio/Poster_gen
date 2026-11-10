@@ -20,7 +20,7 @@ async function api(path,options={}){
  return body;
 }
 function validUploadReceipt(upload){return upload&&/^[A-Za-z0-9_-]{32}$/.test(upload.id||'')&&['uploading','preparing'].includes(upload.phase)&&Number.isSafeInteger(upload.chunkBytes)&&upload.chunkBytes>0&&upload.chunkBytes<=2_000_000;}
-function metadata(f){return {useEmbeddedText:f.elements.useEmbeddedText?.checked===true,name:f.elements.name.value,description:f.elements.description?.value||'',subject:f.elements.subject.value,etsyTitle:f.elements.etsyTitle?.value||'',kind:f.elements.kind.value,sectionTitle:f.elements.sectionTitle?.value,printSizes:f.elements.printSizes?.value.split(',')||undefined,websiteFolder:f.elements.websiteFolder?.value||'',price:f.elements.price.value,licence:f.elements.licence.value,instructions:f.elements.instructions.value,tags:f.elements.tags.value,taxonomyId:f.elements.taxonomyId.value,seamlessConfirmed:f.elements.seamlessConfirmed.checked};}
+function metadata(f){return {useEmbeddedText:f.elements.useEmbeddedText?.checked===true,name:f.elements.name.value,description:(['pattern','poster','bundle'].includes(f.elements.kind?.value)?f.elements.digitalDescription?.value:f.elements.description?.value)||'',subject:f.elements.subject.value,etsyTitle:f.elements.etsyTitle?.value||'',kind:f.elements.kind.value,sectionTitle:f.elements.sectionTitle?.value,printSizes:f.elements.printSizes?.value.split(',')||undefined,websiteFolder:f.elements.websiteFolder?.value||'',price:f.elements.price.value,licence:f.elements.licence.value,instructions:f.elements.instructions.value,tags:f.elements.tags.value,taxonomyId:f.elements.taxonomyId.value,seamlessConfirmed:f.elements.seamlessConfirmed.checked};}
 function showType(f,type){const supplierStep=document.getElementById('physical-fulfilment-step');if(supplierStep)supplierStep.hidden=type==='digital';f.querySelectorAll('[data-digital]').forEach(e=>{e.hidden=type!=='digital';e.querySelectorAll('input,textarea').forEach(i=>i.disabled=type!=='digital');});f.querySelectorAll('[data-physical]').forEach(e=>e.hidden=type!=='physical');const options=[...f.elements.kind.options];options.forEach(o=>{o.hidden=o.dataset.type!==type;o.disabled=o.hidden;});if(f.elements.kind.selectedOptions[0]?.disabled)f.elements.kind.value=options.find(o=>!o.disabled).value;const kindLabel=document.getElementById('poster-kind-label');if(kindLabel)kindLabel.textContent=type==='physical'?'Poster type':'Product group';if(f.elements.poster)f.elements.poster.accept=type==='digital'?'.zip':'.png';}
 function bindSectionGuidance(f){
  const select=f?.elements.sectionTitle,note=document.getElementById('print-section-description');
@@ -38,6 +38,46 @@ if(form&&!form.dataset.update&&new URLSearchParams(window.location.search).get('
  form.elements.kind.value='pattern';
 }
 if(form){showType(form,form.elements.type.value);form.elements.type.addEventListener('change',()=>showType(form,form.elements.type.value));}
+let commercialKitFile=null,commercialKitImport=null;
+async function importCommercialKit(file){
+ if(!form||form.elements.type.value!=='digital'||!file||!file.name.toLowerCase().endsWith('.zip'))return null;
+ if(commercialKitFile===file&&commercialKitImport)return commercialKitImport;
+ commercialKitFile=file;
+ const note=document.getElementById('seller-kit-manifest-status');
+ commercialKitImport=(async()=>{
+  if(!window.SapiverSellerKitManifest?.read){
+   if(/commercial-seller-kit\.zip$/i.test(file.name))throw Error('The seller-kit reader is unavailable. Refresh this page and select the ZIP again.');
+   return null;
+  }
+  const product=await window.SapiverSellerKitManifest.read(file);
+  if(!product){
+   if(note)note.textContent='Legacy digital ZIP: no listing manifest was found. Enter the missing details manually.';
+   return null;
+  }
+  const elements=form.elements;
+  elements.type.value='digital';
+  showType(form,'digital');
+  for(const key of ['name','subject','price'])if(elements[key])elements[key].value=String(product[key]);
+  if(elements.digitalDescription)elements.digitalDescription.value=product.description;
+  if(elements.tags)elements.tags.value=product.tags.join(', ');
+  if(elements.kind)elements.kind.value='pattern';
+  if(elements.useEmbeddedText)elements.useEmbeddedText.checked=true;
+  if(elements.seamlessConfirmed)elements.seamlessConfirmed.checked=true;
+  if(elements.licence)elements.licence.value='';
+  if(elements.instructions)elements.instructions.value='';
+  if(note)note.textContent='Imported from ZIP: '+product.name+' — £'+product.price.toFixed(2)+' — '+product.tags.length+' Etsy tags. Licence, About Us, instructions and previews remain inside the ZIP. Review and press Prepare.';
+  return product;
+ })();
+ try{return await commercialKitImport;}
+ catch(e){commercialKitImport=null;throw e;}
+}
+if(form?.elements?.poster?.addEventListener)form.elements.poster.addEventListener('change',async()=>{
+ const file=form.elements.poster.files?.[0];commercialKitImport=null;commercialKitFile=null;
+ if(form.elements.type.value!=='digital'||!file)return;
+ const note=document.getElementById('seller-kit-manifest-status');if(note)note.textContent='Reading title, tags and price from the ZIP…';
+ try{await importCommercialKit(file);}catch(e){if(note)note.textContent=e.message;}
+});
+
 const refresh=document.getElementById('refresh-etsy-catalog'),catalogStatus=document.getElementById('catalog-status'),catalogAuth=document.getElementById('catalog-auth-note');
 const catalogueMessages={
  pending:'Etsy API check queued. Waiting for the GitHub worker; this page checks again automatically.',
@@ -88,6 +128,7 @@ async function previewJpeg(file){if(!['image/png','image/jpeg'].includes(file.ty
 if(form)form.addEventListener('submit',async event=>{event.preventDefault();const button=form.querySelector('button[type="submit"]')||form.querySelector('button:not([type="button"])');button.disabled=true;try{
  const type=form.elements.type.value,file=form.elements.poster.files[0],maximum=type==='digital'?100_000_000:50_000_000,updateProductId=form.dataset.update||null;
  if(!file&&!updateProductId)throw Error('Choose your finished file.');if(file&&(file.size>maximum||!file.name.toLowerCase().endsWith(type==='digital'?'.zip':'.png')))throw Error(type==='digital'?'Choose a ZIP no larger than 100 MB.':'Choose a PNG no larger than 50 MB.');
+ if(type==='digital'&&file)await importCommercialKit(file);
  const previews=type==='digital'?[...(form.elements.previews?.files||[])]:[];if(previews.length>3)throw Error('Choose up to three previews.');status.textContent='Preparing upload…';const data=metadata(form);if(type==='physical'&&/^\d+\.png$/i.test(file?.name||'')&&!data.name.trim())throw Error('Enter an artwork Name for numbered PNG downloads.');let upload,saved;
  // Receipt is bound to configuration and update target. Only IDs/metadata are stored here, never credentials.
  const signature=JSON.stringify({filename:file?.name,bytes:file?.size,type,updateProductId,metadata:data,referenceListingId:form.elements.referenceListingId?.value,storeOnly:form.elements.storeOnly?.checked===true,previews:previews.map(f=>[f.name,f.size])});try{saved=JSON.parse(sessionStorage.getItem('poster-upload')||'null');}catch{}
