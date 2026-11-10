@@ -1,3 +1,11 @@
+## 10 November 2026 — Guard seamless-pattern Etsy downloads against missing legal documents (development only)
+- **Issue:** Several ZIP attachments generated from one seamless design must be independently usable; the prior generic seller-kit importer prohibited all repeated filenames and therefore could neither accept identical licence documents across packages nor ensure they appeared in every one.
+- **Fix:** `lib/seller-kit.mjs` accepts only **identical** repeated buyer documentation files, de-duplicates them in the listing manifest and still rejects repeated artwork filenames/conflicting documents. An opt-in validation flag requires LICENSE.txt, README.txt and ABOUT-SAPIVER-PRINTS.txt at the root of every buyer ZIP. `lib/digital-product.mjs` enables this strict check for seamless-pattern seller-kit preparation only. Existing generic digital products and physical workflows retain their behaviour.
+- **Tests:** Updated `test/digital-products.test.mjs` seller-kit fixture to contain About and added a two-part test for identical document content, missing About, contradictory licence and duplicate artwork. The exact GitHub importer function also passed isolated mocked-archive checks for accepted two-part and three rejection cases. **The Node 24 full suite and real ZIP/Etsy integration have not yet been run**; no CI-success claim.
+- **Repo:** `feature/digital-pattern-route-20261110`, importer `4bfc0d938202cf0405be2bd39287020a0754e240`, preparation `32bdcc03794add91e52225c3a8170f40246f261e`, tests `1df78484669846640e912728be5454877bab2f78`. All development-only; no Netlify release, Etsy mutation, PrintShrimp action, changed workflow or paid service.
+- **Next:** Run Node 24 regression suite with actual nested buyer ZIP fixtures, test real exported seller kit on authenticated pre-publication review, then obtain separate approval for one production deployment. Do not publish an Etsy listing or create a shop section before the owner approves the release.
+---
+
 ## 10 November 2026 — Digital seller-kit intake from Auto Seamless (development branch only)
 
 - Owner requested one-design commercial file ZIP from Pattern Forge **only** on `/auto-seamless/`, and a separate digital Etsy publishing route accessible from the existing Poster Gen Bulk Collection page.
