@@ -105,7 +105,7 @@ test('bundle category must be chosen from actual compatible Etsy leaves rather t
 // Seller kit fixtures exercise real ZIP/image decoding without storing customer artwork.
 async function sellerKitFixture(){
  const f=await archiveFixture(),m=metadata();
- const buyer=await zipFiles([{name:'tile.png',data:f.png},{name:'tile.jpg',data:f.jpg},{name:'README.txt',data:Buffer.from(m.instructions)},{name:'LICENSE.txt',data:Buffer.from(m.licence)}]);
+ const buyer=await zipFiles([{name:'tile.png',data:f.png},{name:'tile.jpg',data:f.jpg},{name:'README.txt',data:Buffer.from(m.instructions)},{name:'LICENSE.txt',data:Buffer.from(m.licence)},{name:'ABOUT-SAPIVER-PRINTS.txt',data:Buffer.from('Independent UK creative design studio.')}]);
  const photo=await sharp(f.png).resize(240,180,{fit:'contain',background:'#f7f3ec'}).jpeg().toBuffer();
  const outer=await zipFiles([{name:'UPLOAD-TO-ETSY/green-leaves-buyer.zip',data:buyer},{name:'LISTING-IMAGES/01-pattern.jpg',data:photo},{name:'LISTING-IMAGES/02-tile.jpg',data:photo},{name:'LISTING-IMAGES/03-detail.jpg',data:photo},{name:'SELLER-CHECKLIST.txt',data:Buffer.from('Seller only: check price and approve.')},{name:'QUALITY-CHECK.txt',data:Buffer.from('Seller report')}]);
  return {buyer,photo,outer};
@@ -114,6 +114,39 @@ async function sellerKitFixture(){
 test('seller kit separates customer ZIP and three photographs, preserving original buyer bytes',async()=>{
  const {inspectDigitalUpload,sellerKitDelivery}=await import('../lib/seller-kit.mjs');const f=await sellerKitFixture();
  const k=await inspectDigitalUpload(f.outer),d=sellerKitDelivery(k);assert.equal(k.kit,true);assert.equal(k.previews.length,3);assert.equal(d.files.length,1);assert.equal(d.files[0].name,'green-leaves-buyer.zip');assert.deepEqual(d.files[0].data,f.buyer);assert.ok(d.contents.every(f=>!f.name.startsWith('LISTING-IMAGES/')&&!f.name.includes('SELLER')));assert.equal(k.sellerFiles.length,2);await assert.rejects(inspectArchive(f.outer),/Unsupported customer file/);
+});
+
+test('every seamless-pattern buyer ZIP retains the identical licence, About and instructions, even after splitting',async()=>{
+ const {inspectDigitalUpload,sellerKitDelivery}=await import('../lib/seller-kit.mjs');
+ const artwork=await archiveFixture(),m=metadata();
+ const docs=[
+  {name:'LICENSE.txt',data:Buffer.from(m.licence)},
+  {name:'README.txt',data:Buffer.from(m.instructions)},
+  {name:'ABOUT-SAPIVER-PRINTS.txt',data:Buffer.from('Independent UK creative design studio.')}
+ ];
+ const first=await zipFiles([{name:'tile.png',data:artwork.png},...docs]);
+ const second=await zipFiles([{name:'tile.jpg',data:artwork.jpg},...docs]);
+ const outer=async(a,b)=>zipFiles([
+  {name:'UPLOAD-TO-ETSY/pattern-part-1.zip',data:a},
+  {name:'UPLOAD-TO-ETSY/pattern-part-2.zip',data:b},
+  {name:'LISTING-IMAGES/01-pattern.jpg',data:artwork.jpg}
+ ]);
+ const good=await inspectDigitalUpload(await outer(first,second),{requireDocumentsPerBuyerZip:true});
+ assert.equal(good.packages.length,2);
+ assert.deepEqual(sellerKitDelivery(good).files.map(p=>p.data),[first,second]);
+ const names=good.inspection.files.map(f=>f.name);
+ assert.equal(names.filter(n=>n==='LICENSE.txt').length,1);
+ assert.equal(names.filter(n=>n==='README.txt').length,1);
+ assert.equal(names.filter(n=>n==='ABOUT-SAPIVER-PRINTS.txt').length,1);
+ const noAbout=await zipFiles([{name:'tile.jpg',data:artwork.jpg},...docs.filter(d=>d.name!=='ABOUT-SAPIVER-PRINTS.txt')]);
+ await assert.rejects(inspectDigitalUpload(await outer(first,noAbout),{requireDocumentsPerBuyerZip:true}),/missing about-sapiver-prints.txt/);
+ const altered=await zipFiles([{name:'tile.jpg',data:artwork.jpg},...docs.map(d=>d.name==='LICENSE.txt'?{...d,data:Buffer.from('Conflicting licence')}:d)]);
+ await assert.rejects(inspectDigitalUpload(await outer(first,altered),{requireDocumentsPerBuyerZip:true}),/conflicting customer filenames/);
+ const artDuplicate=await zipFiles([{name:'tile.png',data:artwork.png},...docs]);
+ await assert.rejects(inspectDigitalUpload(await outer(first,artDuplicate),{requireDocumentsPerBuyerZip:true}),/duplicate or conflicting customer filenames/);
+ // Legacy non-pattern seller kits may still use one set of legal documents.
+ const legacy=await inspectDigitalUpload(await outer(first,noAbout));
+ assert.equal(legacy.packages.length,2);
 });
 
 test('seller-kit prepare and publication attach only buyer ZIP, use listing photographs and bypass supplier',async()=>{
