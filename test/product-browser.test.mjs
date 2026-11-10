@@ -9,19 +9,60 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 const source=readFileSync(new URL('../public/poster-upload.mjs',import.meta.url),'utf8');
-function fixture({catalog=false,serverPhase='available',serverListings=[],responseFor,query=''}={}){
+function fixture({catalog=false,serverPhase='available',serverListings=[],responseFor,query='',readKit}={}){
  const events={},button={disabled:false},status={textContent:'',dataset:{}},assigned=[],calls=[],storage=new Map();const catalogStatus=catalog?{textContent:'queued',dataset:{phase:'pending'}}:null,auth={hidden:true},select={options:[{value:''}],appendChild(option){this.options.push(option);}};
  const options=['artwork','educational','dinosaur','pattern','poster','bundle'].map(value=>({value,dataset:{type:['pattern','poster','bundle'].includes(value)?'digital':'physical'}}));const kind={value:'pattern',options,get selectedOptions(){return options.filter(o=>o.value===this.value);}};
  const sectionOptions=Object.entries(PRINT_SECTION_DESCRIPTIONS).map(([value,description])=>({value,dataset:{description}}));
  const sectionTitle={value:'Wall Art',options:sectionOptions,get selectedOptions(){return sectionOptions.filter(o=>o.value===this.value);},addEventListener:(name,fn)=>events.sectionChange=fn},sectionNote={textContent:''};
- const elements={sectionTitle,description:{value:'Owner-written fox description'},kind,type:{value:'physical',addEventListener:(name,fn)=>events[name]=fn},poster:{files:[]},previews:{files:[]},referenceListingId:select,seamlessConfirmed:{checked:true}};for(const [key,value]of Object.entries({name:'Leaves',subject:'Leaves',price:'4.99',licence:'Personal use only',instructions:'Download and unzip',tags:'leaves',taxonomyId:''}))elements[key]={value};
+ const elements={sectionTitle,description:{value:'Owner-written fox description'},kind,type:{value:'physical',addEventListener:(name,fn)=>events[name]=fn},poster:{files:[],addEventListener:(name,fn)=>events.posterChange=fn},previews:{files:[]},referenceListingId:select,seamlessConfirmed:{checked:true},digitalDescription:{value:''},useEmbeddedText:{checked:true}};for(const [key,value]of Object.entries({name:'Leaves',subject:'Leaves',price:'4.99',licence:'Personal use only',instructions:'Download and unzip',tags:'leaves',taxonomyId:''}))elements[key]={value};
  const digital={hidden:false,querySelectorAll:()=>[elements.price,elements.licence,elements.instructions]},physical={hidden:false};const form={elements,dataset:{},querySelector:()=>button,querySelectorAll:q=>q==='[data-digital]'?[digital]:[physical],addEventListener:(name,fn)=>events[name]=fn};
  const label={textContent:'Poster type'};const document={querySelector:()=>({content:'csrf'}),getElementById:id=>id==='print-section-description'?sectionNote:id==='poster-upload-form'?form:id==='upload-status'?status:id==='poster-kind-label'?label:id==='catalog-status'?catalogStatus:id==='catalog-auth-note'?(catalog?auth:null):null,createElement:()=>({value:'',textContent:''}),addEventListener:(event,fn)=>{events[event]=fn;},hidden:false};
  const fetch=async(path,opts)=>{calls.push([path,opts]);if(responseFor)return responseFor(path,opts);return {ok:true,json:async()=>path==='/poster/catalog/status'?{phase:serverPhase,listings:serverListings}:path==='/poster/uploads'?{id:'a'.repeat(32),chunkBytes:2,phase:'uploading'}:{stored:true}};};
- runInNewContext(source,{document,fetch,sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},location:{assign:u=>assigned.push(u)},window:{location:{search:query}},URLSearchParams,setTimeout,console});
+ runInNewContext(source,{document,fetch,sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},location:{assign:u=>assigned.push(u)},window:{location:{search:query},SapiverSellerKitManifest:readKit?{read:readKit}:undefined},URLSearchParams,setTimeout,console});
  return {events,elements,form,digital,physical,button,status,label,assigned,calls,catalogStatus,auth,select,storage,sectionNote};
 }
 test('digital seller-kit link preselects digital pattern without changing normal poster defaults',()=>{ const f=fixture({query:'?type=digital'});assert.equal(f.elements.type.value,'digital');assert.equal(f.elements.kind.value,'pattern');assert.equal(f.elements.poster.accept,'.zip');assert.equal(f.digital.hidden,false);const normal=fixture();assert.equal(normal.elements.type.value,'physical');assert.equal(normal.elements.kind.value,'artwork');assert.equal(normal.elements.poster.accept,'.png');});
+test('commercial seller ZIP imports complete listing details without form retyping or Etsy publication',async()=>{
+ const manifest={type:'digital',kind:'pattern',name:'Blue Grid Textile Pattern',subject:'Blue Grid Textile Pattern',description:'Blue grid design. Created with the aid of AI.',price:4.95,tags:['blue grid','textile pattern','geometric','fabric texture','soft blue'],seamlessConfirmed:true,useEmbeddedText:true};
+ let reads=0;
+ const f=fixture({query:'?type=digital',readKit:async()=>{reads++;return manifest;}});
+ const zip=new Blob(['seller zip']);zip.name='blue-grid-commercial-seller-kit.zip';
+ f.elements.poster.files=[zip];
+ await f.events.posterChange();
+ assert.equal(reads,1);
+ assert.equal(f.elements.type.value,'digital');
+ assert.equal(f.elements.kind.value,'pattern');
+ assert.equal(f.elements.name.value,manifest.name);
+ assert.equal(f.elements.subject.value,manifest.subject);
+ assert.equal(f.elements.price.value,'4.95');
+ assert.equal(f.elements.digitalDescription.value,manifest.description);
+ assert.equal(f.elements.tags.value,manifest.tags.join(', '));
+ assert.equal(f.elements.useEmbeddedText.checked,true);
+ assert.equal(f.elements.seamlessConfirmed.checked,true);
+ assert.equal(f.elements.licence.value,'');
+ assert.equal(f.elements.instructions.value,'');
+ await f.events.submit({preventDefault(){}});
+ assert.equal(reads,1,'Submission should not re-read the same ZIP or wipe any seller corrections');
+ const create=f.calls.find(([path])=>path==='/poster/uploads');
+ assert.ok(create,'ZIP should prepare through the normal secured digital endpoint');
+ const body=JSON.parse(create[1].body);
+ assert.equal(body.metadata.name,manifest.name);
+ assert.equal(body.metadata.price,'4.95');
+ assert.equal(body.metadata.tags,manifest.tags.join(', '));
+ assert.equal(body.metadata.description,manifest.description);
+ assert.equal(body.metadata.useEmbeddedText,true);
+ assert.equal(body.type,'digital');
+ assert.ok(f.calls.every(([path])=>!path.includes('/approve')));
+});
+test('unreadable commercial listing manifest blocks network upload rather than guessing price or tags',async()=>{
+ const f=fixture({query:'?type=digital',readKit:async()=>{throw Error('ZIP checksum mismatch');}});
+ const zip=new Blob(['zip']);zip.name='broken-commercial-seller-kit.zip';
+ f.elements.poster.files=[zip];
+ await f.events.submit({preventDefault(){}});
+ assert.equal(f.calls.length,0);
+ assert.match(f.status.textContent,/checksum mismatch/);
+ assert.equal(f.button.disabled,false);
+});
 test('browser product selection shows relevant fields and accepts only the selected file type',()=>{
  const f=fixture();assert.equal(f.digital.hidden,true);assert.equal(f.elements.kind.value,'artwork');assert.equal(f.label.textContent,'Poster type');assert.equal(f.elements.poster.accept,'.png');assert.equal(f.elements.price.disabled,true);
  f.elements.type.value='digital';f.events.change();assert.equal(f.physical.hidden,true);assert.equal(f.digital.hidden,false);assert.equal(f.elements.kind.value,'pattern');assert.equal(f.label.textContent,'Product group');assert.equal(f.elements.poster.accept,'.zip');assert.equal(f.elements.price.disabled,false);
