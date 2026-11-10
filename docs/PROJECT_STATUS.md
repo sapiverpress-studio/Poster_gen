@@ -1,3 +1,14 @@
+## 10 November 2026 — Digital seller-kit intake from Auto Seamless (development branch only)
+
+- Owner requested one-design commercial file ZIP from Pattern Forge **only** on `/auto-seamless/`, and a separate digital Etsy publishing route accessible from the existing Poster Gen Bulk Collection page.
+- Development branch: `feature/digital-pattern-route-20261110`, based on deployed application branch `feature/canva-oauth-callback` at `7619dac68944d093a9b4d5350461060e94f9ff05`.
+- Changes: `lib/product-web.mjs` adds a separate digital seller-kit entry linking to authenticated `/poster/upload?type=digital`; `public/poster-upload.mjs` preselects Digital Download / Seamless Pattern from that link. Existing physical 1/3/6-pack ZIP parsing and PrintShrimp remain unchanged. `lib/product-metadata.mjs` selects the flat shop section `Digital Downloads` for new digital patterns; the existing guarded `ensureSection` workflow reuses or creates it during owner-approved digital publication. No live section was created in this development stage.
+- Existing `lib/seller-kit.mjs` and `lib/digital-product.mjs` already validate nested seller-kit ZIPs, approve revisions, upload Etsy digital downloads with file read-back and avoid PrintShrimp; no duplicate publishing engine added.
+- Tests: existing digital-products test fixtures updated for the new section mapping; full Node 24 regression and live merchant integration are **not yet verified**. Do not claim this branch is live.
+- Release/credit impact: staged feature branch commit only, no site deployment, customer listing, shop section mutation, Etsy charge or supplier order. Separate owner-approved production software release and original per-product Deploy approval remain necessary.
+
+---
+
 ## CURRENT PROJECT SNAPSHOT — 2026-11-09: Missing Streak trio recovered; exact original Etsy draft VERIFIED, NOT ACTIVE
 
 - **Original trio:** Huggles – Six Minutes, Insomnia – On Strike, Edge – So Many Opinions. Three separate individual listings are already published. Original trio product ID `hzKirH1Ca7OCWmgxKxiAbB1OGeV-auFw`; SKU `SP-TRIO-9661EA52B86E24784FC9A50D`.

@@ -33,6 +33,10 @@ async function readArtworkChunk(file,start,end){
  try{return await file.slice(start,end).arrayBuffer();}
  catch{throw Error('The phone could not read the selected file. Download it to this device, then choose it again from Downloads. Keep your product details; any saved upload is retained.');}
 }
+if(form&&!form.dataset.update&&new URLSearchParams(window.location.search).get('type')==='digital'){
+ form.elements.type.value='digital';
+ form.elements.kind.value='pattern';
+}
 if(form){showType(form,form.elements.type.value);form.elements.type.addEventListener('change',()=>showType(form,form.elements.type.value));}
 const refresh=document.getElementById('refresh-etsy-catalog'),catalogStatus=document.getElementById('catalog-status'),catalogAuth=document.getElementById('catalog-auth-note');
 const catalogueMessages={
