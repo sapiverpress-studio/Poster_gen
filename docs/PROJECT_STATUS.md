@@ -1,3 +1,14 @@
+## CURRENT RELEASE — 11 November 2026: actual seller-kit listing photo dimensions visible before Deploy LIVE
+- **Scope:** Digital seller-kit preparation and owner review only. The pre-existing Etsy publication, physical posters, trios, PrintShrimp and product approval logic are unchanged.
+- **Feature:** `lib/digital-product.mjs` reads the dimensions of each prepared seller-kit listing JPG after normalisation, saving `listingPreviewSizes` with the product review. `lib/product-web.mjs` displays each photo's actual width/height and advises the owner if either is under 2000px. Old seller kits are supported and are not blocked. Dimension checks do not certify artwork sharpness.
+- **Source / PR:** [#94](https://github.com/sapiverpress-studio/Poster_gen/pull/94) merged into production-linked `feature/canva-oauth-callback` as `bd3f0a4e38fb7f35ffef56964c1db05888bf51e6`.
+- **Tests VERIFIED:** GitHub Actions run `42978729664`, job `130383842269` SUCCESS: 538 tests, zero failures. The suite includes real image dimension readback and review warning regressions.
+- **Netlify VERIFIED:** Production site `sapiver-poster-gen-auth` deploy `6af4178c04e713ce4a463024` READY, exact source commit `bd3f0a4e38fb7f35ffef56964c1db05888bf51e6`, branch `feature/canva-oauth-callback`, published 2026-11-11T07:22:10.317Z, error null.
+- **Limit:** No fresh authenticated owner's Android seller-kit import or real Etsy merchant mutation was run as part of this release. Previously published listing IDs are not changed. Browser public-route readback is unavailable externally.
+- **Cost:** One production deploy from the approved merge, no Work credits. Documentation-only record uses `[skip netlify]` to avoid a further build.
+- **Next:** Import one newly generated seller kit, inspect the four dimension checks and the product listing previews, then approve the exact product only when satisfied.
+---
+
 ## DEVELOPMENT CHECKPOINT — 11 November 2026: seller-kit listing photo quality readback (NOT RELEASED)
 - **Owner scope:** Improve next digital pattern upload review while preserving the already-functioning Etsy publish workflow and all physical print/PrintShrimp routes.
 - **Branch:** `feature/digital-preview-readback-20261111`, isolated from Netlify production source `feature/canva-oauth-callback`.
