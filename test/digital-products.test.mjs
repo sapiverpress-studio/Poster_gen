@@ -6,6 +6,7 @@ import {PDFDocument,PDFName,PDFString} from 'pdf-lib';
 import {zipFiles,inspectArchive,inspectDigitalFile,packageForEtsy,digitalPreviews} from '../lib/digital-archive.mjs';
 import {productMetadata,digest,selectTaxonomy,digitalListingText} from '../lib/product-metadata.mjs';
 import {prepareDigitalProduct,publishDigitalProduct} from '../lib/digital-product.mjs';
+import {reviewBody} from '../lib/product-web.mjs';
 import {ensureSection,recordKey,recordRevision} from '../lib/product-records.mjs';
 import {createPosterUploadHandler} from '../lib/poster-upload-web.mjs';
 import {seal} from '../lib/oauth.mjs';
@@ -152,7 +153,7 @@ test('every seamless-pattern buyer ZIP retains the identical licence, About and 
 test('seller-kit prepare and publication attach only buyer ZIP, use listing photographs and bypass supplier',async()=>{
  const f=await publicationFixture(),kit=await sellerKitFixture();const a=await f.uploads.get('uploads/'+id+'/state');
  await f.uploads.set('uploads/'+id+'/chunks/0',kit.outer);await f.uploads.setJSON('uploads/'+id+'/state',{...a,bytes:kit.outer.length,metadata:productMetadata({kind:'pattern',subject:'Leaves',price:4.99,useEmbeddedText:true,seamlessConfirmed:true},'Green-Leaves.zip','digital')});
- await prepareDigitalProduct(f);const prepared=await f.uploads.get('uploads/'+id+'/state');assert.equal(prepared.sourceKind,'seller-kit');assert.equal(prepared.metadata.licence,metadata().licence);assert.equal(prepared.metadata.instructions,metadata().instructions);assert.equal(prepared.previewCount,3);assert.deepEqual(Buffer.from(await f.uploads.get(prepared.archiveKey)),kit.outer);
+ await prepareDigitalProduct(f);const prepared=await f.uploads.get('uploads/'+id+'/state');assert.equal(prepared.sourceKind,'seller-kit');assert.equal(prepared.metadata.licence,metadata().licence);assert.equal(prepared.metadata.instructions,metadata().instructions);assert.equal(prepared.previewCount,3);assert.deepEqual(prepared.listingPreviewSizes,[{width:240,height:180},{width:240,height:180},{width:240,height:180}]);assert.deepEqual(Buffer.from(await f.uploads.get(prepared.archiveKey)),kit.outer);
  assert.equal((await sharp(Buffer.from(await f.uploads.get('uploads/'+id+'/mockups/0.jpg'))).metadata()).width,240);assert.equal(prepared.plan.parts.length,1);
  const hash=await approve(f);await publishDigitalProduct({...f,approvalHash:hash});assert.equal(f.files().length,1);assert.equal(f.files()[0].filename,'green-leaves-buyer.zip');assert.equal(f.files()[0].size_bytes,kit.buyer.length);const posted=f.calls.filter(([p,o])=>p.endsWith('/files')&&o.method==='POST');assert.deepEqual(Buffer.from(await posted[0][1].body.get('file').arrayBuffer()),kit.buyer);assert.ok(f.calls.every(([p])=>!/printshrimp|shipping|inventory|orders/.test(p)));
 });
@@ -173,3 +174,11 @@ test('seller kit cannot contradict its included licence or lose customer data af
 });
 
 test('original seller-kit format supports seven listing photos without adding them to customer files',async()=>{const {inspectDigitalUpload,sellerKitDelivery,sellerKitPreviews}=await import('../lib/seller-kit.mjs');const f=await sellerKitFixture();const files=[{name:'UPLOAD-TO-ETSY/buyer.zip',data:f.buyer},...Array.from({length:7},(_,i)=>({name:'LISTING-IMAGES/'+(i+1)+'.jpg',data:f.photo}))];const k=await inspectDigitalUpload(await zipFiles(files));assert.equal(k.previews.length,7);assert.equal((await sellerKitPreviews(k.previews)).length,7);assert.deepEqual(sellerKitDelivery(k).files[0].data,f.buyer);assert.equal(sellerKitDelivery(k).files.length,1);await assert.rejects(inspectDigitalUpload(await zipFiles([...files,...Array.from({length:4},(_,i)=>({name:'LISTING-IMAGES/extra-'+i+'.jpg',data:f.photo}))])),/one to ten/);});
+
+test('seller-kit owner review reports actual Etsy preview dimensions without blocking legacy photos',()=>{
+ const product={type:'digital',sourceKind:'seller-kit',metadata:{subject:'Floral Hearts',name:'Floral Hearts'},listingPreviewSizes:[{width:2400,height:2400},{width:1100,height:1100}],previewCount:2,contents:[],plan:{body:{title:'Floral Hearts',description:'Digital pattern',tags:'heart,digital',price:4.99,taxonomy_id:1},taxonomy:{path:'Digital'},sectionTitle:'Digital Downloads',parts:[{name:'art.zip',bytes:2000}]}};
+ const html=reviewBody(product,'a'.repeat(32),'csrf',false);
+ assert.match(html,/Image 1: 2400 × 2400 pixels — size check passed/);
+ assert.match(html,/Image 2: 1100 × 1100 pixels — below the recommended 2000px minimum/);
+ assert.match(html,/This checks pixel dimensions, not actual sharpness/);
+});

@@ -1,3 +1,11 @@
+## DEVELOPMENT CHECKPOINT — 11 November 2026: seller-kit listing photo quality readback (NOT RELEASED)
+- **Owner scope:** Improve next digital pattern upload review while preserving the already-functioning Etsy publish workflow and all physical print/PrintShrimp routes.
+- **Branch:** `feature/digital-preview-readback-20261111`, isolated from Netlify production source `feature/canva-oauth-callback`.
+- **Source change:** In `lib/digital-product.mjs`, record actual post-normalisation listing-preview pixel dimensions for seller kits. In `lib/product-web.mjs`, show each actual JPG dimension at owner review and explicitly warn for either side below 2000px, without blocking legacy seller kits or inventing image-quality assurance. `test/digital-products.test.mjs` checks saved image dimensions and legacy warning.
+- **Tests/deploy:** Not verified at development checkpoint; CI and a single controlled release must be checked before claiming live availability. Production untouched. No Etsy listing, supplier order, or Work credits used.
+- **Next:** Open PR against `feature/canva-oauth-callback`, run Node 24 CI, verify preview and buyer ZIP regressions, then merge/deploy only after safety gate.
+---
+
 ## CURRENT RELEASE — 10 November 2026: fully automatic seller ZIP listing import LIVE
 - **Scope:** Existing digital uploader linked from Bulk Collection Upload; physical single/trio/six-pack upload logic, PrintShrimp, existing products, fulfilment, manual revision and publication controls unchanged.
 - **Feature:** `/poster/upload?type=digital` now reads the outer Pattern Forge seller ZIP's `LISTING-METADATA.json` locally and prepopulates name, subject, GBP price, AI-disclosed visual listing description, <=13 compliant Etsy tags, embedded licence/instructions option and seamless-confirmed flag. Buyer ZIPs and preview JPGs remain inside that one ZIP; no separate seller ZIPs or manual field re-entry. A malformed manifest blocks the upload; legacy ZIPs retain manual entry. An explicit owner Deploy approval after review remains mandatory.
