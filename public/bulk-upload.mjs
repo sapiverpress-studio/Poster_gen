@@ -94,7 +94,13 @@ function appendMockupDownload(container,group){
  button.setAttribute?.('data-mockups-groups',JSON.stringify([group]));
  statusLine.setAttribute?.('data-mockups-status','');
  statusLine.setAttribute?.('role','status');statusLine.setAttribute?.('aria-live','polite');
- wrapper.append(button,statusLine);container.append(wrapper);
+ wrapper.append(button,statusLine);
+ const videoButton=document.createElement('button'),videoStatus=document.createElement('p'),videoResults=document.createElement('div');
+ videoButton.type='button';videoButton.textContent='Create TikTok / YouTube Short + captions';
+ videoButton.setAttribute('data-social-groups',JSON.stringify([group]));
+ videoStatus.setAttribute('data-social-status','');videoStatus.setAttribute('role','status');
+ videoStatus.setAttribute('aria-live','polite');videoResults.setAttribute('data-social-results','');
+ wrapper.append(videoButton,videoStatus,videoResults);container.append(wrapper);
 }
 function updateAllMockupDownload(){
  if(!downloadAll)return;
@@ -104,6 +110,8 @@ function updateAllMockupDownload(){
   bundleIds.length===bundles.length&&trioStatuses.length===bundles.length&&
   bundleIds.every((id,i)=>ID.test(id)&&trioStatuses[i]&&!['uploading','preparing','stored'].includes(trioStatuses[i].phase));
  downloadAll.hidden=!complete;downloadAll.disabled=!complete;
+ const socialAll=document.getElementById('bulk-social-create');
+ if(socialAll){socialAll.hidden=!complete;socialAll.disabled=!complete;}
  if(!complete)return;
  const groups=[
   ...items.map(x=>({id:x.id,name:x.title||x.folder||'Poster',type:'poster'})),
@@ -111,6 +119,7 @@ function updateAllMockupDownload(){
  ];
  downloadAll.setAttribute?.('data-mockups-groups',JSON.stringify(groups));
  downloadAll.textContent='Download all '+(groups.length*4)+' collection mock-ups (ZIP)';
+ if(socialAll)socialAll.setAttribute('data-social-groups',JSON.stringify(groups));
 }
 function buildCards(results=[]){
  cards.replaceChildren();

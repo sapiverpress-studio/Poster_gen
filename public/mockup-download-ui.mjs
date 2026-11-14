@@ -1,3 +1,4 @@
+import './social-video-ui.mjs';
 import {collectMockups} from './mockup-download.mjs';
 
 // One delegated listener also handles cards added by the bulk status poll.
