@@ -71,8 +71,8 @@ test('single review button escapes title attributes; digital reviews have no phy
  assert.equal(mockupDownloadControls('bad','Whatever'), '');
 });
 test('the existing owner-only mock-up endpoint supplies bytes; anonymous visitors cannot access them',async()=>{
- const secret='test-secret-sufficiently-long',uploads=new Map();
- const env=n=>({CANVA_SITE_ORIGIN:origin,CANVA_CLIENT_SECRET:secret,CANVA_SETUP_PASSWORD:'test-owner'}[n]);
+ const secret='a-test-encryption-key-of-sufficient-length',uploads=new Map();
+ const env=n=>({CANVA_SITE_ORIGIN:origin,CANVA_CLIENT_SECRET:secret,CANVA_SETUP_PASSWORD:'owner-password',ETSY_PRINTS_KEYSTRING:'app',ETSY_PRINTS_SHARED_SECRET:'shared',POSTER_PUBLICATION_ENABLED:'true'}[n]);
  const store={get:async key=>uploads.get(key)??null};
  const handler=createPosterUploadHandler({env,uploads:store});
  uploads.set('uploads/'+id+'/state',{phase:'published',type:'physical',plan:{body:{title:'Art Print'}}});
