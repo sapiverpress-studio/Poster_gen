@@ -13,9 +13,10 @@ const TAGS=[
 ];
 const clean=s=>String(s||'Poster').replace(/\s+/g,' ').trim().slice(0,90);
 const filePart=s=>clean(s).normalize('NFKD').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,52)||'Poster';
+const groupsForSocial=groups=>validateMockupGroups(groups).map((g,i)=>({...g,name:clean(groups[i]?.name)}));
 
 export function socialCopy(groups){
- const a=validateMockupGroups(groups),multiple=a.length>1,one=a[0];
+ const a=groupsForSocial(groups),multiple=a.length>1,one=a[0];
  const subject=multiple?'Sapiver Prints artwork collection':one.name;
  const tag=TAGS.find(([key])=>a.some(g=>g.name.toLowerCase().includes(key)))?.[1]||
   (a.some(g=>g.type==='trio')?'#GalleryWall':'#WallArt');
@@ -35,7 +36,7 @@ export function socialCopy(groups){
   youtube,hashtags:unique.join(' '),filename:'Sapiver_'+filePart(subject)+'_Social_Video'};
 }
 export function socialShots(groups){
- const a=validateMockupGroups(groups);
+ const a=groupsForSocial(groups);
  // For a collection select one representative image per saved listing, not all 32 JPEGs.
  // This keeps Android peak memory practical and still includes every listing.
  return a.length===1?[0,1,2,3].map(index=>({...a[0],index})):
