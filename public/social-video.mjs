@@ -87,7 +87,7 @@ function draw(ctx,shots,images,copy,elapsed){
  lines.forEach((line,i)=>ctx.fillText(line,W/2,1633+i*57));
  ctx.fillStyle='#5f5b53';ctx.font='30px system-ui,Arial,sans-serif';
  ctx.fillText(shots[slide].type==='trio'?'Three-print set':
-  shots.length===4?['Print only','Black frame','White frame','Oak frame'][slide]:'Art print',W/2,1753);
+  shots.length===4&&shots.every(s=>s.id===shots[0].id)?['Print only','Black frame','White frame','Oak frame'][slide]:'Art print',W/2,1753);
  ctx.fillStyle='#202627';ctx.font='600 31px system-ui,Arial,sans-serif';
  ctx.fillText('Discover Sapiver Prints on Etsy',W/2,1840);
  ctx.fillStyle='#a49e95';
