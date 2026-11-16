@@ -1,3 +1,12 @@
+## DEVELOPMENT CHECKPOINT — 16 November 2026: digital ZIP upload button label corrected (STAGED, NOT DEPLOYED)
+- **Owner report:** Digital Pattern seller ZIP 50725 displays `Upload poster`; the form simultaneously shows a negative-format explanation. The attachment itself was inspected: its outer seller-only `LISTING-METADATA.json` contains that negative text, so the auto-import was reproducing supplied metadata accurately. Poster Gen's physical/digital form button was hard-coded.
+- **Staged code change:** Branch `fix/digital-upload-label-20261116` based on production-linked `feature/canva-oauth-callback`; `lib/product-web.mjs` now uses neutral `Upload product` before JS, and `public/poster-upload.mjs` sets `Upload digital ZIP` for digital files or `Upload poster` for physical prints, including selection changes. Existing digital ZIP import validation, metadata review, buyer packaging, approval, Etsy publishing and PrintShrimp code are unchanged. `test/product-browser.test.mjs` adds assertions for digital preselection, physical default and switching.
+- **Cross-repo source:** Pattern Forge separately appends the packaging warning to the manifest description; that is corrected on its own isolated branch. A corrected seller ZIP for design 50725 was rebuilt outside this repository, preserving its buyer-download contents and positively listing actual formats; owner still must review and approve.
+- **Verification:** Code committed only. GitHub CI/actual Android acceptance pending. No supplier, Etsy, publication or Netlify deployment action. Each commit marked `[skip netlify]`; no Work credits.
+- **Next:** Run GitHub CI and review draft PR; obtain separate owner release approval before production merge/deploy.
+
+---
+
 ## CURRENT PROJECT SNAPSHOT — 14 November 2026: TikTok / Shorts video export STAGED (NOT DEPLOYED)
 - **Request:** One button to generate a shareable vertical video, TikTok description and hashtags, YouTube Shorts title/description and hashtags, directly from saved physical poster or trio mock-ups.
 - **Staged PR:** #96, branch `feature/social-video-from-mockups-20261114`, based on still-unmerged mock-up ZIP PR #95. Draft, not released to Netlify.
