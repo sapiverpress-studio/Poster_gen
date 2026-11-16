@@ -1,3 +1,14 @@
+## CURRENT DEVELOPMENT CHECKPOINT — 16 November 2026: Etsy/PrintShrimp/Prodigi routing audit STAGED (NOT DEPLOYED)
+- Owner request: verify existing PrintShrimp/Etsy physical SKU mappings through APIs and research safe two-supplier fulfilment for individually listed Streak greeting cards, potentially published alongside posters. Approved an off-production, read-only implementation; no separate live-run/deploy authorisation was given.
+- Branch: `audit/etsy-dual-fulfilment-readonly-20261116` based on `feature/canva-oauth-callback`. Added `lib/supplier-routing-audit.mjs`, `test/supplier-routing-audit.test.mjs` and `docs/SUPPLIER_ROUTING_AUDIT.md`. Existing production-linked branch, workflows, Etsy, Prodigi and PrintShrimp settings unchanged.
+- Verified research: Prodigi imports all listings and can default new products to Fulfilled by Prodigi; its new-listing default must be set to Ignored for fulfilment. PrintShrimp matches Etsy order SKUs to saved products and files; its API exposes saved products and paid orders but does NOT expose per-listing order-import exclusions or shop-wide auto-pay settings. Unknown card SKUs may enter PrintShrimp Attention queue even while Prodigi fulfils them.
+- Existing user screenshots: PrintShrimp Etsy integration shows SapiverPrints Connected; visible Prodigi poster listings were grey/Not fulfilled by Prodigi. These screenshots do not prove all SKU mappings or provider automation state.
+- Local development validation: eight fabricated read-only fixture tests passed in a Node 22 environment (repository declares Node 24), covering poster/card separation, missing SKUs/sizes, duplicated SKUs, card SKU collision, digital exclusion, GET-only calls and wrong-shop fail-closed. Real GitHub CI, Node 24, live Etsy/PrintShrimp response compatibility and order routing remain **NOT VERIFIED**.
+- Release safety: no workflow added or altered, no authenticated Etsy/PrintShrimp account audit executed, no merchant writes or production deployment, no Work credits. Audit is an importable module only; no live runner is wired.
+- Next: review branch and CI without deploying; obtain separate owner approval for a one-shot read-only trusted audit; confirm Prodigi new-listing default and PrintShrimp settings in dashboard before releasing card fulfilment.
+
+---
+
 ## CURRENT PROJECT SNAPSHOT — 14 November 2026: TikTok / Shorts video export STAGED (NOT DEPLOYED)
 - **Request:** One button to generate a shareable vertical video, TikTok description and hashtags, YouTube Shorts title/description and hashtags, directly from saved physical poster or trio mock-ups.
 - **Staged PR:** #96, branch `feature/social-video-from-mockups-20261114`, based on still-unmerged mock-up ZIP PR #95. Draft, not released to Netlify.
