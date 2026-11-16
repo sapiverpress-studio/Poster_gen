@@ -1,3 +1,10 @@
+## PRODUCTION RELEASE — 16 November 2026: digital ZIP upload button (deploy started; live verification pending)
+- **Owner-approved scope:** Keep physical poster upload behaviour unchanged. On digital forms label the submit button `Upload digital ZIP`, including direct link preselection and manual product-type switch. No changes to buyer ZIP handling, Etsy listing publication, PrintShrimp, physical products or approval gates.
+- **Verified:** PR #97 CI run `43854078237` passed 548/548 tests. PR #97 squashed into Netlify production-linked `feature/canva-oauth-callback` at `78d6f0db59fd0903bfa24e768ef8cd4e87a158ca`. The squash message inherited `[skip netlify]` from development commits; this non-skip status update triggers a single deployment of the already-tested application code.
+- **Netlify:** Ready deploy and exact source SHA pending verification. User's separate clean design 50725 ZIP is available for manual import, with included-files photo corrected.
+- **Impact:** No Etsy merchant actions, supplier order, Work credits or physical workflow changes.
+
+---
 ## RELEASE APPROVED — 16 November 2026: digital ZIP upload action label (pending deployment)
 - **Owner directive:** Deploy the previously tested accurate `Upload digital ZIP` wording with the seller-kit format-copy correction. Product type determines button label; physical print retains original `Upload poster` server-rendered fallback. No unrelated Etsy, PrintShrimp, artwork or publication workflow changes.
 - **Code/tests:** PR #97: `public/poster-upload.mjs` changes visible button wording, `test/product-browser.test.mjs` covers digital preselection and physical switch. Previous CI run `43851396946` passed 548/548 tests. No new product mutation.
