@@ -1,3 +1,10 @@
+## LIVE VERIFIED — 16 November 2026: digital ZIP upload button text
+- **Status:** LIVE. Netlify `sapiver-poster-gen-auth` current production deploy `6afae38457c7384addbfddd1` is READY, source branch `feature/canva-oauth-callback`, exact release commit `f5b493b383d48b950d1ad23da28950148bf79b72`, published 2026-11-16T11:06:04.394Z, error null.
+- **Source/testing:** PR #97 merged; GitHub Actions run `43854078237` SUCCESS (548 tests passed, zero failed). Digital downloads now show `Upload digital ZIP` for direct preselection and product-type switching; physical posters keep `Upload poster`. No Etsy, PrintShrimp or upload processing changes.
+- **Limit:** Real authenticated Android owner acceptance and a real Etsy publish were not performed. The separately corrected 50725 ZIP is provided for manual use; previous packages do not update retroactively.
+- **Cost:** One Netlify production build, zero Work credits. This documentation-only aftercare commit includes [skip netlify] to avoid another build.
+
+---
 ## PRODUCTION RELEASE — 16 November 2026: digital ZIP upload button (deploy started; live verification pending)
 - **Owner-approved scope:** Keep physical poster upload behaviour unchanged. On digital forms label the submit button `Upload digital ZIP`, including direct link preselection and manual product-type switch. No changes to buyer ZIP handling, Etsy listing publication, PrintShrimp, physical products or approval gates.
 - **Verified:** PR #97 CI run `43854078237` passed 548/548 tests. PR #97 squashed into Netlify production-linked `feature/canva-oauth-callback` at `78d6f0db59fd0903bfa24e768ef8cd4e87a158ca`. The squash message inherited `[skip netlify]` from development commits; this non-skip status update triggers a single deployment of the already-tested application code.
