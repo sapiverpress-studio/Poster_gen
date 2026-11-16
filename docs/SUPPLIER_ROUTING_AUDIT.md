@@ -22,6 +22,11 @@ Use an owner-reviewed **route registry keyed by Etsy listing ID**, not just titl
 
 For future fully centralised routing, a separate Etsy-order router would need to be the **only** order dispatcher, replacing the competing supplier auto-import functions and implementing one-time order claims, per-line SKU decisions, idempotency, duplicate protection, cancellations, refunds, tracked shipment completion and no-orders-on-ambiguous-status safeguards. This is a separate, higher-risk project, NOT authorised here.
 
+
+## Mixed Etsy checkout risk — important
+
+When a customer buys a PrintShrimp poster AND a Prodigi card in one Etsy order, PrintShrimp's documented order-check treats the **whole imported order** as Ready only if **every item** is matched/priced. An unfamiliar card SKU therefore makes the order Attention or Rejected; **the poster may also wait rather than auto-pay**. If Prodigi is separately enabled for the card, only part of the checkout may dispatch on time. Confirm how each provider handles partial shipments and Etsy order completion/tracking before unattended dual-supplier use. Direct source: https://printshrimp.com/blogs/ai-agents/sell-on-etsy (How an Etsy order flows, Ready rule). This is a credible operational risk derived from documented logic, not a completed live mixed-basket test.
+
 ## The staged code
 
 - lib/supplier-routing-audit.mjs: collectSupplierSnapshot({client,apiKey,request,expectedRoutes}) reads authenticated Etsy shop listing/inventory pages and PrintShrimp GET /api-get-product.
