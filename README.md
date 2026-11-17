@@ -8,7 +8,7 @@ One private product review and publication system for Sapiver Prints physical po
 
 Upload the finished checked PNG or digital ZIP once, review the prepared product, correct its details if needed, and press **Deploy** as final per-product publication approval. Uploading alone never publishes. The product dashboard filters type, subject and status and retains Etsy IDs/URLs, download files, errors and applicable PrintShrimp mapping.
 
-- Physical: the development branch sets new uploads to **A4 and A5** × Print Only/Black/White/Oak, with eight choices per individual poster. An A-series portrait PNG at 2480 × 3508 pixels or larger can be used directly. A square PNG at least 2480 × 2480 pixels is fitted proportionally to a separate A4 print page for review. Existing listings retain their saved options and merchant IDs. Artwork replacement on existing physical products is blocked pending verified supplier update support.
+- Physical: new uploads use **A4 and A5** × Print Only/Black/White/Oak, with eight choices per individual poster. An A-series portrait PNG at 2480 × 3508 pixels or larger can be used directly. A square PNG at least 2480 × 2480 pixels is fitted proportionally to a separate A4 print page for review. Existing listings retain their saved options and merchant IDs. Artwork replacement on existing physical products is blocked pending verified supplier update support.
 - Digital: staged seller-kit import separates buyer ZIPs, listing photographs and seller notes; optional embedded licence/instructions. Invalid SVG dimensions stop validation. Existing validated private ZIP, original customer-file preservation, independent lossless ZIP splitting within Etsy's five-file/20 MB limits where possible, labelled artwork previews, actual licence/instructions and no physical delivery. Updates replace files on the same listing ID with verification before reactivation.
 - Existing Canva source `DAHXUnmHofY` is preserved. A3 working copy `DAHXb1PdJlM` and prior private export are not recreated.
 
@@ -16,7 +16,7 @@ Upload the finished checked PNG or digital ZIP once, review the prepared product
 
 - `lib/product-*.mjs`: product metadata, private records, review/dashboard UI.
 - `lib/digital-archive.mjs`, `lib/digital-product.mjs`: ZIP validation, preservation and digital Etsy publication.
-- `lib/uploaded-poster.mjs`, `lib/poster-template.mjs`: existing physical route, now twelve framed/unframed variants.
+- `lib/uploaded-poster.mjs`, `lib/poster-template.mjs`: existing physical route with eight framed and unframed variants for new uploads.
 - `lib/github-*.mjs`, `scripts/github-publication.mjs`: scoped GitHub OIDC worker, queue and private transport.
 - `netlify/functions`: existing Canva/OAuth and product endpoints; `public/poster-upload.mjs`: owner upload/review script.
 - Node **24** (`.nvmrc`); `npm ci --ignore-scripts`, then `npm test`. 125 automated tests passed for the 12-option production release; the staged Poster type UI and numbered-PNG fixes passed 130 automated tests. Merchant fixtures are not live verification.

@@ -1,9 +1,11 @@
-## DEVELOPMENT CHECKPOINT — 17 November 2026: A4/A5 poster uploads (STAGED)
+## LIVE VERIFIED — 17 November 2026: A4/A5 poster uploads
 
-- **Scope:** All new physical single, private storage, Individual ZIP, Singular trio and Six-pack uploads use A5/A4. Trio manifests select one of those sizes. The four individual finishes and existing delivery, Etsy and PrintShrimp approval controls remain in use. Legacy three-size poster manifests import with A5/A4 offerings. Existing listings and accepted reviews retain their recorded sizes.
-- **Artwork:** Use an A-series portrait PNG at 2480 × 3508 pixels or larger or a square PNG at least 2480 × 2480 pixels. The uploader retains original bytes and fits a square proportionally onto a separate white A4 page at 300 PPI. The mockups, approval digest and supplier handoff refer to that checked print page. Portrait masters are used directly.
-- **Verified locally:** All 550 Node 24 tests pass. The actual 17 November Streak Singular trio ZIP opens as four reviews with all three unchanged square PNGs. Each fitted page measured 2480 × 3508 at 300 PPI. Tests cover the eight individual finish/size combinations, storage fallback, existing listing recovery, keeping original bytes, and refusing changed print artwork before any merchant request.
-- **Release:** Development branch `fix/a4-a5-poster-uploads-20261117` targets `feature/canva-oauth-callback`. Authenticated mobile review, live supplier acceptance and a physical print proof are pending. The production release is a separate owner decision.
+- **Status:** Netlify production deploy `6afbf2421db6893b9265ecfd` is Ready, published at 06:21 GMT from `feature/canva-oauth-callback`, code commit `3916960424017432d17812c6936aced533245053`. The owner approved the release.
+- **Scope:** New physical uploads offer A4 and A5 across the single, private storage, Individual ZIP, Singular trio and Six-pack paths. A trio bundle uses one of those sizes. Legacy three-size manifests import as A4/A5 for new listings. Existing listings and approved reviews retain their recorded sizes.
+- **Artwork:** The uploader accepts A-series portrait PNGs at 2480 × 3508 pixels or larger and square PNGs at least 2480 × 2480 pixels. It retains the source and fits square artwork proportionally onto a separate white A4 print page at 300 PPI. The mockup, approval digest and supplier handoff use that page.
+- **Verified:** All 550 Node 24 tests passed locally. PR #98 passed GitHub Actions run `44029876652`, and the production merge tree matched that tested tree. Both live upload routes returned HTTP 200. The four deployed upload modules matched the tested files byte for byte. Running the deployed ZIP validator on the 17 November Streak archive accepted all three original 5000 × 5000 PNGs and planned three A4/A5 singles plus one A4 trio.
+- **Pending:** Authenticated owner upload, live PrintShrimp acceptance and physical print proof.
+- **Deployment impact:** One verified production build. This documentation commit uses `[skip netlify]`.
 
 ---
 
@@ -1744,3 +1746,9 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Verify / tests: Clean production-source baseline passed 548/548. Development regression testing exposed assumptions in legacy three-size fixtures and a metadata edit without stored size fields. Retained the legacy template for old plans and handled missing stored sizes; the final full local Node 24 run passed 550/550. The current Streak ZIP and its three A4 derivatives also passed local readback.
 - Deployment / credit impact: The independent branch and draft PR use the Netlify skip marker. Production has the previously verified digital ZIP button release. This development uses local or GitHub checks and no live merchant calls.
 - Risks / next action: Check the displayed print margins on the protected site after a separately approved release. Live supplier and physical print acceptance are still pending.
+
+### 2026-11-17 06:21 GMT — Production release of A4/A5 poster uploads
+
+- PR #98 was squash-merged into the live site source branch after the owner approved deployment. Netlify published code commit `3916960424017432d17812c6936aced533245053` as production deploy `6afbf2421db6893b9265ecfd`. The GitHub `main` worker branch was untouched.
+- The live upload modules matched the tested source. Their ZIP validator accepted the three square Streak masters and detected four intended listings. No authenticated upload, marketplace publication, supplier order or physical proof was part of verification.
+- A single production build completed. This documentation-only commit carries the Netlify skip marker.
