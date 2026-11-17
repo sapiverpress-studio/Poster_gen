@@ -38,7 +38,7 @@ test('audits physical and digital listings while isolating PrintShrimp calculati
  assert.equal(a.listings.find(l=>l.id===103).supplierMapping,undefined);
  const folders=folderCatalogue({audit:a,status:{phase:'available'},clock:()=>1000});
  assert.match(folders,/1 digital downloads · 1 listed/);
- assert.match(folders,/4<\\/b> products/);
+ assert.ok(folders.includes('4</b> products'));
  assert.match(folderCatalogue({audit:a,status:{phase:'available'},section:'Digital Downloads',clock:()=>1000}),/Digital download/);
  assert.doesNotMatch(folderCatalogue({audit:a,status:{phase:'available'},section:'Digital Downloads',clock:()=>1000}),/class="poster-toggle"/);
  assert.equal(a.listings.find(l=>l.id===102).supplierMapping,'not_verified');
