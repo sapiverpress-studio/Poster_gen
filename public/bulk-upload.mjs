@@ -6,17 +6,19 @@ const form=document.getElementById('bulk-collection-form'),status=document.getEl
 const cards=document.getElementById('bulk-cards'),deploy=document.getElementById('bulk-deploy');
 const trioForm=document.getElementById('bulk-trios'),trioReviews=document.getElementById('bulk-trio-reviews'),deployTrios=document.getElementById('bulk-deploy-trios');
 const downloadAll=document.getElementById('bulk-download-all-mockups');
+const restartButton=document.getElementById('bulk-restart-failed'),restartNote=document.getElementById('bulk-restart-note');
 const csrf=document.querySelector('meta[name="poster-csrf"]')?.content;
 const KEY='sapiver-physical-bulk-v1',ID=/^[A-Za-z0-9_-]{32}$/;
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 let state=null,seen=[],trioStatuses=[],pollHandle=null,busy=false;
 
 function text(tag,value){const el=document.createElement(tag);el.textContent=value;return el;}
-function save(){try{sessionStorage.setItem(KEY,JSON.stringify(state));}catch{throw Error('Session storage unavailable. Use the single uploader to avoid duplicate products.');}}
+function save(){try{sessionStorage.setItem(KEY,JSON.stringify(state));updateRestartButton();}catch{throw Error('Session storage unavailable. Use the single uploader to avoid duplicate products.');}}
 function read(){
  try{const v=JSON.parse(sessionStorage.getItem(KEY)||'null');return [1,2,3,4].includes(v?.version)&&(v.items?.length>=BULK_MIN_COUNT&&v.items?.length<=BULK_MAX_COUNT||v.items?.length===8)&&v.items.every(i=>typeof i.filename==='string'&&(!i.id||ID.test(i.id)))?v:null;}catch{return null;}
 }
 function message(value){status.textContent=value;}
+function updateRestartButton(){if(restartButton)restartButton.hidden=!(state?.items?.length&&state.items.some(i=>i.creating&&!i.id)&&state.items.every(i=>!i.id)&&!state.trioIds?.length);}
 let previewSignature='',previewArchive=null,preparingTrios=false;
 const modeChoices=['single','four-listings','eight-listings'];
 const chosenMode=()=>form?.elements?.uploadMode?.value||'';
@@ -253,7 +255,7 @@ async function uploadItem(item,file,index){
  if(item.creating&&!item.id)throw Error('Creation of poster '+(index+1)+' had an uncertain response. Inspect the dashboard before continuing; never create it twice.');
  if(!item.id){
   item.printSizes=newPosterPrintSizes(item.printSizes);
-  item.creating=true;save();
+  item.creating=true;item.creatingAt=Date.now();save();
   message((state.storeOnly?'Storing':'Preparing')+' poster '+(index+1)+' of '+state.items.length+'…');
   const meta={name:item.title,etsyTitle:item.listingTitle,description:item.description,tags:item.tags.join(','),
    subject:item.title,kind:state.kind,sectionTitle:item.sectionTitle,websiteFolder:state.websiteFolder||'',printSizes:item.printSizes};
@@ -399,6 +401,32 @@ streakRecoveryButton?.addEventListener('click',async()=>{
 });
 
 form?.addEventListener('submit',start);
+restartButton?.addEventListener('click',async()=>{
+ if(busy||restartButton.hidden||!state?.items?.length||state.items.some(i=>i.id)||state.trioIds?.length)return;
+ const attempt=state.items.find(i=>i.creating&&!i.id);
+ if(Number.isFinite(attempt?.creatingAt)&&Date.now()-attempt.creatingAt<90000){
+  restartNote.textContent='Allow the previous create request to settle before checking for a fresh start.';
+  return;
+ }
+ busy=true;restartButton.disabled=true;
+ try{
+  restartNote.textContent='Checking the server for every saved product in this collection…';
+  const result=await api('/poster/bulk/restart-check',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({filenames:state.items.map(i=>i.uploadFilename)})});
+  if(result.safeToRestart!==true){
+   restartNote.textContent=result.notice||'A matching product exists. Open Products before starting another upload.';
+   return;
+  }
+  // Clear only the browser session. No Etsy listing or server product is deleted.
+  sessionStorage.removeItem(KEY);state=null;seen=[];trioStatuses=[];previewSignature='';previewArchive=null;
+  if(form.elements?.collection)form.elements.collection.value='';
+  cards?.replaceChildren();trioForm?.replaceChildren();trioReviews?.replaceChildren();
+  updateRestartButton();showSelectedMode();
+  restartNote.textContent='Failed browser session cleared. Select your corrected ZIP and upload as a new collection.';
+  message('Ready for a fresh ZIP. No Etsy listing or stored product was changed.');
+ }catch(error){restartNote.textContent='Fresh start blocked: '+error.message+' Existing records were not changed.';}
+ finally{busy=false;restartButton.disabled=false;}
+});
 deploy?.addEventListener('click',async()=>{
  if(busy||!state||state.bundlesOnly)return;busy=true;deploy.disabled=true;
  try{
@@ -544,6 +572,7 @@ onlyResume?.addEventListener('click',async()=>{
  finally{busy=false;onlyResume.disabled=false;}
 });
 state=read();
+updateRestartButton();
 drawOnly();
 if(state?.woodlandRequestId)pollWoodlandSetup().catch(()=>{});
 if(state?.uploadMode&&form?.elements?.uploadMode)form.elements.uploadMode.value=state.uploadMode;
