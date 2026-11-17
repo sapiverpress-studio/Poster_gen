@@ -9,15 +9,15 @@ function memory(){const map=new Map();return {map,get:async k=>map.get(k),set:as
 async function fixture({modern=false,direct=false,width=3508,height=4961}={}){const uploads=memory(),etsyStore=memory(),calls=[];let mapped,listingState='draft',images=0;
 const bytes=await sharp({create:{width,height,channels:3,background:'#cc8844'}}).png().toBuffer();await uploads.setJSON(assetKey(id),{phase:'preparing',filename:'SP-EL-006-DINOSAURS-ACROSS-TIME.png',referenceListingId:direct?null:789,bytes:bytes.length,chunks:Math.ceil(bytes.length/CHUNK_BYTES),...(modern?{type:'physical',productId:id,createdAt:Date.now(),metadata:{name:'Dinosaurs Across Time',kind:'dinosaur',subject:'Dinosaurs',sectionTitle:'Dinosaur Posters',tags:[],taxonomyId:null}}:{})});for(let off=0,i=0;off<bytes.length;off+=CHUNK_BYTES,i++)await uploads.set('uploads/'+id+'/chunks/'+i,bytes.subarray(off,off+CHUNK_BYTES));
 const client={session:async()=>({shop_id:456,shop_name:'SapiverPrints'}),api:async(path,o={})=>{calls.push([path,o]);if(path.startsWith('/shops/456/shipping-profiles?'))return {results:[{...shipping,shipping_profile_id:11}]};if(path.startsWith('/shops/456/readiness-state-definitions?'))return {results:[{...processing,readiness_state_id:22}]};if(path.startsWith('/shops/456/policies/return?'))return {results:[{...returns,return_policy_id:33}]};if(path==='/seller-taxonomy/nodes')return {results:[{id:123,name:'Prints',children:[]}]};if(path==='/shops/456/sections')return {results:[{shop_section_id:44,title:'Dinosaur Posters'}]};if(path==='/listings/789')return reference;if(path==='/listings/789/inventory')return inventory;if(path.startsWith('/shipping-carriers?'))return carriers;if(path.includes('/shipping-profiles/'))return {...shipping,shipping_profile_id:11};if(path.includes('/readiness-state-definitions/'))return processing;if(path.includes('/policies/return/'))return returns;if(path.endsWith('/production-partners'))return {results:[{partner_name:'PrintShrimp',location:'Romford, England',production_partner_id:55}]};if(path.startsWith('/shops/456/listings?'))return {count:0,results:[]};if(path==='/shops/456/listings')return {shop_id:456,state:'draft',listing_id:999};if(path==='/listings/999/inventory'){if(o.method==='PUT'){mapped=JSON.parse(o.body);return mapped;}return {products:mapped.products.map(p=>({...p,offerings:p.offerings.map(v=>({...v,price:{amount:Math.round(v.price*100),divisor:100,currency_code:'GBP'}}))}))};}if(path.endsWith('/images')&&o.method==='POST'){assert.ok(o.body instanceof FormData);images++;return {listing_image_id:images};}if(path==='/shops/456/listings/999'&&o.method==='PATCH'){assert.equal(images,4);assert.equal(o.body,'state=active');listingState='active';return {state:'active'};}if(path.startsWith('/listings/999')){const a=await uploads.get(assetKey(id));return {...a.plan.body,tags:a.plan.body.tags.split(','),is_personalizable:false,shop_id:456,state:listingState,listing_type:'physical',url:'https://www.etsy.com/listing/999/dinosaurs',shop_section_id:modern?44:undefined,images:Array.from({length:images},(_,i)=>({listing_image_id:i+1}))};}throw Error('Unexpected endpoint');}};
-const env=n=>({CANVA_SITE_ORIGIN:origin,SHRIMP_APIKEY:'private-key',POSTER_PUBLICATION_ENABLED:'true'}[n]);let gets=0,posts=0,requestedSizes=['A5','A4','A3'];
+const env=n=>({CANVA_SITE_ORIGIN:origin,SHRIMP_APIKEY:'private-key',POSTER_PUBLICATION_ENABLED:'true'}[n]);let gets=0,posts=0,requestedSizes=['A5','A4'];
 const request=async(url,o)=>{if(o.method==='POST'){posts++;assert.equal(listingState,'draft');const p=JSON.parse(o.body);assert.equal(new Set(p.variants.map(v=>v.image_url)).size,1);requestedSizes=p.variants.map(v=>v.size);return Response.json({success:true},{status:201});}gets++;if(gets===1)return new Response(null,{status:404});return Response.json({success:true,product:{sku:'SP-EL-006-DINOSAURS-ACROSS-TIME',product_id:'supplier-product',variants:requestedSizes.map(size=>({size,image_url:'https://supplier.example.test/'+size+'.png'}))}});};
 return {id,bytes,uploads,etsyStore,client,env,request,calls,posts:()=>posts};}
-test('real PNG is decoded into four complete mockups; stored master bytes are unchanged',async()=>{const f=await fixture();await prepareUploadedPoster(f);const a=await f.uploads.get(assetKey(id));assert.equal(a.phase,'ready_for_approval');assert.equal(a.plan.inventory.products.length,12);assert.equal(hashBytes(await f.uploads.get(a.masterKey)),hashBytes(f.bytes));for(let i=0;i<4;i++){const m=await sharp(await f.uploads.get('uploads/'+id+'/mockups/'+i+'.jpg')).metadata();assert.equal(m.format,'jpeg');assert.equal(m.width,1448);assert.equal(m.height,1186);}});
-test('approved exact file produces draft, twelve options, four images, one supplier POST, then publication',async()=>{const f=await fixture();await prepareUploadedPoster({...f,mockups:async()=>[Buffer.from('one'),Buffer.from('two'),Buffer.from('three'),Buffer.from('four')]});const a=await f.uploads.get(assetKey(id));await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing'});const result=await publishUploadedPoster({...f,approvalHash:a.approvalHash});assert.equal(result.phase,'published');assert.equal(f.posts(),1);assert.equal(f.calls.filter(([,o])=>o.method==='PATCH').length,1);assert.ok([...f.uploads.map.entries()].some(([k,v])=>k.startsWith('transfers/')&&v.revoked));assert.equal(result.ordersEnabled,false);});
+test('real PNG is decoded into four complete mockups; stored master bytes are unchanged',async()=>{const f=await fixture();await prepareUploadedPoster(f);const a=await f.uploads.get(assetKey(id));assert.equal(a.phase,'ready_for_approval');assert.equal(a.plan.inventory.products.length,8);assert.equal(hashBytes(await f.uploads.get(a.masterKey)),hashBytes(f.bytes));for(let i=0;i<4;i++){const m=await sharp(await f.uploads.get('uploads/'+id+'/mockups/'+i+'.jpg')).metadata();assert.equal(m.format,'jpeg');assert.equal(m.width,1448);assert.equal(m.height,1186);}});
+test('approved exact file produces draft, eight options, four images, one supplier POST, then publication',async()=>{const f=await fixture();await prepareUploadedPoster({...f,mockups:async()=>[Buffer.from('one'),Buffer.from('two'),Buffer.from('three'),Buffer.from('four')]});const a=await f.uploads.get(assetKey(id));await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing'});const result=await publishUploadedPoster({...f,approvalHash:a.approvalHash});assert.equal(result.phase,'published');assert.equal(f.posts(),1);assert.equal(f.calls.filter(([,o])=>o.method==='PATCH').length,1);assert.ok([...f.uploads.map.entries()].some(([k,v])=>k.startsWith('transfers/')&&v.revoked));assert.equal(result.ordersEnabled,false);});
 test('publication flag, wrong approval and mutated preview block all merchant writes',async()=>{const f=await fixture();await prepareUploadedPoster({...f,mockups:async()=>['one','two','three','four'].map(v=>Buffer.from(v))});const a=await f.uploads.get(assetKey(id));await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing'});const before=f.calls.length;await assert.rejects(publishUploadedPoster({...f,approvalHash:a.approvalHash,env:()=>undefined}),/not enabled/);await assert.rejects(publishUploadedPoster({...f,approvalHash:'wrong'}),/Approval/);a.plan.body.title='Changed after approval';await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing'});await assert.rejects(publishUploadedPoster({...f,approvalHash:a.approvalHash}),/changed/);assert.equal(f.calls.length,before);assert.equal(f.posts(),0);});
 test('supplier uncertainty prevents Etsy activation and revokes master access',async()=>{const f=await fixture();await prepareUploadedPoster({...f,mockups:async()=>['one','two','three','four'].map(v=>Buffer.from(v))});const a=await f.uploads.get(assetKey(id));await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing'});let gets=0;await assert.rejects(publishUploadedPoster({...f,approvalHash:a.approvalHash,request:async(url,o)=>{if(o.method==='POST')throw Error('private-key');gets++;return new Response(null,{status:404});}}));assert.equal(f.calls.filter(([,o])=>o.method==='PATCH').length,0);assert.ok([...f.uploads.map.values()].some(v=>v.revoked));});
 
-test('modern physical product publishes twelve framed and unframed variants, verified category/section and permanent supplier mapping',async()=>{const f=await fixture({modern:true});await prepareUploadedPoster(f);const a=await f.uploads.get(assetKey(id));assert.equal(a.plan.inventory.products.length,12);assert.ok(a.plan.inventory.products.every(p=>p.property_values.some(v=>['Print Only','Black Frame','White Frame','Oak Frame'].includes(v.values[0]))));assert.match(a.plan.body.description,/framed or unframed/);assert.equal(a.plan.inventory.products.filter(p=>p.property_values.some(v=>v.values[0]==='Print Only')).length,3);await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing',approvedAt:Date.now()});await f.uploads.setJSON('claims/'+id+'/publish',{approvalHash:a.approvalHash});await publishUploadedPoster({...f,approvalHash:a.approvalHash});const record=await f.uploads.get('products/'+id+'/record');assert.equal(record.phase,'published');assert.equal(record.etsyListingId,999);assert.equal(record.supplierProductId,'supplier-product');assert.equal(record.etsyUrl,'https://www.etsy.com/listing/999/dinosaurs');assert.equal(f.posts(),1);});
+test('modern physical product publishes eight framed and unframed variants, verified category/section and permanent supplier mapping',async()=>{const f=await fixture({modern:true});await prepareUploadedPoster(f);const a=await f.uploads.get(assetKey(id));assert.equal(a.plan.inventory.products.length,8);assert.ok(a.plan.inventory.products.every(p=>p.property_values.some(v=>['Print Only','Black Frame','White Frame','Oak Frame'].includes(v.values[0]))));assert.match(a.plan.body.description,/framed or unframed/);assert.equal(a.plan.inventory.products.filter(p=>p.property_values.some(v=>v.values[0]==='Print Only')).length,2);await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing',approvedAt:Date.now()});await f.uploads.setJSON('claims/'+id+'/publish',{approvalHash:a.approvalHash});await publishUploadedPoster({...f,approvalHash:a.approvalHash});const record=await f.uploads.get('products/'+id+'/record');assert.equal(record.phase,'published');assert.equal(record.etsyListingId,999);assert.equal(record.supplierProductId,'supplier-product');assert.equal(record.etsyUrl,'https://www.etsy.com/listing/999/dinosaurs');assert.equal(f.posts(),1);});
 
 test('changed physical preview and stale product revision prevent merchant writes',async()=>{
  for(const change of ['preview','revision']){const f=await fixture({modern:true});await prepareUploadedPoster(f);const a=await f.uploads.get(assetKey(id));await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing'});
@@ -35,16 +35,16 @@ test('physical metadata update retains supplier and Etsy IDs; replacement master
 });
 
 
-test('wildflower and corrected Coast to Coast masters pass the measured A3 limit but uncorrected 2:3 artwork does not',async()=>{
+test('wildflower and corrected Coast to Coast masters remain accepted but uncorrected 2:3 artwork is rejected',async()=>{
  for(const [width,height] of [[3294,4663],[3394,4800]]){const f=await fixture({width,height});await prepareUploadedPoster({...f,mockups:async()=>['one','two','three','four'].map(x=>Buffer.from(x))});assert.equal((await f.uploads.get(assetKey(id))).phase,'ready_for_approval');}
  const f=await fixture({width:3200,height:4800});await assert.rejects(prepareUploadedPoster({...f,mockups:async()=>['one','two','three','four'].map(x=>Buffer.from(x))}),/A-series/);
 });
 
 
-test('first physical product prepares real artwork and twelve custom variations without a previous listing',async()=>{
+test('first physical product prepares real artwork and eight custom variations without a previous listing',async()=>{
  const f=await fixture({modern:true,direct:true});await prepareUploadedPoster({...f,mockups:async()=>['one','two','three','four'].map(s=>Buffer.from(s))});
  const a=await f.uploads.get(assetKey(id));assert.equal(a.phase,'ready_for_approval');assert.equal(a.plan.referenceListingId,null);assert.equal(a.plan.identity.setupMode,'shop_profiles');
- assert.deepEqual(a.plan.inventory.price_on_property,[513,514]);assert.equal(a.plan.inventory.products.length,12);assert.ok(a.plan.inventory.products.every(p=>p.property_values.every(v=>v.value_ids.length===0)));
+ assert.deepEqual(a.plan.inventory.price_on_property,[513,514]);assert.equal(a.plan.inventory.products.length,8);assert.ok(a.plan.inventory.products.every(p=>p.property_values.every(v=>v.value_ids.length===0)));
  assert.equal(a.plan.body.shipping_profile_id,11);assert.equal(a.plan.body.readiness_state_id,22);assert.equal(a.plan.body.return_policy_id,33);assert.equal(a.plan.body.production_partner_ids,'55');
  assert.equal(hashBytes(await f.uploads.get(a.masterKey)),hashBytes(f.bytes));assert.equal(f.posts(),0);assert.ok(f.calls.every(([p,o])=>!p.includes('/listings/')&&!['POST','PATCH','PUT'].includes(o.method)));
  await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing'});await assert.rejects(publishUploadedPoster({...f,approvalHash:a.approvalHash,env:()=>undefined}),/not enabled/);
@@ -72,6 +72,48 @@ test('selected Early Learning section reaches approved plan and actual physical 
  await prepareUploadedPoster({...f,mockups:async()=>['1','2','3','4'].map(v=>Buffer.from(v))});const a=await f.uploads.get(assetKey(id));assert.equal(a.plan.identity.sectionTitle,'Early Learning');await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing'});await publishUploadedPoster({...f,approvalHash:a.approvalHash});assert.equal(assigned,true);
 });
 
+test('square Streak master stays intact and the reviewed A4 layout supplies both print sizes',async()=>{
+ const f=await fixture({modern:true,direct:true,width:5000,height:5000});
+ let previewSource;
+ await prepareUploadedPoster({...f,mockups:async bytes=>{
+  previewSource=bytes;
+  return ['one','two','three','four'].map(value=>Buffer.from(value));
+ }});
+ const ready=await f.uploads.get(assetKey(id));
+ const printKey='uploads/'+id+'/print-master.png';
+ const fitted=await f.uploads.get(printKey);
+ assert.deepEqual(await f.uploads.get(ready.masterKey),f.bytes);
+ assert.deepEqual(previewSource,fitted);
+ const {width,height,density}=await sharp(fitted).metadata();
+ assert.deepEqual({width,height,density},{width:2480,height:3508,density:300});
+ const pixel=async (left,top)=>[...await sharp(fitted).extract({left,top,width:1,height:1}).raw().toBuffer()];
+ assert.deepEqual(await pixel(0,513),[255,255,255]);
+ assert.deepEqual(await pixel(0,514),[204,136,68]);
+ assert.deepEqual(await pixel(2479,2993),[204,136,68]);
+ assert.deepEqual(await pixel(2479,2994),[255,255,255]);
+ assert.equal(ready.plan.identity.printArtwork.sha256,hashBytes(fitted));
+ assert.equal(ready.plan.inventory.products.length,8);
+
+ const publishing={...f,approvalHash:ready.approvalHash};
+ await f.uploads.setJSON(assetKey(id),{...ready,phase:'publishing'});
+ await f.uploads.set(printKey,f.bytes);
+ await assert.rejects(publishUploadedPoster(publishing),/Approved print artwork changed/);
+ assert.ok(f.calls.every(([,call])=>!['POST','PUT','PATCH'].includes(call.method)));
+ await f.uploads.set(printKey,fitted);
+ await publishUploadedPoster({...publishing,request:async(url,options)=>{
+  if(options.method==='POST'){
+   const {variants}=JSON.parse(options.body);
+   assert.deepEqual(variants.map(v=>v.size),['A5','A4']);
+   const ticket=new URL(variants[0].image_url).searchParams.get('ticket');
+   const grant=await f.uploads.get('transfers/'+ticket);
+   assert.equal(grant.fileKey,printKey);
+   assert.equal(grant.sha256,hashBytes(fitted));
+  }
+  return f.request(url,options);
+ }});
+ assert.equal(f.posts(),1);
+});
+
 test('a ZIP supplied short Etsy title survives real physical preparation without an automatic suffix',async()=>{
  const f=await fixture({modern:true}),old=await f.uploads.get(assetKey(id));
  await f.uploads.setJSON(assetKey(id),{...old,metadata:{...old.metadata,name:'Midnight Saxophone',
@@ -82,7 +124,7 @@ test('a ZIP supplied short Etsy title survives real physical preparation without
  assert.equal(prepared.phase,'ready_for_approval');
  assert.equal(prepared.plan.body.title,'Midnight Saxophone');
  assert.match(prepared.plan.body.description,/Atmospheric club jazz artwork/);
- assert.equal(prepared.plan.inventory.products.length,12);
+ assert.equal(prepared.plan.inventory.products.length,8);
 });
 
 test('pinned production shipping refuses old UK-only single preview without any Etsy or supplier writes',async()=>{

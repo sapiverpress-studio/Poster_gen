@@ -1,4 +1,5 @@
 import {parseTrioDetails,validateTwoTrios,validateTrioOnly} from './collection-trios.mjs';
+import {POSTER_PRINT_SIZES,newPosterPrintSizes,posterPrintLayout} from './poster-print-format.mjs';
 // Browser-side, bounded ZIP reader for ONE physical collection; no server-side
 // decompression, external scripts or changes to the existing Etsy/PrintShrimp worker.
 // The untrusted ZIP is fully validated before the first product is reserved.
@@ -110,6 +111,7 @@ export async function openPosterCollectionZip(file,{allowLegacySix=false,mode='i
  if(trioEntries.length){
   const sorted=trioEntries.sort((a,b)=>a.name.localeCompare(b.name,'en'));
   const parsed=await Promise.all(sorted.map(async e=>parseTrioDetails(decoder.decode(await readEntry(e)),{filename:e.name})));
+  if(parsed.some(trio=>!POSTER_PRINT_SIZES.includes(trio.size)))fail('New trios must use one fixed size: A4 or A5');
   bundles=['trios-only','four-listings'].includes(mode)?validateTrioOnly(items,parsed):validateTwoTrios(items,parsed);
  }
  return {items,bundles,mode,listingCount:mode==='trios-only'?bundles.length:items.length+bundles.length,
@@ -134,10 +136,7 @@ export function parsePosterText(source){
  if(!/\b(?:prints?|posters?|wall art)\b/i.test(listingTitle))fail('Listing title must identify a physical print or poster');
  if(typeof sectionTitle!=='string'||sectionTitle.length>24||/[<>\u0000-\u001f\u007f]/.test(sectionTitle))fail('Section must be a valid Etsy shop section name (up to 24 characters)');
  if(tags.length!==13||tags.some(t=>!t||t.length>20||/[<>\u0000-\u001f]/.test(t))||new Set(tags.map(t=>t.toLowerCase())).size!==13)fail('Every poster needs exactly 13 unique Etsy tags, each at most 20 characters');
- const decorativeWallArt=sectionTitle==='Wall Art';
- const printSizes=fields.sizes?fields.sizes.split(',').map(x=>x.trim()):(decorativeWallArt?['A5','A4','A3']:['A5','A4']);
- if(!['A5|A4','A5|A4|A3'].includes(printSizes.join('|')))fail('Sizes must be A5, A4 or A5, A4, A3 in that order');
- if(!decorativeWallArt&&printSizes.length!==2)fail('A3 is reserved for individual decorative Wall Art; Nature and learning ZIPs offer A5 and A4 only');
+ const printSizes=newPosterPrintSizes(fields.sizes?.split(',').map(x=>x.trim()));
  return {title,listingTitle,sectionTitle,description,tags,printSizes};
 }
 // A stable short internal filename uses the artwork hash to distinguish namesakes.
@@ -147,12 +146,11 @@ export function collectionUploadFilename(title,sha256){
  const stem=title.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,18).replace(/-$/,'')||'POSTER';
  return 'SP-'+stem.toUpperCase()+'-'+sha256.slice(0,8).toUpperCase()+'.png';
 }
-export function validatePosterPng(b,printSizes=['A5','A4','A3']){
- if(!['A5|A4','A5|A4|A3'].includes(printSizes.join('|')))fail('Unsupported print-size selection');
+export function validatePosterPng(b,printSizes){
+ newPosterPrintSizes(printSizes);
  const sig=[137,80,78,71,13,10,26,10];
  if(b.length<33||sig.some((n,i)=>b[i]!==n)||b[12]!==73||b[13]!==72||b[14]!==68||b[15]!==82)fail('Not a valid PNG');
  const view=new DataView(b.buffer,b.byteOffset,b.byteLength),width=view.getUint32(16),height=view.getUint32(20);
- const a4Only=printSizes.length===2,minWidth=a4Only?2480:3160,minHeight=a4Only?3508:4470;
- if(width<minWidth||height<minHeight||width*height>100_000_000||Math.abs(height/width-Math.SQRT2)/Math.SQRT2>0.02)fail(a4Only?'Poster must be A-series portrait at 300 PPI at A4 or above':'Poster must be A-series portrait at 270 PPI or above at A3');
+ posterPrintLayout(width,height);
  return {width,height};
 }

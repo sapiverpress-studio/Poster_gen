@@ -16,7 +16,7 @@ const id='t'.repeat(32);
 function asset(bytes){return {phase:'uploading',type:'physical',storeOnly:true,productId:id,metadata:{name:'Winter Robin',sectionTitle:'Nature',websiteFolder:'Christmas Wildlife',kind:'artwork',subject:'Robin',tags:[]},filename:'Winter Robin.png',sourceFilename:'Winter Robin.png',bytes:bytes.length,chunks:1,createdAt:clock()};}
 test('private storage validates original, stores a thumbnail and consumes no monthly slots',async()=>{
  const uploads=mock();
- const png=await sharp({create:{width:3508,height:4961,channels:3,background:'#dfded0'}}).png().toBuffer();
+ const png=await sharp({create:{width:2480,height:3508,channels:3,background:'#dfded0'}}).png().toBuffer();
  await uploads.setJSON('uploads/'+id+'/state',asset(png));
  await uploads.set('uploads/'+id+'/chunks/0',png);
  const result=await finishStoredPoster({uploads,id,clock});
@@ -37,7 +37,7 @@ test('private storage validates original, stores a thumbnail and consumes no mon
 });
 test('when 52 monthly slots are occupied, first ON leaves artwork privately stored',async()=>{
  const uploads=mock();
- const png=await sharp({create:{width:3508,height:4961,channels:3,background:'#ffffff'}}).png().toBuffer();
+ const png=await sharp({create:{width:5000,height:5000,channels:3,background:'#ffffff'}}).png().toBuffer();
  await uploads.setJSON('uploads/'+id+'/state',asset(png));await uploads.set('uploads/'+id+'/chunks/0',png);
  await finishStoredPoster({uploads,id,clock});
  for(let i=1;i<=52;i++)await uploads.setJSON('limits/monthly-uploads/2026-10/slot/'+String(i).padStart(2,'0'),{productId:('x'+i).padEnd(32,'_'),month:'2026-10'});

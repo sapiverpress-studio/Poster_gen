@@ -13,18 +13,20 @@ const details=i=>'Title: Jazz Nocturne '+i+'\nListing title: Nocturne Art Print 
 function png(){
  const b=Buffer.alloc(33);b.set([137,80,78,71,13,10,26,10],0);b.writeUInt32BE(13,8);b.write('IHDR',12);b.writeUInt32BE(3394,16);b.writeUInt32BE(4800,20);b[24]=8;b[25]=2;return b;
 }
-async function zipFile({itemCount=6,folder='Jazz Collection/',badText=false,nested=false,extra=false,compress=true,dirs=true,trios=true,trioOnly=false}={}){
+async function zipFile({itemCount=6,folder='Jazz Collection/',badText=false,nested=false,extra=false,compress=true,dirs=true,trios=true,trioOnly=false,trioSize='A4',square=false}={}){
  const zip=new yazl.ZipFile();
  if(folder)zip.addEmptyDirectory(folder);
  for(let i=1;i<=itemCount;i++){
   const stem=String(i).padStart(2,'0')+'-Poster';
   const pref=folder+stem+'/' +(nested&&i===1?'nested/':'');
   if(dirs)zip.addEmptyDirectory(pref);
-  zip.addBuffer(png(),pref+'poster.png',{compress});
+  const image=png();
+  if(square){image.writeUInt32BE(5000,16);image.writeUInt32BE(5000,20);}
+  zip.addBuffer(image,pref+'poster.png',{compress});
   zip.addBuffer(Buffer.from(badText&&i===3?details(i).replace('home bar','jazz art'):details(i)),pref+'details.md',{compress});
  }
  if(itemCount===6&&trios){for(let n=1;n<=2;n++)zip.addBuffer(Buffer.from(trioDetails(n)),folder+'bundle-'+n+'.md',{compress});}
- if(itemCount===3&&trioOnly)zip.addBuffer(Buffer.from(trioDetails(1)),folder+'bundle-1.md',{compress});
+ if(itemCount===3&&trioOnly)zip.addBuffer(Buffer.from(trioDetails(1).replaceAll('A4',trioSize)),folder+'bundle-1.md',{compress});
  if(extra)zip.addBuffer(Buffer.from('unrelated'),'other.md');
  zip.end();const parts=[];for await(const x of zip.outputStream)parts.push(x);
  return new File(parts,'Six-Posters.zip',{type:'application/zip'});
@@ -81,9 +83,9 @@ test('details.md demands precise 13 distinct short tags and never guesses listin
  assert.throws(()=>parsePosterText(details(2).replace('home bar','jazz art')),/13 unique/);
  assert.throws(()=>parsePosterText(details(2).replace('home bar','this tag is much longer than twenty characters')),/13 unique/);
 });
-test('PNG must be at least A3 at 270 PPI with A-series portrait proportions',()=>{
+test('poster preflight accepts larger portrait artwork and rejects small inputs',()=>{
  assert.deepEqual(validatePosterPng(png()),{width:3394,height:4800});
- const b=png();b.writeUInt32BE(1200,16);assert.throws(()=>validatePosterPng(b),/270 PPI/);
+ const b=png();b.writeUInt32BE(1200,16);assert.throws(()=>validatePosterPng(b),/2480 × 3508/);
 });
 test('bulk keeps the owner written short Etsy title and exact thirteen tags',()=>{
  const m=productMetadata({name:'Jazz Nocturne 1',etsyTitle:'Midnight Saxophone',description:details(1),tags,kind:'artwork'},'01-Poster.png','physical');
@@ -127,30 +129,43 @@ test('namesake posters get short distinct SKUs; editing the title retains saved 
  assert.ok(productMetadata({name:'Long name'},longest,'physical').sku.length<=32);
 });
 
-test('Nature and verse ZIP metadata selects A4/A5; older three-size ZIPs stay compatible',()=>{
+test('all new poster categories use A4/A5, including old three-size ZIP metadata',()=>{
  const nature=details(1).replace('Section: Wall Art','Section: Nature'+String.fromCharCode(10)+'Sizes: A5, A4');
  const selected=parsePosterText(nature);
  assert.deepEqual(selected.printSizes,['A5','A4']);
- assert.deepEqual(parsePosterText(details(1)).printSizes,['A5','A4','A3']);
+ assert.deepEqual(parsePosterText(details(1)).printSizes,['A5','A4']);
  assert.throws(()=>parsePosterText(nature.replace('A5, A4','A5, A3')),/Sizes must/);
  assert.throws(()=>parsePosterText(nature.replace('A5, A4','A3, A4, A5')),/Sizes must/);
  assert.deepEqual(parsePosterText(details(1).replace('Section: Wall Art','Section: Nature')).printSizes,['A5','A4']);
- assert.throws(()=>parsePosterText(nature.replace('A5, A4','A5, A4, A3')),/A3 is reserved/);
+ assert.deepEqual(parsePosterText(nature.replace('A5, A4','A5, A4, A3')).printSizes,['A5','A4']);
  const m=productMetadata({name:'River Whisper',kind:'artwork',sectionTitle:'Nature',printSizes:selected.printSizes},'Nature.png','physical');
  assert.deepEqual(m.printSizes,['A5','A4']);
- assert.throws(()=>productMetadata({name:'River Whisper',kind:'artwork',printSizes:['A5','A3']},'Nature.png','physical'),/print sizes/);
- assert.throws(()=>productMetadata({name:'River Whisper',kind:'artwork',sectionTitle:'Nature',printSizes:['A5','A4','A3']},'Nature.png','physical'),/A3 is reserved/);
+ assert.throws(()=>productMetadata({name:'River Whisper',kind:'artwork',printSizes:['A5','A3']},'Nature.png','physical'),/Sizes must include A5 and A4/);
+ assert.deepEqual(productMetadata({name:'River Whisper',kind:'artwork',sectionTitle:'Nature',printSizes:['A5','A4','A3']},'Nature.png','physical').printSizes,['A5','A4']);
  assert.deepEqual(productMetadata({name:'Dinosaur Timeline',kind:'dinosaur'},'Dino.png','physical').printSizes,['A5','A4']);
  assert.deepEqual(productMetadata({name:'Learning Chart',kind:'educational'},'Learning.png','physical').printSizes,['A5','A4']);
- assert.deepEqual(productMetadata({name:'Jazz Club',kind:'artwork',sectionTitle:'Wall Art'},'Jazz.png','physical').printSizes,['A5','A4','A3']);
+ assert.deepEqual(productMetadata({name:'Jazz Club',kind:'artwork',sectionTitle:'Wall Art'},'Jazz.png','physical').printSizes,['A5','A4']);
 });
 
 test('A4/A5 ZIPs accept genuine 300 PPI A4 artwork without requiring A3 enlargement',()=>{
  const b=png();b.writeUInt32BE(2480,16);b.writeUInt32BE(3508,20);
  assert.deepEqual(validatePosterPng(b,['A5','A4']),{width:2480,height:3508});
- assert.throws(()=>validatePosterPng(b),/270 PPI or above at A3/);
+ assert.deepEqual(validatePosterPng(b),{width:2480,height:3508});
  const low=Buffer.from(b);low.writeUInt32BE(1200,16);low.writeUInt32BE(1700,20);
- assert.throws(()=>validatePosterPng(low,['A5','A4']),/300 PPI at A4/);
+ assert.throws(()=>validatePosterPng(low,['A5','A4']),/2480 × 3508/);
+});
+
+test('Singular trio accepts square Streak masters at A4 or A5 and rejects a new A3 bundle',async()=>{
+ for(const trioSize of ['A4','A5']){
+  const archive=await openPosterCollectionZip(await zipFile({itemCount:3,trioOnly:true,trioSize,square:true}),{mode:'four-listings'});
+  assert.equal(archive.listingCount,4);
+  assert.equal(archive.bundles[0].size,trioSize);
+  for(const item of archive.items)assert.equal((await archive.artwork(item)).size,33);
+ }
+ await assert.rejects(openPosterCollectionZip(await zipFile({itemCount:3,trioOnly:true,trioSize:'A3'}),{mode:'four-listings'}),/A4 or A5/);
+ const small=png();
+ small.writeUInt32BE(2000,16);small.writeUInt32BE(2000,20);
+ assert.throws(()=>validatePosterPng(small),/square PNG at least 2480 × 2480/);
 });
 
 test('six posters without both distinct trio manifests fail before starting uploads',async()=>{
