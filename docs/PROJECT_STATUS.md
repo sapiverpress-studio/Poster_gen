@@ -1,3 +1,16 @@
+## DEVELOPMENT CHECKPOINT — 17 November 2026: digital catalogue, Etsy readback and safe bulk restart (NOT DEPLOYED)
+
+- **Owner request:** Correct missing Digital Downloads counts and poster-only labels, display externally activated Etsy drafts, and permit a fresh bulk upload after an actual failed first-product creation without making duplicates.
+- **Branch:** `fix/digital-catalogue-and-bulk-restart-20261117`, based on the verified production-linked `feature/canva-oauth-callback`. Never change existing products as a side effect of viewing a page.
+- **Implemented:** `lib/shop-catalogue-audit.mjs` includes recognised Etsy digital downloads in seller-authorised read-only catalogue audits while calculating PrintShrimp shipping/supplier metrics only for physical prints. `lib/github-publication.mjs` submits only physical rows to supplier auditing, then writes verified Etsy listing-state snapshots back to matching saved records by exact existing Etsy listing ID, without modifying the original uploader phase, supplier SKU, approvals or seller listing.
+- **UI:** `lib/catalogue-folders.mjs` now labels digital folders correctly, includes digital downloads in product counts, and deliberately leaves digital ON/OFF switches disabled. `lib/catalogue-page.mjs`, `lib/catalogue-visibility.mjs` and `lib/catalogue-sizes.mjs` continue to process physical products only for PrintShrimp delivery and inventory changes. `lib/product-web.mjs` shows independently synced live Etsy state beside unchanged uploader status.
+- **Bulk restart:** `public/bulk-upload.mjs` displays `Start fresh after failed upload` only for a session with an uncertain creation and NO confirmed product IDs; `POST /poster/bulk/restart-check` in `lib/poster-upload-web.mjs` verifies the authenticated owner/CSRF and looks for matching existing product records AND saved upload assets before allowing a browser-only reset. The endpoint is explicitly registered in `netlify/functions/poster-upload.mjs`. The server check creates no Etsy listings, products, supplier orders or slots and never deletes saved records. Uncertain matches block restart.
+- **Tests added/adjusted:** Seller audit fixture for digital plus physical counts, no digital supplier assignment, digital folder visibility, exact-ID Etsy readback reconciliation, and the restart endpoint's clean/asset/record/CSRF/invalid-body cases.
+- **Status:** IMPLEMENTED BUT UNTESTED at this checkpoint. GitHub CI and exact production preview still pending. Authenticated Android and live Etsy draft activation are unverified. All changes are `[skip netlify]` on the isolated branch; no production deploy, seller write or Work credits.
+- **Next:** Open PR against `feature/canva-oauth-callback`, run full Node24 GitHub CI, fix regressions, verify no unexpected merchant mutations or deploy triggers, then make one owner-authorised release and verify Netlify Ready against exact source commit before any new owner upload.
+
+---
+
 ## LIVE VERIFIED — 17 November 2026: A4/A5 poster uploads
 
 - **Status:** Netlify production deploy `6afbf2421db6893b9265ecfd` is Ready, published at 06:21 GMT from `feature/canva-oauth-callback`, code commit `3916960424017432d17812c6936aced533245053`. The owner approved the release.
