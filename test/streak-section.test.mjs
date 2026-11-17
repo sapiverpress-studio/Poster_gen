@@ -19,7 +19,7 @@ test('Streak cannot be selected if actual verified Etsy shop sections exclude it
  assert.throws(()=>productMetadata({name:'Dry News',kind:'artwork',sectionTitle:'Streak'},'SP-STREAK-DRY-NEWS-ABCD1234.png','physical',['Wall Art','Nature']),/existing Etsy shop section/);
 });
 test('Streak may not be offered in A3',()=>{
- assert.throws(()=>productMetadata({name:'Dry News',kind:'artwork',sectionTitle:'Streak',printSizes:['A5','A4','A3']},'SP-STREAK-DRY-NEWS-ABCD1234.png','physical'),/A3 is reserved/);
+ assert.deepEqual(productMetadata({name:'Dry News',kind:'artwork',sectionTitle:'Streak',printSizes:['A5','A4','A3']},'SP-STREAK-DRY-NEWS-ABCD1234.png','physical').printSizes,['A5','A4']);
 });
 
 test('bulk uploader distinguishes six artwork files from eight Etsy listing slots',()=>{

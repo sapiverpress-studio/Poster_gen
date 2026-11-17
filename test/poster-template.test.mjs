@@ -35,7 +35,7 @@ test('real carrier-based Etsy shipping accepts null days but rejects incomplete 
  for(const changed of [{min_delivery_days:2,max_delivery_days:null},{min_delivery_days:null,max_delivery_days:3},{min_delivery_days:4,max_delivery_days:5},{shipping_carrier_id:999}])assert.throws(()=>verifyTemplateCarrier({...p,shipping_profile_destinations:[{...p.shipping_profile_destinations[0],...changed}]},carriers));
 });
 
-test('A4/A5 Nature configuration creates eight options and does not alter three-size wall art',()=>{
+test('A4/A5 reference plans have eight options and legacy three-size plans still validate',()=>{
  const settings={filename:'Nature.png',reference,inventory,shopId:456};
  const two=templateDraftPlan({...settings,printSizes:['A5','A4']});
  assert.equal(two.inventory.products.length,8);

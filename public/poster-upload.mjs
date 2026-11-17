@@ -81,7 +81,7 @@ if(form?.elements?.poster?.addEventListener)form.elements.poster.addEventListene
 const refresh=document.getElementById('refresh-etsy-catalog'),catalogStatus=document.getElementById('catalog-status'),catalogAuth=document.getElementById('catalog-auth-note');
 const catalogueMessages={
  pending:'Etsy API check queued. Waiting for the GitHub worker; this page checks again automatically.',
- available:'Etsy API connection checked. Select an Etsy physical listing below; its twelve variations will be validated during preparation.',
+ available:'Etsy API connection checked. Select an Etsy physical listing below. Its variations for the chosen print sizes are checked during preparation.',
  empty:'Etsy is connected. Prepare your first print using your saved shop settings; no previous listing is required.',
  seller_consent_required:'The Etsy developer keys exist, but seller approval is missing. Authorise the existing SapiverPrints app once.',
  seller_consent_invalid:'Your saved Etsy seller authorisation is invalid. Renew approval for the existing SapiverPrints app.',
@@ -131,9 +131,15 @@ if(form)form.addEventListener('submit',async event=>{event.preventDefault();cons
  if(type==='digital'&&file)await importCommercialKit(file);
  const previews=type==='digital'?[...(form.elements.previews?.files||[])]:[];if(previews.length>3)throw Error('Choose up to three previews.');status.textContent='Preparing upload…';const data=metadata(form);if(type==='physical'&&/^\d+\.png$/i.test(file?.name||'')&&!data.name.trim())throw Error('Enter an artwork Name for numbered PNG downloads.');let upload,saved;
  // Receipt is bound to configuration and update target. Only IDs/metadata are stored here, never credentials.
- const signature=JSON.stringify({filename:file?.name,bytes:file?.size,type,updateProductId,metadata:data,referenceListingId:form.elements.referenceListingId?.value,storeOnly:form.elements.storeOnly?.checked===true,previews:previews.map(f=>[f.name,f.size])});try{saved=JSON.parse(sessionStorage.getItem('poster-upload')||'null');}catch{}
+ const selection={filename:file?.name,bytes:file?.size,type,updateProductId,metadata:data,referenceListingId:form.elements.referenceListingId?.value,storeOnly:form.elements.storeOnly?.checked===true,previews:previews.map(f=>[f.name,f.size])};
+ const signature=JSON.stringify(selection);
+ // A pre-existing receipt may still have the former Wall Art size selection.
+ const legacySignature=type==='physical'&&data.printSizes?.join(',')==='A5,A4'
+  ? JSON.stringify({...selection,metadata:{...data,printSizes:['A5','A4','A3']}})
+  : null;
+ try{saved=JSON.parse(sessionStorage.getItem('poster-upload')||'null');}catch{}
  if(saved&&!validUploadReceipt(saved)){saved=null;try{sessionStorage.removeItem('poster-upload');}catch{}}
- if(saved?.signature===signature&&file){upload=saved;const prior=await api('/poster/uploads/'+upload.id);if(prior.phase==='cancelled'){upload=null;try{sessionStorage.removeItem('poster-upload');}catch{}}else{if(!['uploading','stored','preparing','ready_for_approval','publishing','published','needs_investigation','superseded'].includes(prior.phase))throw Error('Saved upload status is unavailable. Check the product dashboard before retrying.');if(prior.phase!=='uploading'){location.assign('/poster/upload?id='+upload.id);return;}}}
+ if(saved&&(saved.signature===signature||saved.signature===legacySignature)&&file){upload=saved;const prior=await api('/poster/uploads/'+upload.id);if(prior.phase==='cancelled'){upload=null;try{sessionStorage.removeItem('poster-upload');}catch{}}else{if(!['uploading','stored','preparing','ready_for_approval','publishing','published','needs_investigation','superseded'].includes(prior.phase))throw Error('Saved upload status is unavailable. Check the product dashboard before retrying.');if(prior.phase!=='uploading'){location.assign('/poster/upload?id='+upload.id);return;}}}
  // Read the file explicitly so mobile file-provider failures are not disguised as fetch errors.
  let firstChunk;
  if(file&&(!upload||upload.phase==='uploading')){

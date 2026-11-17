@@ -31,6 +31,9 @@ test('remote artwork transport assembles exact bytes across bounded bridge reque
  const rpc=async b=>{const r=await bridge(new Request(origin,{method:'POST',body:JSON.stringify(b)}));assert.equal(r.status,200);return r.json();};
  const remote=createRemoteStore('sapiver-poster-uploads',rpc),key='uploads/'+'a'.repeat(32)+'/master.png',bytes=Buffer.alloc(37_400_000);for(let i=0;i<bytes.length;i++)bytes[i]=i%251;
  await remote.set(key,bytes);assert.deepEqual(Buffer.from(await remote.get(key,{type:'arrayBuffer'})),bytes);
+ const printKey=key.replace('/master.png','/print-master.png'),printPage=Buffer.from('approved A4 page');
+ assert.equal((await remote.set(printKey,printPage)).modified,true);
+ assert.deepEqual(Buffer.from(await remote.get(printKey,{type:'arrayBuffer'})),printPage);
  let calls=0;const changing=createRemoteStore('sapiver-poster-uploads',async b=>{const r=await rpc(b);if(b.op==='get'&&++calls===2)r.etag='changed';return r;});await assert.rejects(changing.get(key,{type:'arrayBuffer'}));
 });
 

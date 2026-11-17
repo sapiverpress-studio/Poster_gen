@@ -1,3 +1,12 @@
+## DEVELOPMENT CHECKPOINT — 17 November 2026: A4/A5 poster uploads (STAGED)
+
+- **Scope:** All new physical single, private storage, Individual ZIP, Singular trio and Six-pack uploads use A5/A4. Trio manifests select one of those sizes. The four individual finishes and existing delivery, Etsy and PrintShrimp approval controls remain in use. Legacy three-size poster manifests import with A5/A4 offerings. Existing listings and accepted reviews retain their recorded sizes.
+- **Artwork:** Use an A-series portrait PNG at 2480 × 3508 pixels or larger or a square PNG at least 2480 × 2480 pixels. The uploader retains original bytes and fits a square proportionally onto a separate white A4 page at 300 PPI. The mockups, approval digest and supplier handoff refer to that checked print page. Portrait masters are used directly.
+- **Verified locally:** All 550 Node 24 tests pass. The actual 17 November Streak Singular trio ZIP opens as four reviews with all three unchanged square PNGs. Each fitted page measured 2480 × 3508 at 300 PPI. Tests cover the eight individual finish/size combinations, storage fallback, existing listing recovery, keeping original bytes, and refusing changed print artwork before any merchant request.
+- **Release:** Development branch `fix/a4-a5-poster-uploads-20261117` targets `feature/canva-oauth-callback`. Authenticated mobile review, live supplier acceptance and a physical print proof are pending. The production release is a separate owner decision.
+
+---
+
 ## LIVE VERIFIED — 16 November 2026: digital ZIP upload button text
 - **Status:** LIVE. Netlify `sapiver-poster-gen-auth` current production deploy `6afae38457c7384addbfddd1` is READY, source branch `feature/canva-oauth-callback`, exact release commit `f5b493b383d48b950d1ad23da28950148bf79b72`, published 2026-11-16T11:06:04.394Z, error null.
 - **Source/testing:** PR #97 merged; GitHub Actions run `43854078237` SUCCESS (548 tests passed, zero failed). Digital downloads now show `Upload digital ZIP` for direct preselection and product-type switching; physical posters keep `Upload poster`. No Etsy, PrintShrimp or upload processing changes.
@@ -1727,3 +1736,11 @@ No Etsy listing or PrintShrimp order was created. Production deploy settings lef
 - Preserves an uploaded Pinterest media ID in signed owner state distinct from Pin ID, and reuses it in future protected, manually confirmed recovery. Original MP4 is not deleted unless BOTH YouTube video receipt and Pinterest Pin receipt confirmed. Comic logs bounded safe processing status and Pin creation IDs for diagnosis.
 - No live Pinterest Pin creation or original media storage deletion verified from this release; earlier 7-minute failed run 39294243767 lost the media ID before patch. Owner must explicitly reconfirm existing YouTube Short in SAME protected uploader job and retry Pinterest only; new media may need one re-upload to Pinterest, but no second YouTube post. Do not rerun failed GitHub Action.
 - Deployment impact: one verified production Netlify build. This doc-only status commit uses [skip netlify] to avoid second production build. Etsy/PrintShrimp/scheduled image Pins unchanged.
+
+### 2026-11-17 Europe/London — A4/A5 upload and square-artwork review
+
+- Stage / purpose: Remove A3 from new poster offers and let Streak's 5000 × 5000 original PNGs enter the existing A4/A5 print review.
+- Changed: Shared size/format checks in `public/poster-print-format.mjs`, `public/bulk-zip.mjs` and `lib/stored-posters.mjs`. Upload forms, metadata, plan, approval, approved artwork streaming and trio previews updated in `public`, `lib` and the existing uploaded-master edge handler. No new route or deployment configuration.
+- Verify / tests: Clean production-source baseline passed 548/548. Development regression testing exposed assumptions in legacy three-size fixtures and a metadata edit without stored size fields. Retained the legacy template for old plans and handled missing stored sizes; the final full local Node 24 run passed 550/550. The current Streak ZIP and its three A4 derivatives also passed local readback.
+- Deployment / credit impact: The independent branch and draft PR use the Netlify skip marker. Production has the previously verified digital ZIP button release. This development uses local or GitHub checks and no live merchant calls.
+- Risks / next action: Check the displayed print margins on the protected site after a separately approved release. Live supplier and physical print acceptance are still pending.
