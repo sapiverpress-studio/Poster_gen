@@ -132,3 +132,26 @@ test('folder-based studio has four permanent mobile navigation links and protect
  const guest=await handler(new Request(origin+'/poster/catalogue'),context);
  assert.notEqual(guest.status,200);
 });
+
+test('fresh bulk restart checks saved products and orphan upload assets before allowing reset',async()=>{
+ const uploads=store(),handler=createPosterUploadHandler({env,uploads});
+ const filename='SP-THE-DOORBELL-KNEW-B4D1856D.png';
+ const body=JSON.stringify({filenames:[filename]});
+ const check=()=>handler(request('/poster/bulk/restart-check','POST',body,{'Content-Type':'application/json'}),context);
+ let response=await check(),result=await response.json();
+ assert.equal(response.status,200);assert.equal(result.safeToRestart,true);
+ assert.equal(uploads.entries.size,0);
+ const id='a'.repeat(32);
+ uploads.entries.set('uploads/'+id+'/state',{productId:id,type:'physical',filename,phase:'uploading'});
+ response=await check();result=await response.json();
+ assert.equal(result.safeToRestart,false);assert.equal(result.matchCount,1);
+ uploads.entries.delete('uploads/'+id+'/state');
+ uploads.entries.set('products/'+id+'/record',{productId:id,type:'physical',files:[{name:filename,bytes:20000}],phase:'uploading'});
+ response=await check();result=await response.json();
+ assert.equal(result.safeToRestart,false);assert.equal(result.matchCount,1);
+ assert.equal(uploads.entries.size,1,'restart check must not mutate or delete any product');
+ const wrongCsrf=await handler(request('/poster/bulk/restart-check','POST',body,{'X-Poster-CSRF':'bad'}),context);
+ assert.equal(wrongCsrf.status,403);
+ const malicious=await handler(request('/poster/bulk/restart-check','POST',JSON.stringify({filenames:['../a.png']}),{'Content-Type':'application/json'}),context);
+ assert.equal(malicious.status,409);
+});
