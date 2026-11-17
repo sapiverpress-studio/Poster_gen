@@ -132,3 +132,56 @@ test('folder-based studio has four permanent mobile navigation links and protect
  const guest=await handler(new Request(origin+'/poster/catalogue'),context);
  assert.notEqual(guest.status,200);
 });
+
+test('fresh bulk restart checks saved products and orphan upload assets before allowing reset',async()=>{
+ const uploads=store(),handler=createPosterUploadHandler({env,uploads});
+ const filename='SP-THE-DOORBELL-KNEW-B4D1856D.png';
+ const body=JSON.stringify({filenames:[filename]});
+ const check=()=>handler(request('/poster/bulk/restart-check','POST',body,{'Content-Type':'application/json'}),context);
+ let response=await check(),result=await response.json();
+ assert.equal(response.status,200);assert.equal(result.safeToRestart,true);
+ assert.equal(uploads.entries.size,0);
+ const id='a'.repeat(32);
+ uploads.entries.set('uploads/'+id+'/state',{productId:id,type:'physical',filename,phase:'uploading'});
+ response=await check();result=await response.json();
+ assert.equal(result.safeToRestart,false);assert.equal(result.matchCount,1);
+ uploads.entries.delete('uploads/'+id+'/state');
+ uploads.entries.set('products/'+id+'/record',{productId:id,type:'physical',files:[{name:filename,bytes:20000}],phase:'uploading'});
+ response=await check();result=await response.json();
+ assert.equal(result.safeToRestart,false);assert.equal(result.matchCount,1);
+ assert.equal(uploads.entries.size,1,'restart check must not mutate or delete any product');
+ const wrongCsrf=await handler(request('/poster/bulk/restart-check','POST',body,{'X-Poster-CSRF':'bad'}),context);
+ assert.equal(wrongCsrf.status,403);
+ const malicious=await handler(request('/poster/bulk/restart-check','POST',JSON.stringify({filenames:['../a.png']}),{'Content-Type':'application/json'}),context);
+ assert.equal(malicious.status,409);
+});
+
+
+test('failed collection reset button refuses duplicate records and clears only a safe browser session',()=>{
+ const script=String.raw`
+ import assert from 'node:assert/strict';
+ const nodes=new Map(),calls=[],saved=new Map();
+ function element(){return {children:[],style:{},listeners:{},append(...v){this.children.push(...v);},replaceChildren(){this.children=[];},addEventListener(k,v){this.listeners[k]=v;},querySelector(){return submit;}};}
+ const submit=element();
+ globalThis.document={getElementById(id){if(!nodes.has(id))nodes.set(id,element());return nodes.get(id);},querySelector(){return {content:'csrf'};},createElement:element};
+ const form=document.getElementById('bulk-collection-form');
+ form.elements={uploadMode:{value:'single'},collection:{value:''},kind:{value:'artwork'}};
+ saved.set('sapiver-physical-bulk-v1',JSON.stringify({version:4,uploadMode:'single',
+   items:[{filename:'poster.png',uploadFilename:'SP-THE-DOORBELL-KNEW-B4D1856D.png',title:'Doorbell',listingTitle:'Sloth Art Print',sectionTitle:'Streak',creating:true,id:null}],
+   bundles:[],trioIds:[]}));
+ globalThis.sessionStorage={getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v),removeItem:k=>saved.delete(k)};
+ let safe=false;
+ globalThis.fetch=async(url,options)=>{calls.push({url,options});return Response.json({safeToRestart:safe,notice:'Matching product exists'});};
+ await import('./public/bulk-upload.mjs');
+ const reset=nodes.get('bulk-restart-failed');
+ assert.equal(reset.hidden,false);
+ await reset.listeners.click();
+ assert.ok(saved.has('sapiver-physical-bulk-v1'),'uncertain existing product must retain the browser state');
+ safe=true;await reset.listeners.click();
+ assert.equal(saved.has('sapiver-physical-bulk-v1'),false,'only a verified empty session may clear');
+ assert.equal(calls.length,2);
+ assert.ok(calls.every(c=>c.url==='/poster/bulk/restart-check'&&c.options.method==='POST'));
+ assert.match(nodes.get('bulk-restart-note').textContent,/Failed browser session cleared/);
+ `;
+ execFileSync(process.execPath,['--input-type=module','-e',script],{cwd:fileURLToPath(new URL('../',import.meta.url)),timeout:10000});
+});
