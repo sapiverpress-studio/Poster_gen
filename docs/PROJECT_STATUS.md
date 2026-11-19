@@ -1,3 +1,16 @@
+### 2026-11-19 14:00 GMT — Future Etsy listing alt text STAGED (no merchant writes)
+
+- **Owner request:** Add accessible photo alt text to ALL future Sapiver Prints Etsy uploads, but leave all current listings and the paid existing-listing image analysis until credits replenish.
+- **Working branch:** `feature/etsy-alt-text-future-listings-20261119` based on the Netlify production source `feature/canva-oauth-callback`. No commit has been made to the production branch.
+- **Implemented on branch:** New pure `lib/etsy-image-alt.mjs` generates distinct, truthful, maximum-250-character image descriptions using already-reviewed product metadata and known photo roles, **without any AI calls**. `lib/uploaded-poster.mjs` attaches them to the clean front and Black/White/Oak room mockup API uploads. `lib/collection-bundle-publication.mjs` attaches them to the trio cover and three member artwork previews. `lib/digital-product.mjs` attaches them to each seller-kit/download preview, distinguishing verified clean front from generic package previews.
+- **Review/immutability:** New alt-text arrays are incorporated into each newly prepared immutable plan (physical identity, trio plan, digital plan) and existing approval hashes. Previously prepared plans fall back to deterministic descriptions for publication without modifying their approved images.
+- **Tests prepared:** `test/etsy-image-alt.test.mjs` covers all three listing types, 250-character cap, unique image descriptions, safe inputs; existing physical, trio and digital publication tests now inspect the exact `alt_text` form values and preserve rank/source bytes. **Full GitHub CI still pending.**
+- **Not yet verified:** GitHub Node24 CI outcome, Etsy merchant response/read-back in real owner session, Netlify production release, on-device review. **NOT LIVE** until owner-approved release; do not claim merchant alt text has been changed.
+- **Credit and safety impact:** No AI model usage, no Work credits, no Netlify production build requested, no Etsy listing changes or PrintShrimp actions. Development commits use `[skip netlify]` to avoid preview/build credit use. Existing image order, customer ZIP, SKU, inventory, price, listing status and existing-listing backfill remain unchanged.
+- **Next action:** Run the full repository CI on a draft PR; fix any failures in this branch. Ask for a separate approved one-build production merge/release when Jim wants it live.
+
+---
+
 ### 2026-11-19 09:38 GMT — Mobile ZIP validation feedback correction DEPLOYED
 - **Owner observation:** Android screenshot showed `Offbeat-Singular-Trio.zip` selected and the image Analyse button still disabled with no adjacent reason. The ZIP itself was not supplied, so its contents are still unverified.
 - **Verified interface defect:** ZIP parser results were shown only in `#bulk-status` below the quota and several fields, making rejection invisible at the point of selecting the ZIP. Image analysis intentionally stayed disabled until a successful parse.
