@@ -24,5 +24,21 @@ test('missing poster-site AI key returns a safe explicit status without changing
 test('unavailable AI service does not replace any listing values',async()=>{
  const response=await handleEtsyPosterPreview(request(),{env,clock:()=>now,request:async()=>({ok:false,status:502})});
  assert.equal(response.status,502);
- assert.match((await response.json()).error,/existing details were not changed/);
+ const failure=await response.json();
+ assert.match(failure.error,/existing listing details were not changed/);
+ assert.equal(failure.issue,'provider');
+});
+
+test('invalid AI tags report a fixed safe rule without exposing draft text, session, or credentials',async()=>{
+ const tags=Array.from({length:13},(_,i)=>i===12?'same duplicate tag':'same duplicate tag');
+ const raw={title:'Hedgehog Art Print',tags,description:'A physical art print is shipped to your home.'};
+ let count=0;
+ const response=await handleEtsyPosterPreview(request(),{env,clock:()=>now,request:async()=>{
+  count++;return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify(raw)},finish_reason:'stop'}]})};
+ }});
+ assert.equal(response.status,502);
+ const result=await response.json();
+ assert.equal(result.issue,'tags');assert.match(result.error,/13 Etsy tags/);
+ assert.ok(!JSON.stringify(result).includes('same duplicate tag'));
+ assert.equal(count,2);
 });
