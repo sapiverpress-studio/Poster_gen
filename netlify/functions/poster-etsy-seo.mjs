@@ -30,4 +30,4 @@ export async function handleEtsyPosterPreview(req,{env,request=fetch,clock=()=>D
  }
 }
 export default req=>handleEtsyPosterPreview(req,{env:websiteEnv(n=>Netlify.env.get(n))});
-export const config={path:'/poster/etsy/preview',rateLimit:{action:'rate_limit',aggregateBy:'ip',windowSize:300,windowLimit:6}};
+export const config={path:'/poster/etsy/preview',rateLimit:{action:'rate_limit',aggregateBy:'ip',windowSize:300,windowLimit:12}};
