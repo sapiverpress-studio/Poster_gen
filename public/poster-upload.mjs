@@ -59,6 +59,7 @@ async function importCommercialKit(file){
   showType(form,'digital');
   for(const key of ['name','subject','price'])if(elements[key])elements[key].value=String(product[key]);
   if(elements.digitalDescription)elements.digitalDescription.value=product.description;
+   if(elements.etsyTitle)elements.etsyTitle.value=product.etsyTitle||'';
   if(elements.tags)elements.tags.value=product.tags.join(', ');
   if(elements.kind)elements.kind.value='pattern';
   if(elements.useEmbeddedText)elements.useEmbeddedText.checked=true;
