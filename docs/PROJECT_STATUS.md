@@ -1,3 +1,14 @@
+### 2026-11-19 14:20 GMT — SAME-REQUEST Etsy visual alt-text enhancement VERIFIED OFF PRODUCTION
+
+- **Implemented:** The existing authenticated and owner-triggered image analysis now returns `altText` alongside `title`, `tags`, `description` in the **same** AI response and request. Structured output and validation enforce maximum 250 characters, accurate image description and no marketing claims. No separate paid image analysis was added.
+- **Single poster flow:** Editable front-image alt-text field added to the upload form; selecting a different file clears previous text. `productMetadata` validates optional 250-character text and `prepareUploadedPoster` binds it to only the clean artwork front photo. Black/White/Oak illustrative mockups continue to have distinct template-safe descriptions.
+- **Bulk flow:** The existing review now displays editable first-image alt text for each poster and passes it through `applyBulkEtsySeo` and saved collection item metadata, retaining original ZIP artwork and the approval flow. Three-print covers and digital previews retain their distinct role-based fallback descriptions when not individually analysed.
+- **Verification:** GitHub Actions `Verify Poster_gen` run **44542225469**, Node24 job **135623301557**, completed **SUCCESS**, **609 passed / 0 failed**. Includes original physical/trio/digital image upload tests and new visual-alt validation. No live Etsy merchant response was exercised. Testing this seller-side API persistence requires owner-authorised release and first new listing.
+- **Credit and release controls:** Working branch `feature/etsy-alt-text-future-listings-20261119`, draft PR [#112](https://github.com/sapiverpress-studio/Poster_gen/pull/112). No Work credits or extra paid AI request; all commits marked `[skip netlify]`; production branch and existing Etsy listings unchanged. **NOT DEPLOYED.**
+- **Next authorised action:** A separate owner-approved merge/release to the Netlify-linked production branch, with a verified Etsy first-new-listing read-back of alt text and image ranks. Existing-listing backfill remains explicitly deferred until AI credits replenish.
+
+---
+
 ### 2026-11-19 14:00 GMT — Future Etsy listing alt text STAGED (no merchant writes)
 
 - **Owner request:** Add accessible photo alt text to ALL future Sapiver Prints Etsy uploads, but leave all current listings and the paid existing-listing image analysis until credits replenish.
