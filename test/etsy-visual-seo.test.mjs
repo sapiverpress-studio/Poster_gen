@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {validPosterRequest,validatePosterSeo,suggestPosterSeo} from '../lib/etsy-visual-seo.mjs';
 const imageDataUrl='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/';
 const tags=['hedgehog wall art','woodland hedgehog','animal nursery art','forest animal print','hedgehog gift','nature wall print','black ink drawing','woodland bedroom','hedgehog poster','quirky animal art','hedgehog decor','british wildlife','nature lover gift'];
-const sample={title:'Hedgehog Woodland Wall Art Print',tags,description:'A physical art print featuring a woodland hedgehog. Available in A4 and A5, framed or unframed. No digital file is supplied.'};
+const sample={title:'Hedgehog Woodland Wall Art Print',tags,description:'A physical art print featuring a woodland hedgehog. Available in A4 and A5, framed or unframed. No digital file is supplied.',altText:'Black ink sketch of a hedgehog standing on cream paper with leafy woodland details.'};
 
 test('physical Etsy preview input never accepts full-size images or arbitrary data URLs',()=>{
  assert.equal(validPosterRequest({imageDataUrl,kind:'educational'}).kind,'educational');
@@ -13,11 +13,13 @@ test('physical Etsy preview input never accepts full-size images or arbitrary da
 });
 test('poster listing generator enforces Etsy 13 tags and physical fulfilment',()=>{
  const valid=validatePosterSeo(sample);
- assert.equal(valid.tags.length,13);assert.equal(valid.reviewRequired,true);assert.equal(valid.live_search_volume,false);
+ assert.equal(valid.tags.length,13);assert.match(valid.altText,/hedgehog/);assert.equal(valid.reviewRequired,true);assert.equal(valid.live_search_volume,false);
  assert.throws(()=>validatePosterSeo({...sample,tags:tags.slice(0,12)}),/13 distinct/);
  assert.throws(()=>validatePosterSeo({...sample,tags:[...tags.slice(0,12),tags[0]]}),/13 distinct/);
  assert.throws(()=>validatePosterSeo({...sample,tags:[...tags.slice(0,12),'a tag that is too long']}),/13 distinct/);
  assert.throws(()=>validatePosterSeo({...sample,title:'Hedgehog Digital File'}),/physical poster/);
+ assert.throws(()=>validatePosterSeo({...sample,altText:'x'.repeat(251)}),/250 characters/);
+ assert.throws(()=>validatePosterSeo({...sample,altText:''}),/250 characters/);
  assert.throws(()=>validatePosterSeo({...sample,tags:[...tags.slice(0,12),'digital download']}),/must not promise a digital download/);
  assert.throws(()=>validatePosterSeo({...sample,description:'No physical item is shipped.'}),/printed product is delivered/);
  assert.throws(()=>validatePosterSeo({...sample,description:'Instant download of hedgehog art. No physical product.'}),/printed product is delivered/);
@@ -28,6 +30,7 @@ test('poster image analysis uses just one small image and never claims Etsy dema
  const result=await suggestPosterSeo({imageDataUrl,name:'The Hedgehog',subject:'Hedgehog',kind:'artwork'},{apiKey:'test-only',request});
  assert.equal(result.title,sample.title);
  assert.equal(result.tags.length,13);
+ assert.equal(result.altText,sample.altText);
  assert.equal(body.model,'gpt-4o-mini');
  assert.equal(body.messages[1].content[1].image_url.url,imageDataUrl);
  assert.match(body.messages[0].content,/PHYSICAL poster/);
@@ -51,7 +54,7 @@ test('one physical trio analysis includes three separate image previews and fixe
  assert.equal(input.imageDataUrls.length,3);
  assert.equal(input.size,'A4');
  assert.throws(()=>validPosterRequest({imageDataUrls:[imageDataUrl],kind:'trio'}),/three reduced JPEG/);
- const trio={title:'Woodland Animal Trio Set of 3 Prints',tags,description:'A physical matching set of three separate woodland animal art prints, all A4. Select framed or unframed at checkout.'};
+ const trio={title:'Woodland Animal Trio Set of 3 Prints',tags,description:'A physical matching set of three separate woodland animal art prints, all A4. Select framed or unframed at checkout.',altText:'Three separate woodland illustrations of a fox, a hedgehog and an owl.'};
  let sent;
  const request=async(url,options)=>{sent=JSON.parse(options.body);return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify(trio)}}]})}};
  const result=await suggestPosterSeo({imageDataUrls:input.imageDataUrls,name:input.name,subject:input.subject,kind:'trio',size:'A4'},{apiKey:'test',request});
@@ -73,7 +76,7 @@ test('structured schema rejects duplicate tags then safely retries once without 
  assert.equal(result.title,sample.title);assert.equal(calls,2);
  assert.equal(requests[0].response_format.type,'json_schema');
  assert.equal(requests[0].response_format.json_schema.strict,true);
- assert.deepEqual(requests[0].response_format.json_schema.schema.required,['title','tags','description']);
+ assert.deepEqual(requests[0].response_format.json_schema.schema.required,['title','tags','description','altText']);
  assert.equal(requests[1].messages.filter(m=>m.role==='user')[0].content.filter(x=>x.type==='image_url').length,1);
  assert.match(requests[1].messages.at(-1).content,/13 Etsy tags were invalid/);
 });

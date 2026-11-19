@@ -14,6 +14,8 @@ export function applyBulkEtsySeo(archive,review){
   const listingTitle=String(fields.title||'').trim();
   const tags=tagList(fields.tags);
   const lead=String(fields.lead||'').trim();
+  const artworkAltText=isTrio?'':String(fields.altText||'').trim();
+  if(artworkAltText&&(artworkAltText.length>250||/[<>\x00-\x1f]/.test(artworkAltText)))fail('listing '+(index+1)+' has invalid accessible artwork text');
   if(!listingTitle||listingTitle.length>140||!physical.test(listingTitle)||/[<>\x00-\x1f]/.test(listingTitle))
    fail('listing '+(index+1)+' must identify a physical print in at most 140 characters');
   if(isTrio&&!/\b(?:set|trio|bundle|collection)\b/i.test(listingTitle))
@@ -27,7 +29,7 @@ export function applyBulkEtsySeo(archive,review){
   if(description.length>9000)fail('listing '+(index+1)+' exceeds Etsy description length; shorten the opening');
   if(isTrio&&(!/\b(?:three|3)\b/i.test(description)||!description.includes(original.size)))
    fail('trio '+(index+1)+' must retain the three-print size details');
-  return {...original,listingTitle,tags,description};
+  return {...original,listingTitle,tags,description,...(artworkAltText?{artworkAltText}:{})};
  };
  const items=archive.items.map((p,i)=>build(p,review.items[i],false,i));
  const bundles=(archive.bundles||[]).map((b,i)=>build(b,review.bundles[i],true,i));

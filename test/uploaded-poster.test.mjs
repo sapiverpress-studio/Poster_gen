@@ -63,7 +63,7 @@ test('fresh physical upload publishes the four shared room-scene previews withou
  await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing',approvedAt:Date.now()});await f.uploads.setJSON('claims/'+id+'/publish',{approvalHash:a.approvalHash});
  await publishUploadedPoster({...f,approvalHash:a.approvalHash});
  const imageCalls=f.calls.filter(([p,o])=>p.endsWith('/images')&&o.method==='POST');assert.equal(imageCalls.length,4);
- for(let i=0;i<4;i++){const form=imageCalls[i][1].body;assert.equal(form.get('rank'),String(i+1));assert.equal(hashBytes(await form.get('image').arrayBuffer()),expected[i]);}
+ for(let i=0;i<4;i++){const form=imageCalls[i][1].body;assert.equal(form.get('rank'),String(i+1));assert.equal(form.get('alt_text'),a.plan.identity.previewAltTexts[i]);assert.equal(hashBytes(await form.get('image').arrayBuffer()),expected[i]);}
 });
 
 test('selected Early Learning section reaches approved plan and actual physical Etsy publication',async()=>{
