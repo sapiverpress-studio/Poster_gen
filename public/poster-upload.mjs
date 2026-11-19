@@ -38,6 +38,58 @@ if(form&&!form.dataset.update&&new URLSearchParams(window.location.search).get('
  form.elements.kind.value='pattern';
 }
 if(form){showType(form,form.elements.type.value);form.elements.type.addEventListener('change',()=>showType(form,form.elements.type.value));}
+const posterSeoButton=document.getElementById('etsy-poster-analyse');
+const posterSeoStatus=document.getElementById('etsy-poster-seo-status');
+function enablePosterSeo(){
+ if(!posterSeoButton||!form)return;
+ const file=form.elements.poster.files?.[0];
+ posterSeoButton.disabled=form.elements.type.value!=='physical'||!file||!file.name.toLowerCase().endsWith('.png');
+}
+if(posterSeoButton&&form){
+ form.elements.poster.addEventListener('change',enablePosterSeo);
+ form.elements.type.addEventListener('change',enablePosterSeo);
+ enablePosterSeo();
+ posterSeoButton.addEventListener('click',async()=>{
+  const file=form.elements.poster.files?.[0];
+  if(!file||form.elements.type.value!=='physical'||!file.name.toLowerCase().endsWith('.png'))return;
+  posterSeoButton.disabled=true;
+  posterSeoStatus.textContent='Analysing a small preview for Etsy. Your full-size poster remains on this device…';
+  try{
+   const bitmap=await createImageBitmap(file);
+   let preview;
+   try{
+    const scale=Math.min(1,768/Math.max(bitmap.width,bitmap.height));
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(bitmap.width*scale));
+    canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+    const ctx=canvas.getContext('2d');
+    if(!ctx)throw Error('Your browser cannot prepare the image preview');
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+    preview=canvas.toDataURL('image/jpeg',0.72);
+    canvas.width=canvas.height=0;
+   }finally{bitmap.close();}
+   if(preview.length>800000)throw Error('Image preview exceeds the Etsy analysis limit');
+   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),40000);
+   let response;
+   try{
+    response=await fetch('/poster/etsy/preview',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','X-Poster-CSRF':csrf},body:JSON.stringify({imageDataUrl:preview,name:form.elements.name.value,subject:form.elements.subject.value,kind:form.elements.kind.value}),signal:controller.signal});
+   }finally{clearTimeout(timeout);}
+   const details=await response.json().catch(()=>({}));
+   if(!response.ok)throw Error(details.error||'Etsy artwork analysis unavailable');
+   if(file!==form.elements.poster.files?.[0]||form.elements.type.value!=='physical')throw Error('The selected poster changed. Analyse the current file again.');
+   if(!details.title||!Array.isArray(details.tags)||details.tags.length!==13||!details.description)throw Error('Etsy analysis returned incomplete fields');
+   form.elements.etsyTitle.value=details.title;
+   form.elements.tags.value=details.tags.join(', ');
+   form.elements.description.value=details.description;
+   if(!form.elements.name.value.trim())form.elements.name.value=details.title.replace(/\\s+(?:Wall Art )?(?:Print|Poster)$/i,'').slice(0,100);
+   if(!form.elements.subject.value.trim())form.elements.subject.value=form.elements.name.value;
+   posterSeoStatus.textContent='Etsy-specific title, 13 tags and description added to the form. Review wording and category before uploading. Search demand has not been measured.';
+  }catch(error){
+   posterSeoStatus.textContent=error?.name==='AbortError'?'Etsy image analysis timed out. Your current details are unchanged.':String(error?.message||'Could not analyse this poster.');
+  }finally{enablePosterSeo();}
+ });
+}
 let commercialKitFile=null,commercialKitImport=null;
 async function importCommercialKit(file){
  if(!form||form.elements.type.value!=='digital'||!file||!file.name.toLowerCase().endsWith('.zip'))return null;
