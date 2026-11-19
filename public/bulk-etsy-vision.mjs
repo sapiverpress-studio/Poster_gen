@@ -19,7 +19,7 @@ export function createBulkEtsyVision({form,csrf,getSavedState}){
   current={archive,signature,previews:[],items:[],bundles:[],complete:false};
   if(review){review.replaceChildren();review.hidden=true;}
   if(button)button.disabled=!!getSavedState();
-  setNotice(getSavedState()?'This collection has saved product receipts; analyse only before creating a new collection.':'Optional: visually analyse '+archive.items.length+' poster'+(archive.items.length===1?'':'s')+' and '+archive.bundles.length+' trio'+(archive.bundles.length===1?'':'s')+'. The analyser may retry one invalid AI result; AI usage consumes credits.');
+  setNotice(getSavedState()?'This collection has saved product receipts; analyse only before creating a new collection.':'Optional: visually analyse '+archive.items.length+' poster'+(archive.items.length===1?'':'s')+' and '+archive.bundles.length+' trio'+(archive.bundles.length===1?'':'s')+'. The analyser may retry once. AI usage is billed to your separate OpenAI API account, not Netlify AI Gateway; repeated unchanged artwork can reuse cached suggestions.');
  }
  async function jpegPreview(file){
   const bitmap=await createImageBitmap(file);
