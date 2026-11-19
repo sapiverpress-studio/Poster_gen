@@ -95,7 +95,7 @@ test('unsupported structured output falls back to JSON mode on the same bounded 
 });
 test('upstream HTTP 200 with a truncated completion is retried and cannot be accepted',async()=>{
  let calls=0;
- const request=async()=>{calls++;return {ok:true,json:async()=>({choices:[{finish_reason:'length',message:{content:'{"title":"half"}}'}]})}};
+ const request=async()=>{calls++;return {ok:true,json:async()=>({choices:[{finish_reason:'length',message:{content:'{"title":"half"}'}}]})}};
  await assert.rejects(suggestPosterSeo({imageDataUrl},{apiKey:'test',request}),e=>e.seoCode==='output_truncated');
  assert.equal(calls,2);
 });
