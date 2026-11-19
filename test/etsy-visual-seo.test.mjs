@@ -40,13 +40,12 @@ test('no configured AI provider fails before any paid request',async()=>{
  await assert.rejects(suggestPosterSeo({imageDataUrl},{apiKey:''}),/not configured/);
 });
 
-test('Netlify AI Gateway base URL is used instead of bypassing gateway',async()=>{
- let seen='';
- const request=async(url)=>{seen=url;return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify(sample)}}]})}};
- const result=await suggestPosterSeo({imageDataUrl,name:'The Hedgehog'},{apiKey:'injected-gateway-token',baseUrl:'https://gateway.example.test/openai/v1/',request});
- assert.equal(seen,'https://gateway.example.test/openai/v1/chat/completions');
- assert.equal(result.tags.length,13);
- await assert.rejects(suggestPosterSeo({imageDataUrl},{apiKey:'test',baseUrl:'http://unsafe.example',request}),/Unsafe AI Gateway/);
+test('physical Etsy SEO rejects Netlify AI Gateway and any non-OpenAI model host',async()=>{
+ let sent=0;
+ const request=async()=>{sent++;throw Error('No provider call should occur')};
+ await assert.rejects(suggestPosterSeo({imageDataUrl},{apiKey:'test',baseUrl:'https://gateway.example.test/openai/v1/',request}),/Direct OpenAI endpoint required/);
+ await assert.rejects(suggestPosterSeo({imageDataUrl},{apiKey:'test',baseUrl:'http://unsafe.example',request}),/Direct OpenAI endpoint required/);
+ assert.equal(sent,0);
 });
 
 test('one physical trio analysis includes three separate image previews and fixed print size',async()=>{
