@@ -61,3 +61,47 @@ test('one physical trio analysis includes three separate image previews and fixe
  assert.throws(()=>validatePosterSeo({...trio,title:'Woodland Print'}, {kind:'trio',size:'A4'}),/Trio listing/);
  assert.throws(()=>validatePosterSeo({...trio,description:'Three physical print artworks at A5.'},{kind:'trio',size:'A4'}),/Trio listing/);
 });
+
+test('structured schema rejects duplicate tags then safely retries once without extra image URLs',async()=>{
+ const bad={...sample,tags:[...tags.slice(0,12),tags[0]]};
+ let calls=0,requests=[];
+ const request=async(url,options)=>{
+  requests.push(JSON.parse(options.body));calls++;
+  return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify(calls===1?bad:sample)},finish_reason:'stop'}]})};
+ };
+ const result=await suggestPosterSeo({imageDataUrl,name:'Hedgehog'},{apiKey:'test',request});
+ assert.equal(result.title,sample.title);assert.equal(calls,2);
+ assert.equal(requests[0].response_format.type,'json_schema');
+ assert.equal(requests[0].response_format.json_schema.strict,true);
+ assert.deepEqual(requests[0].response_format.json_schema.schema.required,['title','tags','description']);
+ assert.equal(requests[1].messages.filter(m=>m.role==='user')[0].content.filter(x=>x.type==='image_url').length,1);
+ assert.match(requests[1].messages.at(-1).content,/13 Etsy tags were invalid/);
+});
+test('valid JSON with missing fields gets only one corrective retry and then specific safe failure',async()=>{
+ let calls=0;
+ const request=async()=>{calls++;return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({...sample,title:'Digital PDF File'})},finish_reason:'stop'}]})}};
+ await assert.rejects(suggestPosterSeo({imageDataUrl},{apiKey:'test',request}),e=>e.seoCode==='title');
+ assert.equal(calls,2);
+});
+test('unsupported structured output falls back to JSON mode on the same bounded second request',async()=>{
+ let calls=0,formats=[];
+ const request=async(url,options)=>{
+  calls++;formats.push(JSON.parse(options.body).response_format.type);
+  return calls===1?{ok:false,status:400}:{ok:true,json:async()=>({choices:[{message:{content:JSON.stringify(sample)},finish_reason:'stop'}]})};
+ };
+ const result=await suggestPosterSeo({imageDataUrl},{apiKey:'test',request});
+ assert.equal(result.title,sample.title);
+ assert.deepEqual(formats,['json_schema','json_object']);
+});
+test('upstream HTTP 200 with a truncated completion is retried and cannot be accepted',async()=>{
+ let calls=0;
+ const request=async()=>{calls++;return {ok:true,json:async()=>({choices:[{finish_reason:'length',message:{content:'{"title":"half"}}'}]})}};
+ await assert.rejects(suggestPosterSeo({imageDataUrl},{apiKey:'test',request}),e=>e.seoCode==='output_truncated');
+ assert.equal(calls,2);
+});
+test('AI refusal and provider failures are not blindly retried',async()=>{
+ let calls=0;
+ const request=async()=>{calls++;return {ok:true,json:async()=>({choices:[{message:{refusal:'I cannot assist'},finish_reason:'content_filter'}]})}};
+ await assert.rejects(suggestPosterSeo({imageDataUrl},{apiKey:'test',request}),e=>e.seoCode==='refusal');
+ assert.equal(calls,1);
+});
