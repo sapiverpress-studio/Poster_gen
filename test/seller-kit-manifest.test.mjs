@@ -12,7 +12,7 @@ const source=readFileSync(new URL('../public/seller-kit-manifest.js',import.meta
 const window={};
 runInNewContext(source,{window,Uint8Array,DataView,TextDecoder,Blob});
 const read=window.SapiverSellerKitManifest.read;
-const product={type:'digital',kind:'pattern',name:'Blue Grid Textile Pattern',subject:'Blue Grid Textile Pattern',
+const product={type:'digital',kind:'pattern',name:'Blue Grid Textile Pattern',etsyTitle:'Blue Grid Geometric Seamless Pattern Digital Download',subject:'Blue Grid Textile Pattern',
  description:'Blue woven geometry. Created with the aid of AI.',price:4.95,sectionTitle:'Digital Downloads',
  tags:['blue grid','woven textile','seamless pattern','blue geometric','soft blue'],seamlessConfirmed:true,
  useEmbeddedText:true,aiAssisted:true};
@@ -43,6 +43,7 @@ test('one actual seller ZIP auto-loads title, GBP price, description and Etsy ta
  const raw=await sellerKit();
  const extracted=await read(new Blob([raw]));
  assert.equal(extracted.name,product.name);
+  assert.equal(extracted.etsyTitle,product.etsyTitle);
  assert.equal(extracted.price,4.95);
  assert.equal(extracted.description,product.description);
  assert.deepEqual([...extracted.tags],product.tags);
@@ -53,9 +54,11 @@ test('one actual seller ZIP auto-loads title, GBP price, description and Etsy ta
  assert.equal(inspected.listingMetadata.product.name,product.name);
  const m=productMetadata({...product,licence:'',instructions:''},'blue-grid-commercial-seller-kit.zip','digital');
  assert.equal(m.description,product.description);
+  assert.equal(m.etsyTitle,product.etsyTitle);
  assert.equal(m.price,product.price);
  const listing=digitalListingText({...m,instructions:inspected.instructions,licence:inspected.licence},inspected.inspection.files);
  assert.match(listing.description,/Blue woven geometry/);
+  assert.equal(listing.title,product.etsyTitle);
  assert.match(listing.description,/no physical item will be shipped/);
 });
 test('legacy ZIP without a listing manifest remains eligible for existing manual upload flow',async()=>{
