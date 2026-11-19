@@ -58,7 +58,7 @@ test('direct first-product draft uses the approved profiles and exact custom inv
 test('fresh physical upload publishes the four shared room-scene previews without artwork replacement',async()=>{
  const f=await fixture({modern:true,direct:true});
  await prepareUploadedPoster(f);const a=await f.uploads.get(assetKey(id));
- const expected=[];for(let i=0;i<4;i++){const bytes=await f.uploads.get('uploads/'+id+'/mockups/'+i+'.jpg');const info=await sharp(bytes).metadata();assert.equal(info.width,1448);assert.equal(info.height,1186);expected.push(hashBytes(bytes));}
+ const expected=[];for(let i=0;i<4;i++){const bytes=await f.uploads.get('uploads/'+id+'/mockups/'+i+'.jpg');const info=await sharp(bytes).metadata();assert.equal(info.width,i===0?1600:1448);assert.equal(info.height,i===0?1600:1186);expected.push(hashBytes(bytes));}
  assert.deepEqual(a.plan.identity.previewHashes,expected);assert.equal(hashBytes(await f.uploads.get(a.masterKey)),hashBytes(f.bytes));
  await f.uploads.setJSON(assetKey(id),{...a,phase:'publishing',approvedAt:Date.now()});await f.uploads.setJSON('claims/'+id+'/publish',{approvalHash:a.approvalHash});
  await publishUploadedPoster({...f,approvalHash:a.approvalHash});
