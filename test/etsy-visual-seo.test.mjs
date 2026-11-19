@@ -18,6 +18,8 @@ test('poster listing generator enforces Etsy 13 tags and physical fulfilment',()
  assert.throws(()=>validatePosterSeo({...sample,tags:[...tags.slice(0,12),tags[0]]}),/13 distinct/);
  assert.throws(()=>validatePosterSeo({...sample,tags:[...tags.slice(0,12),'a tag that is too long']}),/13 distinct/);
  assert.throws(()=>validatePosterSeo({...sample,title:'Hedgehog Digital File'}),/physical poster/);
+ assert.throws(()=>validatePosterSeo({...sample,tags:[...tags.slice(0,12),'digital download']}),/must not promise a digital download/);
+ assert.throws(()=>validatePosterSeo({...sample,description:'No physical item is shipped.'}),/printed product is delivered/);
  assert.throws(()=>validatePosterSeo({...sample,description:'Instant download of hedgehog art. No physical product.'}),/downloadable/);
 });
 test('poster image analysis uses just one small image and never claims Etsy demand',async()=>{
