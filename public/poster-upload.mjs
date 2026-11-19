@@ -20,7 +20,7 @@ async function api(path,options={}){
  return body;
 }
 function validUploadReceipt(upload){return upload&&/^[A-Za-z0-9_-]{32}$/.test(upload.id||'')&&['uploading','preparing'].includes(upload.phase)&&Number.isSafeInteger(upload.chunkBytes)&&upload.chunkBytes>0&&upload.chunkBytes<=2_000_000;}
-function metadata(f){return {useEmbeddedText:f.elements.useEmbeddedText?.checked===true,name:f.elements.name.value,description:(['pattern','poster','bundle'].includes(f.elements.kind?.value)?f.elements.digitalDescription?.value:f.elements.description?.value)||'',subject:f.elements.subject.value,etsyTitle:f.elements.etsyTitle?.value||'',kind:f.elements.kind.value,sectionTitle:f.elements.sectionTitle?.value,printSizes:f.elements.printSizes?.value.split(',')||undefined,websiteFolder:f.elements.websiteFolder?.value||'',price:f.elements.price.value,licence:f.elements.licence.value,instructions:f.elements.instructions.value,tags:f.elements.tags.value,taxonomyId:f.elements.taxonomyId.value,seamlessConfirmed:f.elements.seamlessConfirmed.checked};}
+function metadata(f){return {useEmbeddedText:f.elements.useEmbeddedText?.checked===true,name:f.elements.name.value,description:(['pattern','poster','bundle'].includes(f.elements.kind?.value)?f.elements.digitalDescription?.value:f.elements.description?.value)||'',subject:f.elements.subject.value,etsyTitle:f.elements.etsyTitle?.value||'',artworkAltText:f.elements.artworkAltText?.value||'',kind:f.elements.kind.value,sectionTitle:f.elements.sectionTitle?.value,printSizes:f.elements.printSizes?.value.split(',')||undefined,websiteFolder:f.elements.websiteFolder?.value||'',price:f.elements.price.value,licence:f.elements.licence.value,instructions:f.elements.instructions.value,tags:f.elements.tags.value,taxonomyId:f.elements.taxonomyId.value,seamlessConfirmed:f.elements.seamlessConfirmed.checked};}
 function showType(f,type){const supplierStep=document.getElementById('physical-fulfilment-step');if(supplierStep)supplierStep.hidden=type==='digital';f.querySelectorAll('[data-digital]').forEach(e=>{e.hidden=type!=='digital';e.querySelectorAll('input,textarea').forEach(i=>i.disabled=type!=='digital');});f.querySelectorAll('[data-physical]').forEach(e=>e.hidden=type!=='physical');const options=[...f.elements.kind.options];options.forEach(o=>{o.hidden=o.dataset.type!==type;o.disabled=o.hidden;});if(f.elements.kind.selectedOptions[0]?.disabled)f.elements.kind.value=options.find(o=>!o.disabled).value;const kindLabel=document.getElementById('poster-kind-label');if(kindLabel)kindLabel.textContent=type==='physical'?'Poster type':'Product group';if(f.elements.poster)f.elements.poster.accept=type==='digital'?'.zip':'.png';if(f===form){const submit=f.querySelector('button[type="submit"]');if(submit)submit.textContent=type==='digital'?'Upload digital ZIP':'Upload poster';}}
 function bindSectionGuidance(f){
  const select=f?.elements.sectionTitle,note=document.getElementById('print-section-description');
@@ -46,7 +46,7 @@ function enablePosterSeo(){
  posterSeoButton.disabled=form.elements.type.value!=='physical'||!file||!file.name.toLowerCase().endsWith('.png');
 }
 if(posterSeoButton&&form){
- form.elements.poster.addEventListener('change',enablePosterSeo);
+ form.elements.poster.addEventListener('change',()=>{if(form.elements.artworkAltText)form.elements.artworkAltText.value='';enablePosterSeo();});
  form.elements.type.addEventListener('change',enablePosterSeo);
  enablePosterSeo();
  posterSeoButton.addEventListener('click',async()=>{
@@ -82,6 +82,7 @@ if(posterSeoButton&&form){
    form.elements.etsyTitle.value=details.title;
    form.elements.tags.value=details.tags.join(', ');
    form.elements.description.value=details.description;
+   if(form.elements.artworkAltText)form.elements.artworkAltText.value=details.altText||'';
    if(!form.elements.name.value.trim())form.elements.name.value=details.title.replace(/\\s+(?:Wall Art )?(?:Print|Poster)$/i,'').slice(0,100);
    if(!form.elements.subject.value.trim())form.elements.subject.value=form.elements.name.value;
    posterSeoStatus.textContent='Etsy-specific title, 13 tags and description added to the form. Review wording and category before uploading. Search demand has not been measured.';
