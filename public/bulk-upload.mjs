@@ -85,8 +85,8 @@ async function onZipChosen(){
   zipMessage('ZIP rejected: '+String(error?.message||'unknown ZIP error')+'. No products created. Correct the ZIP or select another.');
  }finally{if(check===zipCheckEpoch&&zipCheckButton)zipCheckButton.disabled=false;}
 }
-form?.elements?.collection?.addEventListener?.('change',()=>{onZipChosen().catch(e=>zipMessage(e.message));});
-zipCheckButton?.addEventListener?.('click',()=>{onZipChosen().catch(e=>zipMessage(e.message));});
+form?.elements?.collection?.addEventListener?.('change',()=>onZipChosen().catch(e=>zipMessage(e.message)));
+zipCheckButton?.addEventListener?.('click',()=>onZipChosen().catch(e=>zipMessage(e.message)));
 function inputPlans(archive,withSeo=false){
  if(!archive.bundles.length)return null;
  const inputs=archive.bundles.map((_,i)=>({sku:'SP-PENDING-TRIO-'+(i+1),title:withSeo?archive.bundles[i].listingTitle:trioInput(i+1,'Title')?.value?.trim(),discount:Number(trioInput(i+1,'Discount')?.value)}));
