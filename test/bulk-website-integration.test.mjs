@@ -36,6 +36,9 @@ test('mobile ZIP submit renders immediate status and reviews before legacy recov
  assert.equal((html.match(/id="bulk-status"/g)||[]).length,1);
  assert.match(html,/<form id="bulk-collection-form" novalidate>/);
  assert.match(html,/id="bulk-status" role="status" aria-live="polite"/);
+ assert.match(html,/id="bulk-analyse-etsy" disabled/);
+ assert.match(html,/id="bulk-seo-review" hidden/);
+ assert.match(html,/Analyse each poster and matching trio for Etsy/);
  assert.match(html,/id="trio-create-section"/);
 });
 test('six prepared upload hashes and original text are owner-visible only, never token data',async()=>{
