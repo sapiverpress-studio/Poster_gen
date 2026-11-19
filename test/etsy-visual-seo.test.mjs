@@ -20,7 +20,8 @@ test('poster listing generator enforces Etsy 13 tags and physical fulfilment',()
  assert.throws(()=>validatePosterSeo({...sample,title:'Hedgehog Digital File'}),/physical poster/);
  assert.throws(()=>validatePosterSeo({...sample,tags:[...tags.slice(0,12),'digital download']}),/must not promise a digital download/);
  assert.throws(()=>validatePosterSeo({...sample,description:'No physical item is shipped.'}),/printed product is delivered/);
- assert.throws(()=>validatePosterSeo({...sample,description:'Instant download of hedgehog art. No physical product.'}),/downloadable/);
+ assert.throws(()=>validatePosterSeo({...sample,description:'Instant download of hedgehog art. No physical product.'}),/printed product is delivered/);
+ assert.throws(()=>validatePosterSeo({...sample,description:'Physical printed hedgehog art. Instant download also included.'}),/downloadable/);
 });
 test('poster image analysis uses just one small image and never claims Etsy demand',async()=>{
  let body;const request=async(url,options)=>{assert.equal(url,'https://api.openai.com/v1/chat/completions');body=JSON.parse(options.body);return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify(sample)}}]})}};
