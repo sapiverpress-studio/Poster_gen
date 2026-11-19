@@ -43,4 +43,20 @@ jobs:
       - run: node --check netlify/functions/video-publisher.mjs
       - run: node --check public/video-publisher.mjs
       - run: node --check public/video-validation.mjs
+      - name: Verify new artwork tests
+        run: node --test test/etsy-artwork-first.test.mjs
+      - name: Verify scene tests
+        run: node --test test/poster-scenes.test.mjs
+      - name: Verify physical tests
+        run: node --test test/uploaded-poster.test.mjs
+      - name: Verify digital tests
+        run: node --test test/digital-products.test.mjs
+      - name: Isolate A-F
+        run: node --test test/[a-f]*.test.mjs
+      - name: Isolate G-L
+        run: node --test test/[g-l]*.test.mjs
+      - name: Isolate M-R
+        run: node --test test/[m-r]*.test.mjs
+      - name: Isolate S-Z
+        run: node --test test/[s-z]*.test.mjs
       - run: npm test
