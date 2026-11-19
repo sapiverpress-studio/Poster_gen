@@ -40,6 +40,11 @@ test('mobile ZIP submit renders immediate status and reviews before legacy recov
  assert.match(html,/id="bulk-seo-review" hidden/);
  assert.match(html,/Analyse each poster and matching trio for Etsy/);
  assert.match(html,/id="trio-create-section"/);
+ assert.match(html,/id="bulk-zip-validation-status" role="status" aria-live="polite"/);
+ assert.match(html,/id="bulk-check-zip"/);
+ assert.ok(html.indexOf('id="bulk-zip-validation-status"')<html.indexOf('id="bulk-analyse-etsy"'),
+  'ZIP validation must appear immediately beside the file input before the disabled analyse button');
+
 });
 test('six prepared upload hashes and original text are owner-visible only, never token data',async()=>{
  const uploads=store(),handler=createPosterUploadHandler({env,uploads});
