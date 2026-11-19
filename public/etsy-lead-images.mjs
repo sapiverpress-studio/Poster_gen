@@ -1,7 +1,8 @@
 const root=document.querySelector('[data-lead-images]');
 if(root){
  const csrf=root.dataset.csrf,output=document.getElementById('lead-state'),
-  preview=document.getElementById('lead-preview'),apply=document.getElementById('lead-apply'),reconcile=document.getElementById('lead-reconcile');
+  preview=document.getElementById('lead-preview'),trios=document.getElementById('lead-preview-trios'),
+  apply=document.getElementById('lead-apply'),reconcile=document.getElementById('lead-reconcile');
  let busy=false;
  async function send(path,body){
   const response=await fetch(path,{method:'POST',credentials:'same-origin',headers:{'x-poster-csrf':csrf,'Content-Type':'application/json'},body:JSON.stringify(body||{})});
@@ -29,6 +30,12 @@ if(root){
    await send('/poster/lead-images/reconcile',{});
    setTimeout(poll,1500);
   }catch(error){output.textContent=error.message;reconcile.disabled=false;busy=false;}
+ });
+ trios?.addEventListener('click',async()=>{
+  if(busy)return;busy=true;trios.disabled=true;
+  try{output.textContent='Checking all linked trio artworks without changing Etsy…';
+   await send('/poster/lead-images/preview',{scope:'trios'});setTimeout(poll,1500);}
+  catch(error){output.textContent=error.message;trios.disabled=false;busy=false;}
  });
  preview?.addEventListener('click',async()=>{
   if(busy)return;busy=true;preview.disabled=true;
