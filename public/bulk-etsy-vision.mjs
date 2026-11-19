@@ -81,6 +81,7 @@ export function createBulkEtsyVision({form,csrf,getSavedState}){
     data.titleInput=field(fs,'Etsy title',data.title,false);
     data.tagsInput=field(fs,'13 Etsy tags, comma-separated',data.tags.join(', '),'tags');
     data.leadInput=field(fs,'SEO description opening (existing product facts stay below)',data.description,'lead');
+    if(type==='items'){data.altInput=field(fs,'Alt text for the clean front image (up to 250 characters)',data.altText||'','lead');data.altInput.maxLength=250;}
     review.append(fs);
    });
   }
@@ -139,7 +140,7 @@ export function createBulkEtsyVision({form,csrf,getSavedState}){
  function resolve(archive,signature){
   if(!current||current.signature!==signature||current.archive!==archive||!current.complete||
      !document.getElementById('bulk-etsy-use-suggestions')?.checked)return {archive,applied:false};
-  const extract=list=>list.map(x=>({title:x.titleInput.value,tags:x.tagsInput.value,lead:x.leadInput.value}));
+  const extract=list=>list.map(x=>({title:x.titleInput.value,tags:x.tagsInput.value,lead:x.leadInput.value,altText:x.altInput?.value||''}));
   const next=applyBulkEtsySeo(archive,{items:extract(current.items),bundles:extract(current.bundles)});
   return {archive:next,applied:true};
  }
