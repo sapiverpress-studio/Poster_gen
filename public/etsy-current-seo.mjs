@@ -66,11 +66,11 @@ function render(data){
     const tagList=tags.value.split(',').map(s=>s.trim()).filter(Boolean);
     return api('/edit',{id:row.id,title:title.value,tags:tagList,intro:intro.value});
    };
-   save.addEventListener('click',async()=>{if(working)return;working=true;save.disabled=true;
+   save.addEventListener('click',async()=>{if(working||running)return;working=true;save.disabled=true;
     try{await saveReview();alertText('Saved review for Etsy '+row.id+'. No Etsy listing changed.');await load();}
     catch(e){alertText(e.message);}finally{working=false;save.disabled=false;}
    });
-   apply.addEventListener('click',async()=>{if(working)return;
+   apply.addEventListener('click',async()=>{if(working||running)return;
     if(!confirm('Update ONLY Etsy listing #'+row.id+' with this title and 13 tags'+(checkbox.checked?', plus the optional description introduction':'')+'? Existing files, photos, prices, variations and fulfilment remain unchanged.'))return;
     working=true;apply.disabled=true;
     try{
@@ -88,7 +88,9 @@ function render(data){
  }
 }
 async function load(){const data=await api('/status');render(data);return data;}
-refresh?.addEventListener('click',async()=>{if(working)return;working=true;refresh.disabled=true;
+refresh?.addEventListener('click',async()=>{if(working||running)return;
+ if(rows.some(x=>['proposed','updated'].includes(x.status))&&!confirm('Replace the current saved SEO review with a fresh Etsy catalogue audit? Existing verified Etsy changes remain on Etsy.'))return;
+ working=true;refresh.disabled=true;
  try{await api('/prepare',{confirm:true});alertText('Authenticated Etsy catalogue read queued. No listings changed.');await load();}
  catch(e){alertText(e.message);}finally{working=false;refresh.disabled=false;}});
 all?.addEventListener('click',async()=>{if(running||working)return;running=true;
