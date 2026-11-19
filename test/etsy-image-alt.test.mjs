@@ -12,6 +12,13 @@ test('new physical listing has a close-up first and correctly labelled black, wh
  assert.equal(new Set(alt).size,4);
 });
 
+test('an owner-reviewed image description replaces only the clean front, not mockup roles',()=>{
+ const alt=listingImageAltTexts({type:'physical',subject:'Blue electric guitar',artworkAltText:'Bright blue electric guitar angled across orange abstract brushstrokes',count:4});
+ assert.equal(alt[0],'Bright blue electric guitar angled across orange abstract brushstrokes.');
+ assert.match(alt[1],/black frame/);
+ assert.throws(()=>listingImageAltTexts({type:'physical',subject:'Guitar',artworkAltText:'a'.repeat(251),count:4}),/250-character/);
+});
+
 test('trio cover and three individual member artworks receive different, appropriate descriptions',()=>{
  const alt=listingImageAltTexts({type:'trio',title:'Woodland Trio',subject:'Woodland animals',size:'A4',memberNames:['Fox','Robin','Hedgehog'],count:4});
  assert.match(alt[0],/three separate A4 art prints/);
