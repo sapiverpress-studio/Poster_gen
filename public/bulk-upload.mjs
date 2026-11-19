@@ -272,7 +272,7 @@ async function uploadItem(item,file,index){
   item.creating=true;item.creatingAt=Date.now();save();
   message((state.storeOnly?'Storing':'Preparing')+' poster '+(index+1)+' of '+state.items.length+'…');
   const meta={name:item.title,etsyTitle:item.listingTitle,description:item.description,tags:item.tags.join(','),
-   subject:item.title,kind:state.kind,sectionTitle:item.sectionTitle,websiteFolder:state.websiteFolder||'',printSizes:item.printSizes};
+   subject:item.title,artworkAltText:item.artworkAltText||'',kind:state.kind,sectionTitle:item.sectionTitle,websiteFolder:state.websiteFolder||'',printSizes:item.printSizes};
   const receipt=await api('/poster/uploads',{method:'POST',headers:{'Content-Type':'application/json'},
    body:JSON.stringify({filename:item.uploadFilename,bytes:file.size,type:'physical',metadata:meta,previewCount:0,storeOnly:state.storeOnly===true})});
   if(!validReceipt(receipt))throw Error('Uncertain new-product receipt. Stop and inspect the product dashboard.');
@@ -335,7 +335,7 @@ async function start(e){
    state={version:4,uploadMode:mode,signature:sig,kind:form.elements.kind.value,selectedShopSection:selected,websiteFolder:form.elements.websiteFolder?.value||'',storeOnly,
      ...(reviewed.applied?{sourceItems:sourceArchive.items.map(({filename,folder,title,listingTitle,sectionTitle,description,tags,printSizes})=>({filename,folder,title,listingTitle,sectionTitle,description,tags,printSizes})),sourceBundles:sourceArchive.bundles}:{}),
     bundles:archive.bundles.map((b,i)=>({...b,framed:collectionPlan.bundleListings[i].framed===true,input:{sku:collectionPlan.bundleListings[i].sku,title:collectionPlan.bundleListings[i].listingTitle,discount:collectionPlan.bundleListings[i].discount}})),trioIds:[],
-    items:archive.items.map((i,n)=>({filename:i.filename,folder:i.folder,title:i.title,listingTitle:i.listingTitle,sectionTitle:i.sectionTitle,description:i.description,tags:i.tags,printSizes:i.printSizes,sha256:artworkHashes[n],uploadFilename:collectionUploadFilename(i.title,artworkHashes[n]),id:null}))};save();
+    items:archive.items.map((i,n)=>({filename:i.filename,folder:i.folder,title:i.title,listingTitle:i.listingTitle,sectionTitle:i.sectionTitle,description:i.description,tags:i.tags,artworkAltText:i.artworkAltText||'',printSizes:i.printSizes,sha256:artworkHashes[n],uploadFilename:collectionUploadFilename(i.title,artworkHashes[n]),id:null}))};save();
   }else{
    if((state.sourceItems||state.items).some((v,i)=>v.filename!==archive.items[i].filename||v.folder!==archive.items[i].folder||v.listingTitle!==archive.items[i].listingTitle||v.sectionTitle!==archive.items[i].sectionTitle||v.title!==archive.items[i].title||v.description!==archive.items[i].description||v.tags.join(',')!==archive.items[i].tags.join(',')||newPosterPrintSizes(v.printSizes).join(',')!==archive.items[i].printSizes.join(',')))
     throw Error('This ZIP differs from the saved collection. Do not reuse existing product receipts with different descriptions.');
