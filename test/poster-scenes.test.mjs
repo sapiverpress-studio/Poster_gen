@@ -14,6 +14,16 @@ test('reusable apertures contain no previous artwork and accept a different asym
  const bytes=await sharp({create:{width:707,height:1000,channels:3,background:'#ff0000'}}).composite([{input:await sharp({create:{width:100,height:100,channels:3,background:'#0000ff'}}).png().toBuffer(),left:0,top:0},{input:await sharp({create:{width:100,height:100,channels:3,background:'#00ff00'}}).png().toBuffer(),left:607,top:900}]).png().toBuffer();
  const outputs=await makePosterMockups(bytes);
  for(const [i,scene] of POSTER_SCENES.entries()){
+  if(i===0){
+   const image=await sharp(outputs[0]).metadata();
+   assert.equal(image.width,1600);assert.equal(image.height,1600);
+   // The first image shows the actual entire artwork, not the old room scene.
+   const {data,info}=await sharp(outputs[0]).raw().toBuffer({resolveWithObject:true});
+   const pixel=(x,y)=>Array.from(data.subarray((y*info.width+x)*info.channels,(y*info.width+x)*info.channels+3));
+   assert.ok(pixel(255,25)[2]>200&&pixel(255,25)[0]<70);
+   assert.ok(pixel(1335,1565)[1]>200&&pixel(1335,1565)[0]<70);
+   continue;
+  }
   const template=await readFile(new URL('../lib/assets/poster-scenes/'+scene.name+'.webp',import.meta.url));
   const blank=await sharp(template).extract({left:scene.left+10,top:scene.top+10,width:scene.width-20,height:scene.height-20}).raw().toBuffer();assert.ok(blank.every(v=>v>=245));
   const {data,info}=await sharp(outputs[i]).raw().toBuffer({resolveWithObject:true});
