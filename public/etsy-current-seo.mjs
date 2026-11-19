@@ -2,8 +2,8 @@
 const root=document.getElementById('etsy-current-seo'),output=document.getElementById('current-seo-results'),
  note=document.getElementById('current-seo-state'),csrf=root?.dataset.csrf||'';
 const refresh=document.getElementById('current-seo-refresh'),all=document.getElementById('current-seo-all'),
- stop=document.getElementById('current-seo-stop');
-let running=false,working=false,rows=[];
+ stop=document.getElementById('current-seo-stop'),check=document.getElementById('current-seo-check');
+let running=false,working=false,rows=[],lastPhase='not_started',pendingWrite=false;
 const label=(tag,value)=>{const el=document.createElement(tag);el.textContent=String(value);return el};
 function alertText(v){note.textContent=v}
 async function api(path,body){
@@ -26,7 +26,7 @@ function labelField(container,title,value,kind='input'){
  wrap.append(el);container.append(wrap);return el;
 }
 function render(data){
- rows=data.rows||[];output.replaceChildren();
+ rows=data.rows||[];lastPhase=data.phase||'not_started';pendingWrite=rows.some(x=>['apply_queued','sending'].includes(x.status));output.replaceChildren();
  const counts={};for(const x of rows)counts[x.status]=(counts[x.status]||0)+1;
  alertText('Seller catalogue: '+rows.length+' active listings · '+(counts.proposed||0)+' reviewed proposals · '+(counts.updated||0)+' verified updates · '+(counts.pending||0)+' awaiting image analysis'+(data.phase==='queued'?' · Etsy audit running':''));
  if(data.phase==='queued'){output.append(label('p','Authenticated Etsy catalogue audit is running. Refresh status to check progress.'));return;}
@@ -93,6 +93,9 @@ refresh?.addEventListener('click',async()=>{if(working||running)return;
  working=true;refresh.disabled=true;
  try{await api('/prepare',{confirm:true});alertText('Authenticated Etsy catalogue read queued. No listings changed.');await load();}
  catch(e){alertText(e.message);}finally{working=false;refresh.disabled=false;}});
+check?.addEventListener('click',()=>load().catch(e=>alertText(e.message)));
+ // Poll only while this owner page is open; never schedule a remote/background task.
+ setInterval(()=>{if(!working&&!running&&(lastPhase==='queued'||pendingWrite))load().catch(()=>{});},6000);
 all?.addEventListener('click',async()=>{if(running||working)return;running=true;
  alertText('Analysing existing listings one at a time. You may stop; completed proposals are saved.');
  try{const data=await load(),pending=(data.rows||[]).filter(x=>['pending','analysis_failed'].includes(x.status)&&x.imageUrl);
