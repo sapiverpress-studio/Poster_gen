@@ -42,6 +42,15 @@ test('metadata requires real licensing, price and checked repeat; taxonomy does 
  assert.throws(()=>productMetadata({kind:'pattern',price:5,licence:'x',instructions:'y'},'Leaves.zip','digital'),/repeat/);assert.throws(()=>productMetadata({kind:'poster',price:5},'Poster.zip','digital'),/licence/);assert.throws(()=>productMetadata({kind:'poster',price:1.234,licence:'x',instructions:'y'},'Poster.zip','digital'),/price/);
  const text=digitalListingText(m,[{name:'art.png',format:'png',bytes:123,width:80,height:80}]);assert.match(text.description,/no physical item will be shipped/);assert.doesNotMatch(text.description,/commercial use permitted|300 DPI|A1/);assert.ok(text.tags.length<=13);
 });
+test('Etsy-specific digital title survives metadata validation and is used in the prepared listing',()=>{
+ const title='Blue Grid Geometric Seamless Pattern Digital Download';
+ const m=productMetadata({kind:'pattern',name:'Blue Grid',subject:'Blue Grid',etsyTitle:title,price:4.99,licence:'Commercial-use licence supplied',instructions:'Download and unzip',seamlessConfirmed:true,tags:'blue grid pattern,blue textile tile'},'Blue-Grid.zip','digital');
+ assert.equal(m.etsyTitle,title);
+ const listing=digitalListingText(m,[{name:'tile.png',format:'png',bytes:123,width:80,height:80}]);
+ assert.equal(listing.title,title);
+ assert.match(listing.description,/DIGITAL DOWNLOAD/);
+ assert.throws(()=>productMetadata({...m,etsyTitle:'x'.repeat(141)},'Blue-Grid.zip','digital'),/Etsy title/);
+});
 async function publicationFixture({update=false,failFiles=false}={}){
  const uploads=memory(),etsyStore=memory(),calls=[],source=await archiveFixture();const a={phase:'preparing',type:'digital',productId:id,filename:'Green-Leaves.zip',metadata:metadata(),bytes:source.original.length,chunks:1,previewCount:0,sourcePreviewCount:0,createdAt:Date.now()};await uploads.set('uploads/'+id+'/chunks/0',source.original);await uploads.setJSON('uploads/'+id+'/state',a);await recordRevision(uploads,id);
  let listing,files=[],images=[],sections=[{shop_section_id:44,title:'Digital Downloads'}],created=0;const listingId=555;

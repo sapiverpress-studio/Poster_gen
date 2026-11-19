@@ -12,7 +12,7 @@
    !p||p.type!=='digital'||p.kind!=='pattern'||p.sectionTitle!=='Digital Downloads'||p.seamlessConfirmed!==true||
    p.useEmbeddedText!==true||p.aiAssisted!==true)fail('listing manifest has an invalid format, version or required product settings.');
   const clean=(s,max)=>typeof s==='string'&&s.trim().length>0&&s.trim().length<=max&&!/[\x00-\x1f<>]/.test(s);
-  if(!clean(p.name,100)||!clean(p.subject,100)||!clean(p.description,1500)||!/AI/i.test(p.description))
+  if(!clean(p.name,100)||(p.etsyTitle!==undefined&&!clean(p.etsyTitle,140))||!clean(p.subject,100)||!clean(p.description,1500)||!/AI/i.test(p.description))
    fail('the listing title, subject or AI-disclosed description is missing or invalid.');
   if(typeof p.price!=='number'||!Number.isFinite(p.price)||p.price<0.2||p.price>10000||
    Math.abs(Math.round(p.price*100)-p.price*100)>0.000001)fail('a valid GBP selling price is required.');
