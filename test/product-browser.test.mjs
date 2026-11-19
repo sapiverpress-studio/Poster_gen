@@ -209,7 +209,8 @@ test('physical uploader exposes optional image SEO preview while digital seller 
  const html=uploadBody({taxonomy:[]});
  assert.match(html,/id="etsy-poster-analyse"/);
  assert.match(html,/Generate Etsy title, 13 tags and description/);
- assert.match(html,/This does not upload or publish the product/);
+ assert.match(html,/A reduced image preview is sent for AI analysis/);
+ assert.match(html,/Nothing is published/);
  assert.match(html,/id="seller-kit-manifest-status"/);
  assert.match(html,/name="poster" accept="\.png,\.zip"/);
 });
