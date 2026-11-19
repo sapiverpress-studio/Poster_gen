@@ -1,4 +1,5 @@
 import {PRINT_SECTION_DESCRIPTIONS} from '../lib/print-sections.mjs';
+import {uploadBody} from '../lib/product-web.mjs';
 import sharp from 'sharp';
 import {createPosterUploadHandler} from '../lib/poster-upload-web.mjs';
 import {prepareUploadedPoster,assetKey} from '../lib/uploaded-poster.mjs';
@@ -202,4 +203,13 @@ test('lost finish response retains receipt and next submit checks status without
 test('rate limit has actionable guidance rather than a JSON parse error',async()=>{
  const f=fixture({responseFor:async()=>({status:429,ok:false})});selectedPng(f);await f.events.submit({preventDefault(){}});
  assert.match(f.status.textContent,/wait three minutes/);assert.equal(f.calls.length,1);
+});
+
+test('physical uploader exposes optional image SEO preview while digital seller ZIP remains unchanged',()=>{
+ const html=uploadBody({taxonomy:[]});
+ assert.match(html,/id="etsy-poster-analyse"/);
+ assert.match(html,/Generate Etsy title, 13 tags and description/);
+ assert.match(html,/This does not upload or publish the product/);
+ assert.match(html,/id="seller-kit-manifest-status"/);
+ assert.match(html,/name="poster" accept="\.png,\.zip"/);
 });
