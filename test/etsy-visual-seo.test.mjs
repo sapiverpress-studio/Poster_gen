@@ -44,3 +44,19 @@ test('Netlify AI Gateway base URL is used instead of bypassing gateway',async()=
  assert.equal(result.tags.length,13);
  await assert.rejects(suggestPosterSeo({imageDataUrl},{apiKey:'test',baseUrl:'http://unsafe.example',request}),/Unsafe AI Gateway/);
 });
+
+test('one physical trio analysis includes three separate image previews and fixed print size',async()=>{
+ const input=validPosterRequest({imageDataUrls:[imageDataUrl,imageDataUrl,imageDataUrl],name:'Woodland Trio',subject:'Fox, Hedgehog, Owl',kind:'trio',size:'A4'});
+ assert.equal(input.imageDataUrls.length,3);
+ assert.equal(input.size,'A4');
+ assert.throws(()=>validPosterRequest({imageDataUrls:[imageDataUrl],kind:'trio'}),/three reduced JPEG/);
+ const trio={title:'Woodland Animal Trio Set of 3 Prints',tags,description:'A physical matching set of three separate woodland animal art prints, all A4. Select framed or unframed at checkout.'};
+ let sent;
+ const request=async(url,options)=>{sent=JSON.parse(options.body);return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify(trio)}}]})}};
+ const result=await suggestPosterSeo({imageDataUrls:input.imageDataUrls,name:input.name,subject:input.subject,kind:'trio',size:'A4'},{apiKey:'test',request});
+ assert.equal(result.title,trio.title);
+ assert.equal(sent.messages[1].content.filter(x=>x.type==='image_url').length,3);
+ assert.match(sent.messages[0].content,/THREE supplied images/);
+ assert.throws(()=>validatePosterSeo({...trio,title:'Woodland Print'}, {kind:'trio',size:'A4'}),/Trio listing/);
+ assert.throws(()=>validatePosterSeo({...trio,description:'Three physical print artworks at A5.'},{kind:'trio',size:'A4'}),/Trio listing/);
+});
