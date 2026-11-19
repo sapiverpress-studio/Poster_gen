@@ -39,3 +39,8 @@ test('well-labelled digital patterns with 13 relevant tags pass Etsy preflight',
  const tags=['blue grid pattern','blue textile tile','blue squares','geometric pattern','checkerboard print','blue fabric design','digital pattern','seamless blue','tile repeat','soft blue pattern','indigo geometric','woven look pattern','grid digital file'];
  assert.deepEqual(listingQualityWarnings({productType:'digital',artworkName:'Blue Grid',listingTitle:'Blue Grid Digital Seamless Pattern Download',description:'DIGITAL DOWNLOAD — no physical item will be shipped.',tags,taxonomyPath:'Craft Supplies > Digital Patterns'}),[]);
 });
+
+test('accurate shipped-print wording is not mistaken for a digital-download promise',()=>{
+ const issues=listingQualityWarnings({artworkName:'Dachshund',listingTitle:'Dachshund Wall Art Print',description:'This is a physical print. This is not a digital download.',tags:Array.from({length:13},(_,i)=>'dachshund subject '+i)});
+ assert.ok(!issues.some(issue=>/appears to promise a digital file/.test(issue)));
+});
