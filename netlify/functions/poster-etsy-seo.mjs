@@ -22,7 +22,7 @@ export async function handleEtsyPosterPreview(req,{env,request=fetch,clock=()=>D
  let input;try{input=JSON.parse(raw);}catch{return json({error:'Invalid image-preview JSON'},400);}
  const apiKey=env('OPENAI_API_KEY');
  if(!apiKey)return json({error:'Etsy artwork analysis is not configured on this website. Manual fields remain available.'},503);
- try{return json(await suggestPosterSeo(input,{apiKey,request}));}
+ try{return json(await suggestPosterSeo(input,{apiKey,baseUrl:env('OPENAI_BASE_URL')||'https://api.openai.com/v1',request}));}
  catch(error){
   const message=String(error?.message||'Artwork analysis unavailable');
   if(/Invalid artwork request|reduced JPEG/.test(message))return json({error:message},400);
