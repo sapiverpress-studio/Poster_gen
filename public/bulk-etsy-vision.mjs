@@ -68,6 +68,16 @@ export function createBulkEtsyVision({form,csrf,getSavedState}){
     const fs=document.createElement('fieldset'),heading=document.createElement('legend');
     heading.textContent=(type==='items'?'Poster ':'Trio ')+(i+1)+' — '+originals[i].title;
     fs.append(heading);
+    const imageRow=document.createElement('div');imageRow.style.display='flex';imageRow.style.flexWrap='wrap';imageRow.style.gap='8px';
+    const previews=type==='items'?[current.previews[i]]:originals[i].members.map(member=>{
+     const index=current.archive.items.findIndex(it=>it.folder.split('/').at(-1).toLowerCase()===member.toLowerCase());
+     return current.previews[index];
+    });
+    for(const [n,src] of previews.entries()){
+     const image=document.createElement('img');image.src=src;image.alt=(type==='items'?'Poster artwork':'Trio member '+(n+1));
+     image.width=112;image.style.maxWidth='30%';image.style.height='auto';imageRow.append(image);
+    }
+    fs.append(imageRow);
     data.titleInput=field(fs,'Etsy title',data.title,false);
     data.tagsInput=field(fs,'13 Etsy tags, comma-separated',data.tags.join(', '),'tags');
     data.leadInput=field(fs,'SEO description opening (existing product facts stay below)',data.description,'lead');
