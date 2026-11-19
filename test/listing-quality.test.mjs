@@ -26,3 +26,16 @@ test('existing physical review shows preflight and correction control without ed
  assert.match(html,/Correct product details before Deploy/);
  assert.match(html,/Verify that this category suits a physical print/);
 });
+
+test('digital listing SEO checks missing buyer intent and sparse generic tags without inventing demand',()=>{
+ const issues=listingQualityWarnings({productType:'digital',artworkName:'Blue Grid',listingTitle:'Blue Grid',description:'Blue grid artwork',tags:'digital download,pattern,art',taxonomyPath:'Art > Framed Prints'});
+ assert.ok(issues.some(issue=>/digital product type/.test(issue)));
+ assert.ok(issues.some(issue=>/nothing physical/.test(issue)));
+ assert.ok(issues.some(issue=>/Only 3 of 13/.test(issue)));
+ assert.ok(issues.some(issue=>/generic/.test(issue)));
+ assert.ok(issues.some(issue=>/category/.test(issue)));
+});
+test('well-labelled digital patterns with 13 relevant tags pass Etsy preflight',()=>{
+ const tags=['blue grid pattern','blue textile tile','blue squares','geometric pattern','checkerboard print','blue fabric design','digital pattern','seamless blue','tile repeat','soft blue pattern','indigo geometric','woven look pattern','grid digital file'];
+ assert.deepEqual(listingQualityWarnings({productType:'digital',artworkName:'Blue Grid',listingTitle:'Blue Grid Digital Seamless Pattern Download',description:'DIGITAL DOWNLOAD — no physical item will be shipped.',tags,taxonomyPath:'Craft Supplies > Digital Patterns'}),[]);
+});
