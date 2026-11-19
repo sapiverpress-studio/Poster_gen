@@ -1,3 +1,8 @@
+### 19 November 2026 — Etsy SEO follow-up: deterministic checks VERIFIED (development only)
+- Parsed all six modified Poster Gen implementation JavaScript files successfully in the V8 syntax harness. The pure Etsy preflight accepted a correctly labelled digital listing with 13 specific tags, flagged generic/sparse physical tags, and did not falsely report a digital download when a shipped poster explicitly states "not a digital download".
+- Isolated execution of `digitalListingText` verified that a separate owner-reviewed digital `etsyTitle` is retained verbatim and that the description still says no physical item ships. `lib/product-web.mjs` additionally shows the advisory on physical trio reviews; it does not change Etsy tags or publish anything.
+- Remaining validation: real Node24 test suite, actual browser ZIP round-trip, Android and Netlify deployment. These have NOT been run. No production branch changes, CI trigger, Etsy write, Netlify release or Work credits.
+
 ## DEVELOPMENT CHECKPOINT — 19 November 2026: Etsy-specific SEO for physical posters and digital downloads (NOT DEPLOYED)
 - **Request:** Improve Etsy listing copy for both physical poster uploads and digital downloads without changing Redbubble/Zazzle, publishing a merchant listing, or generating additional physical products.
 - **Branch:** `feature/etsy-seo-both-products-20261119` based on the production-linked `feature/canva-oauth-callback`. Production branch, Etsy records, billing settings and scheduled jobs were not changed.
