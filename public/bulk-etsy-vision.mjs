@@ -19,7 +19,7 @@ export function createBulkEtsyVision({form,csrf,getSavedState}){
   current={archive,signature,previews:[],items:[],bundles:[],complete:false};
   if(review){review.replaceChildren();review.hidden=true;}
   if(button)button.disabled=!!getSavedState();
-  setNotice(getSavedState()?'This collection has saved product receipts; analyse only before creating a new collection.':'Optional: visually analyse '+archive.items.length+' poster'+(archive.items.length===1?'':'s')+' and '+archive.bundles.length+' trio'+(archive.bundles.length===1?'':'s')+'. Each listing uses one AI analysis call and credits.');
+  setNotice(getSavedState()?'This collection has saved product receipts; analyse only before creating a new collection.':'Optional: visually analyse '+archive.items.length+' poster'+(archive.items.length===1?'':'s')+' and '+archive.bundles.length+' trio'+(archive.bundles.length===1?'':'s')+'. The analyser may retry one invalid AI result; AI usage consumes credits.');
  }
  async function jpegPreview(file){
   const bitmap=await createImageBitmap(file);
@@ -125,7 +125,7 @@ export function createBulkEtsyVision({form,csrf,getSavedState}){
       if(target!==current)throw Error('The selected ZIP changed');
       target[job.type][job.i]=result;finished++;
       setNotice('Analysed '+finished+'/'+jobs.length+' Etsy listings. Checking each set separately…');
-     }catch(error){failed=error;break;}
+     }catch(error){failed=new Error((job.type==='items'?'Poster ':'Trio ')+(job.i+1)+': '+String(error?.message||'analysis unavailable'));break;}
     }
    };
    await Promise.all(Array.from({length:Math.min(2,jobs.length)},worker));

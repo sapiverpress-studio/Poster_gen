@@ -1,7 +1,7 @@
 import {unseal,equal,acceptedRequestContext} from '../../lib/oauth.mjs';
 import {etsySetup} from '../../lib/etsy-oauth.mjs';
 import {websiteEnv} from '../../lib/github-web.mjs';
-import {suggestPosterSeo} from '../../lib/etsy-visual-seo.mjs';
+import {suggestPosterSeo,publicPosterSeoIssue} from '../../lib/etsy-visual-seo.mjs';
 
 const json=(body,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 export async function handleEtsyPosterPreview(req,{env,request=fetch,clock=()=>Date.now()}={}){
@@ -26,7 +26,8 @@ export async function handleEtsyPosterPreview(req,{env,request=fetch,clock=()=>D
  catch(error){
   const message=String(error?.message||'Artwork analysis unavailable');
   if(/Invalid artwork request|reduced JPEG/.test(message))return json({error:message},400);
-  return json({error:'Could not generate reliable Etsy wording. Your existing details were not changed; retry or edit them manually.'},502);
+  const issue=publicPosterSeoIssue(error);
+  return json({error:'Etsy analysis could not finish: '+issue.message+'. Your existing listing details were not changed. You can retry or use the original ZIP.',issue:issue.code},502);
  }
 }
 export default req=>handleEtsyPosterPreview(req,{env:websiteEnv(n=>Netlify.env.get(n))});
