@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {LEAD_STATE} from '../lib/etsy-artwork-first.mjs';
 import {reconcileArtworkFirstAudit} from '../lib/etsy-artwork-reconcile.mjs';
 import {handleArtworkFirst} from '../lib/etsy-artwork-first-web.mjs';
+import {config as posterUploadRoutes} from '../netlify/functions/poster-upload.mjs';
 
 const auditId='a'.repeat(32),applyId='b'.repeat(32),reconcileId='c'.repeat(32);
 function fixtures({uncertain=false}={}){
@@ -76,4 +77,9 @@ test('owner session and CSRF required to queue a read-only reconciliation',async
  const res=await handleArtworkFirst({req:new Request('https://site.example/poster/lead-images/reconcile',{method:'POST',headers:{'x-poster-csrf':'wrong'}}),
   path:'/poster/lead-images/reconcile',uploads:f.uploads,owner,dispatch:async()=>{throw Error('Must not dispatch')},page:()=>{throw Error('Must not render')},esc:x=>String(x),clock:()=>100000});
  assert.equal(res.status,403);
+});
+
+test('Netlify explicitly routes owner-only read-only reconciliation to the poster function',()=>{
+ assert.ok(posterUploadRoutes.path.includes('/poster/lead-images/reconcile'));
+ assert.ok(posterUploadRoutes.path.includes('/poster/lead-images/status'));
 });

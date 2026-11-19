@@ -5,7 +5,7 @@ if(root){
  let busy=false;
  async function send(path,body){
   const response=await fetch(path,{method:'POST',credentials:'same-origin',headers:{'x-poster-csrf':csrf,'Content-Type':'application/json'},body:JSON.stringify(body||{})});
-  const payload=await response.json().catch(()=>({error:'Unexpected server response'}));
+  const payload=await response.json().catch(()=>({error:'Website returned HTTP '+response.status+' instead of the expected JSON response. Refresh the page; do not repeat Etsy image updates blindly.'}));
   if(!response.ok)throw Error(payload.error||'Etsy image operation unavailable');
   return payload;
  }
