@@ -55,4 +55,16 @@ jobs:
       - name: Verify digital uploads
         continue-on-error: true
         run: node --test test/digital-products.test.mjs
+      - name: Diagnose A-F regression group
+        continue-on-error: true
+        run: node --test test/[a-f]*.test.mjs
+      - name: Diagnose G-L regression group
+        continue-on-error: true
+        run: node --test test/[g-l]*.test.mjs
+      - name: Diagnose M-R regression group
+        continue-on-error: true
+        run: node --test test/[m-r]*.test.mjs
+      - name: Diagnose S-Z regression group
+        continue-on-error: true
+        run: node --test test/[s-z]*.test.mjs
       - run: npm test
