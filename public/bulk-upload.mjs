@@ -9,6 +9,7 @@ const trioForm=document.getElementById('bulk-trios'),trioReviews=document.getEle
 const downloadAll=document.getElementById('bulk-download-all-mockups');
 const restartButton=document.getElementById('bulk-restart-failed'),restartNote=document.getElementById('bulk-restart-note');
 const csrf=document.querySelector('meta[name="poster-csrf"]')?.content;
+const zipFeedback=document.getElementById('bulk-zip-validation-status'),zipCheckButton=document.getElementById('bulk-check-zip');
 const KEY='sapiver-physical-bulk-v1',ID=/^[A-Za-z0-9_-]{32}$/;
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 let state=null,seen=[],trioStatuses=[],pollHandle=null,busy=false;
@@ -20,8 +21,9 @@ function read(){
  try{const v=JSON.parse(sessionStorage.getItem(KEY)||'null');return [1,2,3,4].includes(v?.version)&&(v.items?.length>=BULK_MIN_COUNT&&v.items?.length<=BULK_MAX_COUNT||v.items?.length===8)&&v.items.every(i=>typeof i.filename==='string'&&(!i.id||ID.test(i.id)))?v:null;}catch{return null;}
 }
 function message(value){status.textContent=value;}
+function zipMessage(value){if(zipFeedback)zipFeedback.textContent=value;message(value);}
 function updateRestartButton(){if(restartButton)restartButton.hidden=!(state?.items?.length&&state.items.some(i=>i.creating&&!i.id)&&state.items.every(i=>!i.id)&&!state.trioIds?.length);}
-let previewSignature='',previewArchive=null,preparingTrios=false;
+let previewSignature='',previewArchive=null,preparingTrios=false,zipCheckEpoch=0;
 const modeChoices=['single','four-listings','eight-listings'];
 const chosenMode=()=>form?.elements?.uploadMode?.value||'';
 function showSelectedMode(){
@@ -31,7 +33,8 @@ function showSelectedMode(){
  if(state?.uploadMode&&selected!==state.uploadMode)message('An earlier collection is saved. Resume or inspect it before choosing a different upload.');
 }
 document.getElementById('bulk-mode-choices')?.addEventListener?.('change',()=>{
- previewSignature='';previewArchive=null;trioForm?.replaceChildren();bulkVision.clear();
+ ++zipCheckEpoch;previewSignature='';previewArchive=null;trioForm?.replaceChildren();bulkVision.clear();
+ if(zipFeedback)zipFeedback.textContent='Choose a ZIP matching the new upload type.';
  if(form?.elements?.collection)form.elements.collection.value='';
  showSelectedMode();
 });
@@ -63,18 +66,27 @@ function showTrioFields(archive,signature){
  }
 }
 async function onZipChosen(){
- if(busy)return;
+ const check=++zipCheckEpoch;
+ if(busy){zipMessage('Another upload operation is active. Use the saved collection review before checking a new ZIP.');return;}
  const file=form?.elements?.collection?.files?.[0];
- if(!file)return;
+ if(!file){zipMessage('Select a ZIP file first. Nothing has been uploaded.');return;}
+ if(zipCheckButton)zipCheckButton.disabled=true;
  try{
   const mode=chosenMode();if(!modeChoices.includes(mode))throw Error('Choose Individual, Singular trio or Six-pack first');
-  message('Checking ZIP against the selected upload type…');
+  zipMessage('Checking '+file.name+' against the selected upload type on this device…');
   const archive=await openPosterCollectionZip(file,{mode});
+  if(check!==zipCheckEpoch)return; // Stale validation from an earlier file/mode.
   showTrioFields(archive,signature(file));
-  message(archive.bundles.length?archive.listingCount+' Etsy listings detected: '+archive.items.length+' individual posters and '+archive.bundles.length+' trio collection'+(archive.bundles.length===1?'':'s')+'. Review each trio title before uploading.':archive.listingCount+' individual poster listing detected.');
- }catch(error){previewArchive=null;previewSignature='';trioForm?.replaceChildren();bulkVision.clear();message('ZIP rejected: '+error.message+'. No products created.');}
+  const summary=archive.bundles.length?archive.listingCount+' Etsy listings detected: '+archive.items.length+' individual posters and '+archive.bundles.length+' trio collection'+(archive.bundles.length===1?'':'s')+'. Review each trio title before uploading.':archive.listingCount+' individual poster listing detected.';
+  zipMessage('ZIP validated. '+summary);
+ }catch(error){
+  if(check!==zipCheckEpoch)return;
+  previewArchive=null;previewSignature='';trioForm?.replaceChildren();bulkVision.clear();
+  zipMessage('ZIP rejected: '+String(error?.message||'unknown ZIP error')+'. No products created. Correct the ZIP or select another.');
+ }finally{if(check===zipCheckEpoch&&zipCheckButton)zipCheckButton.disabled=false;}
 }
-form?.elements?.collection?.addEventListener?.('change',()=>{onZipChosen().catch(e=>message(e.message));});
+form?.elements?.collection?.addEventListener?.('change',()=>onZipChosen().catch(e=>zipMessage(e.message)));
+zipCheckButton?.addEventListener?.('click',()=>onZipChosen().catch(e=>zipMessage(e.message)));
 function inputPlans(archive,withSeo=false){
  if(!archive.bundles.length)return null;
  const inputs=archive.bundles.map((_,i)=>({sku:'SP-PENDING-TRIO-'+(i+1),title:withSeo?archive.bundles[i].listingTitle:trioInput(i+1,'Title')?.value?.trim(),discount:Number(trioInput(i+1,'Discount')?.value)}));

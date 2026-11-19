@@ -1,3 +1,15 @@
+### 2026-11-19 09:29 GMT — Android bulk ZIP selection appears inactive: targeted feedback repair STAGED
+- **Observed:** Owner screenshot shows `Offbeat-Singular-Trio.zip` selected in `/poster/bulk`, but `Analyse each poster and matching trio for Etsy` is disabled and still says "Select and validate a ZIP first." This shows the handler has not accepted the ZIP; screenshot does NOT establish whether the parser rejected its contents, the file change event did not fire or the selection is still being processed. The actual ZIP file was not attached, so its validity cannot be claimed.
+- **Root UX defect VERIFIED from production source:** `public/bulk-upload.mjs:onZipChosen` put validation feedback only in `#bulk-status`, which is below the quota, website folder, Etsy section and advanced fields. Above-the-fold `#bulk-analyse-status` remained unchanged or disabled if the ZIP failed. Owner sees a filename but no nearby reason.
+- **Stage / purpose:** Give immediate visible, actionable ZIP status next to the file chooser, and a manual `Check selected ZIP` button for mobile file-picker event/retry oddities. Keep the current bounded ZIP validator and fail-closed product create untouched.
+- **Changed on isolated branch** `fix/bulk-zip-validation-feedback-20261119`: `lib/product-web.mjs` adds adjacent live status and explicit button. `public/bulk-upload.mjs` updates the near-picker status on checking/success/rejection, enables retry, and guards stale asynchronous validations if the mode/file changes. No auto-upload, no automatic merchant action, no change to image analysis model and no Etsy/PrintShrimp writes.
+- **Tests added/extended:** `test/bulk-zip-feedback-android.test.mjs` asserts invalid ZIP is diagnosed beside the chooser with analysis disabled, retry available and zero network/saved products; `test/bulk-website-integration.test.mjs` asserts control adjacency/order.
+- **Verification pending:** GitHub Node24 full CI, browser-on-device reproduction, exact Offbeat ZIP byte-level validation and live deployment. Stage is NOT LIVE until explicit deploy verification.
+- **Cost:** No Work mode credits used; one feature PR preview build may use Netlify/GitHub resources. Original production branch remains unchanged pending passing CI. No production release claimed.
+- **Next:** Run CI on PR, review failures, merge only if pass under current owner-authorised trio software release, verify Netlify production Ready and ask for visible exact ZIP rejection if analysis remains blocked.
+
+---
+
 ### 2026-11-19 08:58 GMT — Etsy visual SEO uploader production release LIVE; real Android / model trial pending
 - **Owner authorisation:** Jim explicitly requested deployment so he can test a trio. Release was scoped to `Poster_gen` only. Pattern Forge's independent staged SEO branch was NOT released.
 - **GitHub:** PR [#100](https://github.com/sapiverpress-studio/Poster_gen/pull/100) was squash-merged onto actual Netlify production branch `feature/canva-oauth-callback`. Release source commit **`bdcca526d15b43e87aab1ea655aef71d7c1a2641`**.
