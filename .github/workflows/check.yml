@@ -43,4 +43,16 @@ jobs:
       - run: node --check netlify/functions/video-publisher.mjs
       - run: node --check public/video-publisher.mjs
       - run: node --check public/video-validation.mjs
+      - name: Verify new artwork migration tests
+        continue-on-error: true
+        run: node --test test/etsy-artwork-first.test.mjs
+      - name: Verify room scene compatibility
+        continue-on-error: true
+        run: node --test test/poster-scenes.test.mjs
+      - name: Verify physical uploads
+        continue-on-error: true
+        run: node --test test/uploaded-poster.test.mjs
+      - name: Verify digital uploads
+        continue-on-error: true
+        run: node --test test/digital-products.test.mjs
       - run: npm test
