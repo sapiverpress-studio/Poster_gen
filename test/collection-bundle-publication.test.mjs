@@ -75,7 +75,7 @@ function fixture({drift=false,badSku=false,activate=false}={}){
   if(path==='/listings/10007/inventory'&&opts.method==='PUT'){
    draftInventory=JSON.parse(opts.body);return {};
   }
-  if(path==='/shops/777/listings/10007/images'&&opts.method==='POST'){images++;return {listing_image_id:images};}
+  if(path==='/shops/777/listings/10007/images'&&opts.method==='POST'){images++;assert.match(opts.body.get('alt_text'),images===1?/three separate/i:/Unframed close-up/i);assert.equal(opts.body.get('rank'),String(images));return {listing_image_id:images};}
   if(path==='/listings/10007?includes=Images')return {shop_id:777,state:'draft',listing_type:'physical',
    title:baseBody.title,description:baseBody.description,tags:baseBody.tags.split(','),images:[1,2,3,4]};
   if(path==='/listings/10007/inventory'&&!opts.method)return {
