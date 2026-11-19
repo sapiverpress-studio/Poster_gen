@@ -67,4 +67,7 @@ jobs:
       - name: Diagnose S-Z regression group
         continue-on-error: true
         run: node --test test/[s-z]*.test.mjs
+      - name: Diagnose full suite with bounded concurrency
+        continue-on-error: true
+        run: node --test --test-concurrency=4 test/*.test.mjs
       - run: npm test
