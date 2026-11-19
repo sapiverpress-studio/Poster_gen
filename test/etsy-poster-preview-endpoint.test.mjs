@@ -27,7 +27,7 @@ test('visual Etsy preview must have signed owner session and valid CSRF, no merc
 test('missing poster-site AI key returns a safe explicit status without changing artwork',async()=>{
  const response=await handleEtsyPosterPreview(request(),{env:n=>n==='SAPIVER_OPENAI_API_KEY'?'':env(n),uploads,clock:()=>now});
  assert.equal(response.status,503);
- assert.match((await response.json()).error,/not configured/);
+ assert.match((await response.json()).error,/paused until a separate OpenAI API key/);
 });
 test('unavailable AI service does not replace any listing values',async()=>{
  const response=await handleEtsyPosterPreview(request(),{env,clock:()=>now,uploads:store(),request:async()=>({ok:false,status:502})});
