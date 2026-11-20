@@ -11,7 +11,7 @@ Under **Project configuration → Environment variables**, set in the **Producti
 | Name | Required value | Sensitivity |
 | --- | --- | --- |
 | `SAPIVER_OPENAI_API_KEY` | Your own OpenAI Platform API secret key, with provider billing enabled | Secret: yes |
-| `SAPIVER_SEO_AI_MONTHLY_CALL_LIMIT` | A whole number 1–200; start with `10` | Secret: not necessary |
+| `SAPIVER_SEO_AI_MONTHLY_CALL_LIMIT` | A whole number 1–200; current working target `60` to support approximately 50 planned monthly listing analyses, including some retries | Secret: not necessary |
 
 The legacy/injected `OPENAI_API_KEY` and `OPENAI_BASE_URL` variables are **not** accepted by the Etsy SEO code. There is no Netlify AI Gateway fallback. Missing direct credentials or budget disables only optional AI analysis; manual Etsy data preparation remains usable.
 
