@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 // One-time, read-only SapiverPrints Etsy SEO audit. Do not add Etsy mutation routes.
 import {createRemoteStore} from '../../site/lib/github-remote-store.mjs';
 import {createEtsySession} from '../../site/lib/etsy-session.mjs';
@@ -51,7 +52,7 @@ for(const id of ids){
   check(Array.isArray(fulfilment?.products)||Array.isArray(fulfilment?.results),'Inventory or digital file details unavailable');
   const sorted=pictures.results.slice().sort((a,b)=>a.rank-b.rank);
   const snapshot={version:1,capturedAt:new Date().toISOString(),shopId:seller.shop_id,listing:item,images:sorted,fulfilment};
-  const result=await backups.setJSON('seo-safe-20261121/v1/'+id,snapshot,{onlyIfNew:true});
+  const result=await backups.setJSON('seo-current/backup/'+createHash('sha256').update('seo-safe-20261121/'+seller.shop_id+'/'+id).digest('hex').slice(0,32),snapshot,{onlyIfNew:true});
   if(result?.modified===true)saved++;else preexisting++;
   rows.push({id,type:item.listing_type,title:item.title,tags:item.tags,images:sorted.length,altTexts:sorted.filter(x=>x.alt_text?.trim()).length});
  }catch(e){
