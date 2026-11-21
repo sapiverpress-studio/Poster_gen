@@ -12,6 +12,7 @@ on:
           - audit
           - pilot
           - apply
+          - altprobe
 permissions:
   contents: read
   id-token: write
@@ -92,3 +93,29 @@ jobs:
           ETSY_PRINTS_KEYSTRING: ${{ secrets.ETSY_PRINTS_KEYSTRING }}
           ETSY_PRINTS_SHARED_SECRET: ${{ secrets.ETSY_PRINTS_SHARED_SECRET }}
         run: node ops/seo-ops/etsy-seo-apply.mjs
+
+  alt_capability_probe:
+    if: github.repository == 'sapiverpress-studio/Poster_gen' && github.ref == 'refs/heads/main' && inputs.seo_mode == 'altprobe'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: ops
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/canva-oauth-callback
+          path: site
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Re-association capability check, existing photo ID and unchanged alt text
+        env:
+          ALT_PROBE_MODE: idempotent
+          POSTER_SITE_ORIGIN: https://sapiver-poster-gen-auth.netlify.app
+          ETSY_PRINTS_KEYSTRING: ${{ secrets.ETSY_PRINTS_KEYSTRING }}
+          ETSY_PRINTS_SHARED_SECRET: ${{ secrets.ETSY_PRINTS_SHARED_SECRET }}
+        run: node ops/seo-ops/etsy-alt-capability-probe.mjs
