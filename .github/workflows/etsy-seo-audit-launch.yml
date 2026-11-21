@@ -1,4 +1,5 @@
 name: One-time Etsy SEO read-only audit launch
+# Retry uses existing private backup prefix; still read-only Etsy calls.
 on:
   push:
     paths:
