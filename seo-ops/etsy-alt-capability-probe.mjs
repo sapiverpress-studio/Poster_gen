@@ -6,10 +6,10 @@ import {createRemoteStore} from '../../site/lib/github-remote-store.mjs';
 import {createEtsySession} from '../../site/lib/etsy-session.mjs';
 import {etsySetup} from '../../site/lib/etsy-oauth.mjs';
 const origin='https://sapiver-poster-gen-auth.netlify.app';
-const listingId=4621547010;
+const listingId=process.env.ALT_PROBE_MODE==='inspect'?4620969937:4621547010;
 const assert=(ok,msg)=>{if(!ok)throw Error(msg);};
 assert(process.env.GITHUB_REPOSITORY==='sapiverpress-studio/Poster_gen'&&process.env.GITHUB_REF==='refs/heads/main'&&process.env.GITHUB_WORKFLOW==='Approved poster publication','Wrong worker');
-assert(process.env.ALT_PROBE_MODE==='idempotent','Wrong probe mode');
+assert(['idempotent','inspect'].includes(process.env.ALT_PROBE_MODE),'Wrong probe mode');
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function rpc(body){
  const u=new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
@@ -46,6 +46,12 @@ const before=await inspect();
 assert(core(backup.listing)===core(before.listing),'Metadata drift');
 assert(photoSignature(backup.images)===photoSignature(before.images),'Image drift');
 assert(JSON.stringify(backup.fulfilment)===JSON.stringify(before.inventory),'Inventory or SKU drift');
+if(process.env.ALT_PROBE_MODE==='inspect'){
+ for(const image of before.images.slice().sort((a,b)=>a.rank-b.rank)){
+  console.log('ALT_INSPECT '+JSON.stringify({listingId,rank:image.rank,imageId:image.listing_image_id,url:image.url_570xN,alt:image.alt_text||'',width:image.full_width,height:image.full_height}));
+ }
+ process.exit(0);
+}
 const image=before.images.slice().sort((a,b)=>a.rank-b.rank).at(-1);
 assert(image&&Number.isSafeInteger(image.listing_image_id)&&image.rank>=2&&typeof image.alt_text==='string'&&image.alt_text.length>10&&image.alt_text.length<=250,'Probe image has no safe original alt text');
 const body=new FormData();
