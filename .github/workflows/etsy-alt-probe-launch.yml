@@ -1,4 +1,5 @@
 name: One-time Etsy alt text single-photo write launcher
+# Retry after distinguishing previously-approved tag changes from immutable fulfilment fields.
 on:
   push:
     paths:
