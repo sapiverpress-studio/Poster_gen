@@ -1,3 +1,15 @@
+### 2026-11-21 17:40 GMT — Existing Etsy SEO safe backup and tags-only pilot staged (no Netlify release)
+- Owner authorised safe, direct API updates for existing SapiverPrints SEO without Netlify deployment, strictly preserving SKUs, fulfilment, image order, pricing, shipping and digital files.
+- Existing production source is feature/canva-oauth-callback; only main GitHub Actions worker and isolated seo-ops files updated, each commit [skip netlify]. No production software deployment.
+- VERIFIED: read-only Etsy audit workflow 44931210335 succeeded, 78 active listings enumerated; 78 immutable seller-side snapshots with full listing metadata, ordered images and full inventory/digital files persisted in private sapiver-poster-uploads under preapproved seo-current/backup/<hash> keys. No seller writes.
+- Audit: 76/78 listings already had 13 tags, two fewer; 74/78 had missing photo alt text, four with none. Most existing tags already relevant; only 23 targeted candidate replacements staged in seo-ops/etsy-seo-plan.json. These tags are candidate SEO improvements rather than verified search-volume claims.
+- New seo-ops/etsy-seo-apply.mjs prepares a three-listing pilot and later 23-listing tags-only batch, with exact immutable backup, protected metadata, photo rank/alt text, inventory/SKU and file readbacks. The ONLY permitted Etsy seller write is PATCH tags for an existing listing, never inventory, files, imagery or supplier.
+- Current state: IMPLEMENTED BUT UNTESTED against live PATCH. No live listing change claimed until success logs and post-update API readback. Existing-photo alt-text update NOT implemented due image replacement/rank risk; retain existing images unchanged.
+- GitHub worker workflow gated by seo_mode: none, audit, pilot, apply. An isolated opt-in dispatcher is used for executions. Main ordinary worker excluded from SEO jobs.
+- Risks: Etsy may report changed inventory due concurrent sales; fail-closed stops at first drift. OAuth token status only verified indirectly by successful authenticated catalogue read. No credentials committed. No Work credits or Netlify build.
+- Next authorised step: 3-listing pilot with readback; if fully verified, execute remaining candidate tags only and record completion. Preserve unchanged 55 listings.
+---
+
 # Poster_gen default-branch worker status
 
 The application and authoritative full project record are on `feature/canva-oauth-callback`: [PROJECT_STATUS.md](https://github.com/sapiverpress-studio/Poster_gen/blob/feature/canva-oauth-callback/docs/PROJECT_STATUS.md). This main-branch record covers the executing Actions workflow only.
