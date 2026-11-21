@@ -7,7 +7,7 @@
 - No listing title, descriptions, shipping, processing, SKU, inventory, price, digital file or image was submitted to Etsy for alteration; the only Etsy mutation was PATCH tags. Guarded updater rejects changes before writes and stops after an unexpected readback.
 - Netlify project sapiver-poster-gen-auth still Ready at deployment id 6affd3a25f6337282fecebd4 (unchanged before/after); no Netlify build or Work credits from this work. Files modified only on GitHub main worker branch; live production source feature/canva-oauth-callback unchanged.
 - Existing-photo alt text backfill NOT PERFORMED: Etsy does not provide a straightforward in-place existing-photo alt-edit endpoint; its upload/reassociation API can issue new IDs/change gallery ranks. 74/78 listings have at least one missing alt and four have none. Reordering/refreshing images violates current owner preservation guardrail, so alt text deferred for a separately verified method; new-listing alt text code already live on website.
-- Next: Remove temporary push-triggered SEO launcher, preserve guarded code/immutable backups and optionally measure search impressions and orders before any further SEO changes. No automatic continuation.
+- The temporary push-triggered SEO launcher was removed after the successful batch (commit 59a4a4b126bf2bb2442861bb30433981e718a2cc), preventing accidental repeat dispatch. Guarded audit/apply scripts and immutable backups remain for review. Next, measure search impressions and orders; no automatic continuation.
 ---
 
 ### 2026-11-21 17:40 GMT — Existing Etsy SEO safe backup and tags-only pilot staged (no Netlify release)
