@@ -83,10 +83,10 @@ for(const id of ids){
  if(!ranked[0].alt_text?.trim()||ranked[0].full_width!==ranked[0].full_height||ranked.slice(1).some(p=>!(p.full_width>p.full_height*1.1))){skipped++;continue;}
  let current=before;
  for(const img of before.photos.slice().sort((a,b)=>a.rank-b.rank)){
-  const requested=caption({title:listing.title,rank:img.rank});
   const live=current.photos.find(x=>x.listing_image_id===img.listing_image_id);
   assert(live?.rank===img.rank,'Unexpected live image rank');
   if(live.alt_text?.trim()){already++;continue;}
+  const requested=caption({title:listing.title,rank:img.rank});
   const form=new FormData();
   form.set('listing_image_id',String(img.listing_image_id));
   form.set('rank',String(img.rank));
