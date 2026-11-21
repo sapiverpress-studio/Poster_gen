@@ -3,13 +3,15 @@ on:
   workflow_dispatch:
     inputs:
       seo_mode:
-        description: 'Optional owner-approved read-only Etsy SEO backup'
+        description: 'Scoped Etsy SEO job: audit, 3-listing pilot, or approved batch'
         type: choice
         required: false
         default: 'none'
         options:
           - none
           - audit
+          - pilot
+          - apply
 permissions:
   contents: read
   id-token: write
@@ -18,7 +20,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   worker:
-    if: github.repository == 'sapiverpress-studio/Poster_gen' && github.ref == 'refs/heads/main' && inputs.seo_mode != 'audit'
+    if: github.repository == 'sapiverpress-studio/Poster_gen' && github.ref == 'refs/heads/main' && (inputs.seo_mode == 'none' || inputs.seo_mode == '')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -64,3 +66,29 @@ jobs:
           ETSY_PRINTS_KEYSTRING: ${{ secrets.ETSY_PRINTS_KEYSTRING }}
           ETSY_PRINTS_SHARED_SECRET: ${{ secrets.ETSY_PRINTS_SHARED_SECRET }}
         run: node ops/seo-ops/etsy-seo-readonly.mjs
+
+  seo_apply:
+    if: github.repository == 'sapiverpress-studio/Poster_gen' && github.ref == 'refs/heads/main' && (inputs.seo_mode == 'pilot' || inputs.seo_mode == 'apply')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: ops
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/canva-oauth-callback
+          path: site
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Apply strictly tags-only Etsy SEO, verify stock SKUs and galleries
+        env:
+          SEO_APPLY_MODE: ${{ inputs.seo_mode }}
+          POSTER_SITE_ORIGIN: https://sapiver-poster-gen-auth.netlify.app
+          ETSY_PRINTS_KEYSTRING: ${{ secrets.ETSY_PRINTS_KEYSTRING }}
+          ETSY_PRINTS_SHARED_SECRET: ${{ secrets.ETSY_PRINTS_SHARED_SECRET }}
+        run: node ops/seo-ops/etsy-seo-apply.mjs
