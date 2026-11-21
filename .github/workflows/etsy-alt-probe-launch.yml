@@ -1,4 +1,4 @@
-name: One-time Etsy trio alt-text completion
+name: One-time Etsy digital alt-text completion
 # Retry after distinguishing previously-approved tag changes from immutable fulfilment fields.
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Fill existing five-photo Woodland Verse trio alts safely
+      - name: Fill missing digital-download preview alts; preserve buyer files
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -22,5 +22,5 @@ jobs:
             --header "Accept: application/vnd.github+json" \
             --header "X-GitHub-Api-Version: 2022-11-28" \
             --header "Content-Type: application/json" \
-            --data '{"ref":"main","inputs":{"seo_mode":"alttrio"}}' \
+            --data '{"ref":"main","inputs":{"seo_mode":"altdigital"}}' \
             https://api.github.com/repos/sapiverpress-studio/Poster_gen/actions/workflows/poster-publication.yml/dispatches
