@@ -6,7 +6,7 @@ import {createRemoteStore} from '../../site/lib/github-remote-store.mjs';
 import {createEtsySession} from '../../site/lib/etsy-session.mjs';
 import {etsySetup} from '../../site/lib/etsy-oauth.mjs';
 const origin='https://sapiver-poster-gen-auth.netlify.app';
-const listingId=process.env.ALT_PROBE_MODE==='inspect'?4620969937:4621547010;
+const listingId=process.env.ALT_PROBE_MODE==='inspect'?4598485326:4621547010;
 const assert=(ok,msg)=>{if(!ok)throw Error(msg);};
 assert(process.env.GITHUB_REPOSITORY==='sapiverpress-studio/Poster_gen'&&process.env.GITHUB_REF==='refs/heads/main'&&process.env.GITHUB_WORKFLOW==='Approved poster publication','Wrong worker');
 assert(['idempotent','inspect'].includes(process.env.ALT_PROBE_MODE),'Wrong probe mode');
