@@ -11,7 +11,7 @@ assert(['pilot','four'].includes(mode),'No authorisation for this alt-text batch
 assert(process.env.GITHUB_REPOSITORY==='sapiverpress-studio/Poster_gen'&&process.env.GITHUB_REF==='refs/heads/main'&&process.env.GITHUB_WORKFLOW==='Approved poster publication','Untrusted runner');
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const tidy=s=>String(s??'').replace(/&#39;|&apos;/g,"'").replace(/&amp;/g,'&').replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim();
-const nameOf=title=>tidy(title).split(/\s[-—|]\s/)[0].slice(0,95).replace(/\s+(art print|wall art print|print)$/i,'').trim();
+const nameOf=title=>{const full=tidy(title);const raw=/^Physical Print Trio Set\s[-—]\s(.+)$/i.exec(full)?.[1]||full.split(/\s[-—|]\s/)[0];return raw.slice(0,95).replace(/\s+(art print|wall art print|print)$/i,'').trim();};
 const isTrio=title=>/\b(?:trio|set of (?:3|three)|three (?:a4 )?prints|collection set of 3)\b/i.test(title);
 function caption({title,rank,trio}){
  const name=nameOf(title),full=tidy(title);
