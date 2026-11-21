@@ -1,6 +1,7 @@
 // One live, owner-authorised alt-text write to an existing non-primary photo.
 // No binary upload, new image, deletion, reordering, inventory or fulfilment update.
 import {createHash} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
 import {createRemoteStore} from '../../site/lib/github-remote-store.mjs';
 import {createEtsySession} from '../../site/lib/etsy-session.mjs';
 import {etsySetup} from '../../site/lib/etsy-oauth.mjs';
@@ -31,7 +32,7 @@ assert(seller.shop_name==='SapiverPrints'&&Number.isSafeInteger(seller.shop_id),
 const backupKey='seo-current/backup/'+createHash('sha256').update('seo-safe-20261121/'+seller.shop_id+'/'+listingId).digest('hex').slice(0,32);
 const backup=await backups.get(backupKey,{type:'json',consistency:'strong'});
 assert(backup?.shopId===seller.shop_id&&backup.listing?.listing_id===listingId,'Immutable backup unavailable');
-const keys=['listing_id','shop_id','state','listing_type','title','description','tags','taxonomy_id','shop_section_id','price','shipping_profile_id','return_policy_id','readiness_state_id','who_made','when_made','is_supply','has_variations','should_auto_renew'];
+const keys=['listing_id','shop_id','state','listing_type','title','description','taxonomy_id','shop_section_id','price','shipping_profile_id','return_policy_id','readiness_state_id','who_made','when_made','is_supply','has_variations','should_auto_renew'];
 const core=x=>JSON.stringify(Object.fromEntries(keys.map(k=>[k,x?.[k]??null])));
 const gallery=x=>JSON.stringify(x.map(i=>[i.listing_image_id,i.rank,i.url_fullxfull,i.listing_image_id===expectedImageId?null:i.alt_text]).sort((a,b)=>a[1]-b[1]));
 async function inspect(){
@@ -42,6 +43,9 @@ async function inspect(){
  return {listing,photos:photos.results,inventory};
 }
 const before=await inspect();
+const plan=JSON.parse(await readFile(new URL('./etsy-seo-plan.json',import.meta.url),'utf8'));
+const approvedTags=plan?.listings?.find(x=>x.id===listingId)?.tags;
+assert(Array.isArray(approvedTags)&&approvedTags.length===13&&approvedTags.every(x=>before.listing.tags?.some(t=>t.toLowerCase()===x.toLowerCase())),'Current approved SEO tags differ');
 assert(core(before.listing)===core(backup.listing),'Protected fields drifted since backup');
 assert(gallery(before.photos)===gallery(backup.images),'Gallery identities or order drifted');
 assert(JSON.stringify(before.inventory)===JSON.stringify(backup.fulfilment),'Inventory, SKU or variations drifted');
@@ -58,7 +62,7 @@ let verified=false;
 for(let attempt=0;attempt<4;attempt++){
  await pause(6000);
  const after=await inspect();
- assert(core(after.listing)===core(before.listing),'Listing metadata changed');
+ assert(core(after.listing)===core(before.listing)&&JSON.stringify(after.listing.tags)===JSON.stringify(before.listing.tags),'Listing metadata or tags changed');
  assert(JSON.stringify(after.inventory)===JSON.stringify(before.inventory),'Inventory or SKUs changed');
  assert(gallery(after.photos)===gallery(before.photos),'Unexpected photo ID, rank or other alt text change');
  const updated=after.photos.find(x=>x.listing_image_id===expectedImageId);
