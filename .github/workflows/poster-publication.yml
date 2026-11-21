@@ -17,6 +17,8 @@ on:
           - altwrite
           - altfourpilot
           - altfour
+          - altfivepilot
+          - altfive
 permissions:
   contents: read
   id-token: write
@@ -175,3 +177,29 @@ jobs:
           ETSY_PRINTS_KEYSTRING: ${{ secrets.ETSY_PRINTS_KEYSTRING }}
           ETSY_PRINTS_SHARED_SECRET: ${{ secrets.ETSY_PRINTS_SHARED_SECRET }}
         run: node ops/seo-ops/etsy-alt-four-image-batch.mjs
+
+  alt_five_images:
+    if: github.repository == 'sapiverpress-studio/Poster_gen' && github.ref == 'refs/heads/main' && (inputs.seo_mode == 'altfivepilot' || inputs.seo_mode == 'altfive')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: ops
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/canva-oauth-callback
+          path: site
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Update existing five-photo poster mockup alt text with strict image and inventory guards
+        env:
+          ALT_BATCH_MODE: ${{ inputs.seo_mode == 'altfivepilot' && 'pilot' || 'five' }}
+          POSTER_SITE_ORIGIN: https://sapiver-poster-gen-auth.netlify.app
+          ETSY_PRINTS_KEYSTRING: ${{ secrets.ETSY_PRINTS_KEYSTRING }}
+          ETSY_PRINTS_SHARED_SECRET: ${{ secrets.ETSY_PRINTS_SHARED_SECRET }}
+        run: node ops/seo-ops/etsy-alt-five-image-batch.mjs
