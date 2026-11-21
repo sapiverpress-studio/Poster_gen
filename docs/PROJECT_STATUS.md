@@ -1,3 +1,15 @@
+### 2026-11-21 17:49 GMT — Etsy tags-only API backfill COMPLETED and VERIFIED (no Netlify deploy)
+- Owner instructed safe existing-listing SEO updates without changing SKUs, fulfilment, photos, prices, shipping, inventories, digital files, or triggering Netlify builds.
+- 78 active SapiverPrints listings inspected, all 78 immutable before-state copies saved to private sapiver-poster-uploads (full listing, ordered gallery with alt text, inventory or buyer download files). Read-only audit GitHub run 44931210335 SUCCESS, saved 78, blocked 0.
+- SEO plan targeted 23 listings and retained 55 existing tag sets to avoid speculative mass replacement. Each target had 13 distinct <=20-char buyer-oriented tags.
+- Three-item guarded pilot GitHub workflow 44931917145 SUCCESS: three listing PATCH tags-only changes, post-write listing and full inventory/files and gallery readback matched protected snapshots. No supplier calls.
+- Remaining full API batch GitHub workflow 44931984026 / job 136930398316 SUCCESS: 23 attempted, 20 updated, three previously applied already matched. All 20 post-write readbacks verified protected listing fields, exact photos/image IDs/order/alt, and exact inventory/variation SKU or digital file data. Tags read back as intended 13 unique values. Total 23 listings updated.
+- No listing title, descriptions, shipping, processing, SKU, inventory, price, digital file or image was submitted to Etsy for alteration; the only Etsy mutation was PATCH tags. Guarded updater rejects changes before writes and stops after an unexpected readback.
+- Netlify project sapiver-poster-gen-auth still Ready at deployment id 6affd3a25f6337282fecebd4 (unchanged before/after); no Netlify build or Work credits from this work. Files modified only on GitHub main worker branch; live production source feature/canva-oauth-callback unchanged.
+- Existing-photo alt text backfill NOT PERFORMED: Etsy does not provide a straightforward in-place existing-photo alt-edit endpoint; its upload/reassociation API can issue new IDs/change gallery ranks. 74/78 listings have at least one missing alt and four have none. Reordering/refreshing images violates current owner preservation guardrail, so alt text deferred for a separately verified method; new-listing alt text code already live on website.
+- Next: Remove temporary push-triggered SEO launcher, preserve guarded code/immutable backups and optionally measure search impressions and orders before any further SEO changes. No automatic continuation.
+---
+
 ### 2026-11-21 17:40 GMT — Existing Etsy SEO safe backup and tags-only pilot staged (no Netlify release)
 - Owner authorised safe, direct API updates for existing SapiverPrints SEO without Netlify deployment, strictly preserving SKUs, fulfilment, image order, pricing, shipping and digital files.
 - Existing production source is feature/canva-oauth-callback; only main GitHub Actions worker and isolated seo-ops files updated, each commit [skip netlify]. No production software deployment.
