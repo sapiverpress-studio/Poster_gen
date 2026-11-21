@@ -1,4 +1,4 @@
-name: One-time Etsy five-image read-only layout inspection
+name: One-time Etsy five-image poster alt pilot
 # Retry after distinguishing previously-approved tag changes from immutable fulfilment fields.
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Read existing five-photo positions without seller modifications
+      - name: Run guarded one-poster five-image alt text test
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -22,5 +22,5 @@ jobs:
             --header "Accept: application/vnd.github+json" \
             --header "X-GitHub-Api-Version: 2022-11-28" \
             --header "Content-Type: application/json" \
-            --data '{"ref":"main","inputs":{"seo_mode":"altinspect"}}' \
+            --data '{"ref":"main","inputs":{"seo_mode":"altfivepilot"}}' \
             https://api.github.com/repos/sapiverpress-studio/Poster_gen/actions/workflows/poster-publication.yml/dispatches
