@@ -1,0 +1,25 @@
+name: One-time Etsy SEO read-only audit launch
+on:
+  push:
+    paths:
+      - '.github/workflows/etsy-seo-audit-launch.yml'
+permissions:
+  actions: write
+  contents: read
+jobs:
+  dispatch-audit:
+    if: github.repository == 'sapiverpress-studio/Poster_gen' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Request pinned owner-approved read-only audit (never seller update)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl --fail-with-body --silent --show-error --request POST \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --header "Content-Type: application/json" \
+            --data '{"ref":"main","inputs":{"seo_mode":"audit"}}' \
+            https://api.github.com/repos/sapiverpress-studio/Poster_gen/actions/workflows/poster-publication.yml/dispatches
