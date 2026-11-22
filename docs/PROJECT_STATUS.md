@@ -1,3 +1,13 @@
+### 2026-11-22 19:50 GMT — Alpha validation for Pattern Forge Etsy seamless masters (DEVELOPMENT, not deployed)
+- Source: User-uploaded Christmas train seller kit, master 5000 × 5000 RGBA, 51,562,338 bytes. The file correctly reconstructs but has alpha 255 at all 25 million pixels, making it opaque despite the RGBA format. It must not be advertised as a transparent master.
+- Branch: `fix/require-transparent-seamless-masters-20261122` based on the production source `feature/canva-oauth-callback`.
+- Change: `lib/seller-kit.mjs` samples actual PNG alpha using Sharp for trusted seamless master names only, both the reconstructed multipart original and an intact direct `-seamless-master.png`. Require at least 1% clearly transparent pixels; reject before review/publication if opaque. Existing physical posters, digital JPGs, unrelated PNGs and actual merchant writes are unchanged. Pixel images are never auto-modified to invent transparency.
+- Tests: `test/multipart-png.test.mjs` updated to use genuinely transparent RGBA master fixture, while preserving hash/missing-part checks, and added an opaque original rejection regression. GitHub Actions verification pending.
+- Coordinated Pattern Forge branch: `fix/etsy-transparent-png-master-20261122` forces transparent background rendering for Etsy PNG and SVG, checks actual sampled clear pixels, rejects opaque imported motifs and preserves normal PNG/JPG operations.
+- Status: IMPLEMENTED BUT NOT YET VERIFIED OR DEPLOYED. No Etsy API writes, live listings, inventory, orders, PrintShrimp actions, Work credits or Netlify production builds.
+- Next: Review both CI suites. If approved, release safe uploader validation and exporter together; re-export the actual Christmas train project on its original device. The existing opaque kit remains unsuitable for sale.
+
+---
 ### 2026-11-22 18:49 GMT — VERIFIED LIVE: Etsy buyer uploader accepts lossless multipart original PNGs
 - Owner request: Preserve the original 5000 × 5000 PNG even when it exceeds Etsy's 20 MB per-attachment rule; do not reduce pixel dimensions or re-encode the original. Prior in-thread instruction approved testing and deployment.
 - Source: PR #114 squash-merged to the actual Netlify production source `feature/canva-oauth-callback` as `c2f95bb610c9499ea372877f37f7219a0d9ede89`. Deployment `6b033906bef6f88774675e0d` is READY at matching source SHA, error null.

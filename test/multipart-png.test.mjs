@@ -14,8 +14,13 @@ const docs=[
 ];
 const jpg=await sharp({create:{width:1500,height:1500,channels:3,background:'#daeae1'}}).jpeg().toBuffer();
 const hero=await sharp({create:{width:1200,height:1200,channels:3,background:'#d3ede7'}}).jpeg().toBuffer();
-const raw=randomBytes(3000*3000*3);
-const original=await sharp(raw,{raw:{width:3000,height:3000,channels:3}}).png({compressionLevel:4}).toBuffer();
+const raw=randomBytes(3000*3000*4);
+// Real transparency consists of visible clear areas, not independent alpha
+// noise. Keep a wide clear band while retaining enough random artwork pixels
+// to exercise the two-part >20MB PNG delivery path.
+for(let y=0;y<3000;y++)for(let x=0;x<540;x++)raw[(y*3000+x)*4+3]=0;
+for(let y=0;y<3000;y++)for(let x=540;x<3000;x++)raw[(y*3000+x)*4+3]=255;
+const original=await sharp(raw,{raw:{width:3000,height:3000,channels:4}}).png({compressionLevel:4}).toBuffer();
 assert.ok(original.length>20_000_000&&original.length<37_000_000,'Fixture needs exactly two 18.5 MB parts');
 const originalName='sapiver-demo-seamless-master.png',parts=[];
 for(let off=0;off<original.length;off+=18_500_000){
@@ -88,4 +93,15 @@ test('conflicting PNG hashes block seller kit before merchant writes',async()=>{
  const badExtras=await zipFiles([zip('sapiver-demo-seamless-master.jpg',jpg),zip('sapiver-demo-repeat-preview-3x3.jpg',hero),zip('PNG-REASSEMBLY.json',Buffer.from(JSON.stringify(changed))),zip('REBUILD-PNG.html',restorer),...docs]);
  const files=[...partArchives,zip('UPLOAD-TO-ETSY/sapiver-demo-buyer-03-jpg-and-extras.zip',badExtras)];
  await assert.rejects(inspectDigitalUpload(await outer(files),{requireDocumentsPerBuyerZip:true}),/does not match the original bytes/);
+});
+
+test('opaque original master is rejected before any Etsy write',async()=>{
+ const opaque=await sharp(randomBytes(1100*1100*3),{raw:{width:1100,height:1100,channels:3}}).png().toBuffer();
+ const zipOne=await zipFiles([zip('sapiver-demo-seamless-master.png',opaque),...docs]);
+ const zipTwo=await zipFiles([zip('sapiver-demo-seamless-master.jpg',jpg),zip('sapiver-demo-repeat-preview-3x3.jpg',hero),...docs]);
+ const kit=await outer([
+  zip('UPLOAD-TO-ETSY/sapiver-demo-buyer-01-png.zip',zipOne),
+  zip('UPLOAD-TO-ETSY/sapiver-demo-buyer-02-jpg-and-extras.zip',zipTwo)
+ ]);
+ await assert.rejects(inspectDigitalUpload(kit,{requireDocumentsPerBuyerZip:true}),/Seamless master PNG is opaque/);
 });
