@@ -1,3 +1,14 @@
+### 2026-11-22 20:02 GMT — VERIFIED PRODUCTION: reject fully opaque Pattern Forge seamless masters
+- Source evidence: owner's Christmas train seller kit contains a 5000 × 5000 RGBA PNG of 51,562,338 bytes; all 25 million pixels have alpha 255 (no transparency). It is invalid for marketing as a transparent master, even though the multipart reassembly checksum is correct.
+- Released PR #115: squash commit `e09126e61a4a7d23ceabe62b98d088e4e78d1541` on production-connected `feature/canva-oauth-callback`. Live Netlify deployment `6b034a282c6990ddec0c53e5` READY, exact commit, no error.
+- Change: sample decoded PNG alpha at reduced resolution for trusted seamless-master files inside Pattern Forge seller kits, including fully reassembled multipart masters. Reject files with less than 1% real clear area before any Etsy writes. Preserve original binaries, physical posters, existing listings, SKUs and PrintShrimp workflows.
+- Verified: full GitHub Actions `Verify Poster_gen` run `45063933771` succeeded, **621 passing / 0 failing**, including transparent master multipart checksum, opaque direct PNG rejection, missing/tampered part validation and existing uploader tests.
+- Coordinated exporter: Pattern Forge PR #48 merged to main as `21012ca675c3b2d3f7142cd4c593b61b9b315569`; Netlify `6b034a40457f622dbef1281f` READY. Etsy PNG and vector SVG now ignore the ordinary background toggle, sample true transparency and block opaque imported motifs before packaging.
+- No customer or Etsy listing changes during deployment; no Work credits. One Netlify production build for each site. The owner's original opaque kit remains unchanged and unsuitable for publication as transparent artwork.
+- Remaining: The Christmas train editable project must be reopened and exported anew on the owner's Android device. If source motifs have baked-in backgrounds they require cleaning or replacement; exact on-device output and Etsy real file read-back remain unverified. Do not auto-strip white, especially snowy locomotive details.
+- Next action: User refreshes saved project and checks the `Actual transparent background` preflight result, then builds one new kit, reviews all buyer ZIPs and confirms alpha before seller approval.
+
+---
 ### 2026-11-22 19:50 GMT — Alpha validation for Pattern Forge Etsy seamless masters (DEVELOPMENT, not deployed)
 - Source: User-uploaded Christmas train seller kit, master 5000 × 5000 RGBA, 51,562,338 bytes. The file correctly reconstructs but has alpha 255 at all 25 million pixels, making it opaque despite the RGBA format. It must not be advertised as a transparent master.
 - Branch: `fix/require-transparent-seamless-masters-20261122` based on the production source `feature/canva-oauth-callback`.
