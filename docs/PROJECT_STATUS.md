@@ -1,3 +1,13 @@
+### 2026-11-22 — DEVELOPMENT ONLY: preserve oversize Pattern Forge PNGs without downscaling
+- Purpose: Jim explicitly rejected shrinking a 51.56 MB, 5000 × 5000 PNG to fit Etsy. Etsy accepts at most five digital attachments, each capped at 20,000,000 bytes.
+- Staged branch: `fix/full-resolution-etsy-multipart-20261122`, based on the actual Netlify production source `feature/canva-oauth-callback`.
+- Proposed changes: `lib/digital-archive.mjs` accepts tightly restricted `.pngpart` and `REBUILD-PNG.html` formats only within nested seller-kit customer ZIPs. `lib/seller-kit.mjs` requires a manifest, validates every part hash, reconstructs and byte-hashes the complete original PNG with Sharp dimension checks, and retains just a virtual original-file description to avoid extra delivery. `lib/product-metadata.mjs` discloses the buyer reconstruction step and accurate delivered file formats.
+- Pattern Forge source branch `fix/full-resolution-etsy-multipart-20261122` packages exact original bytes across 2–4 numbered PNG ZIPs, plus one JPG/preview/tool ZIP, without resizing, and includes an offline browser restoration tool.
+- Pending verification: Run new real PNG buyer-kit tests, full existing uploader test suite, actual Playwright reconstruction, failure-path cases, staging previews and physical Android download before any production release. The previous strict two-ZIP delivery remains for masters that fit under Etsy's cap. Seller permissions, unchanged physical listing/SKU/inventory paths and explicit Deploy approval remain protected.
+- No production deployment, live merchant writes, existing listing edits, orders, PrintShrimp operations, Work credits or Netlify production builds are authorised by this development checkpoint alone.
+- Next: resolve any failed automated tests, confirm cross-repository compatibility, and request/confirm scope before releasing each production branch.
+
+---
 ### 2026-11-19 14:39 GMT — Future Etsy alt text PRODUCTION DEPLOY VERIFIED
 
 - **Owner release approval:** Jim said "Deploy" for the already-staged forward-only Etsy listing alt-text change. Standard GitHub/Netlify tools used, no ChatGPT Work credits.
