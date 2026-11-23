@@ -5,11 +5,27 @@ try{
  const origin=process.env.POSTER_SITE_ORIGIN;
  // Public hostname is not a credential; keep origin validation exact without a copied environment-value literal.
  if(origin!==('https://'+'sapiver-poster-gen-auth.netlify.app'))throw Error('Unexpected origin');
+ // The failed diagnostic run below may be retried once, but must never poll
+ // or replay ordinary publication jobs. Other worker runs are unaffected.
+ const bicepIsolated=process.env.GITHUB_RUN_ID==='45204096728'&&process.env.GITHUB_RUN_ATTEMPT==='2';
  const audience=origin+'/poster/github-worker';
  async function rpc(body){
   const tokenUrl=new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);if(tokenUrl.origin!=='https://run-actions.githubusercontent.com'&&!tokenUrl.hostname.endsWith('.actions.githubusercontent.com'))throw Error('Unexpected issuer');tokenUrl.searchParams.set('audience',audience);
   const id=await fetch(tokenUrl,{headers:{Authorization:'Bearer '+process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN},redirect:'error',signal:AbortSignal.timeout(15000)});if(!id.ok)throw Error('Identity unavailable');const token=(await id.json()).value;
-  const r=await fetch(audience,{method:'POST',redirect:'error',signal:AbortSignal.timeout(60000),headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw Error('Bridge unavailable');return r.json();
+  // A fresh OIDC token is obtained on each attempt. Only this isolated,
+  // read-only audit may retry a transient bridge refusal once.
+  const attempts=bicepIsolated?2:1;
+  for(let attempt=0;attempt<attempts;attempt++){
+   const r=await fetch(audience,{method:'POST',redirect:'error',signal:AbortSignal.timeout(60000),headers:{Authorization:'Bearer '+(attempt===0?token:(await (async()=>{
+    const renewed=await fetch(tokenUrl,{headers:{Authorization:'Bearer '+process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN},redirect:'error',signal:AbortSignal.timeout(15000)});
+    if(!renewed.ok)throw Error('Identity unavailable');
+    return (await renewed.json()).value;
+   })())),'Content-Type':'application/json'},body:JSON.stringify(body)});
+   if(r.ok)return r.json();
+   if(bicepIsolated)console.log('BICEP_TRIO_BRIDGE '+JSON.stringify({op:['bootstrap','get','set','list'].includes(body.op)?body.op:'other',status:r.status,attempt:attempt+1}));
+   if(r.status!==403||attempt===attempts-1)throw Error('Bridge unavailable');
+  }
+  throw Error('Bridge unavailable');
  }
  const bootstrap=await rpc({op:'bootstrap'}),queue=createRemoteStore('sapiver-github-queue',rpc),uploads=createRemoteStore('sapiver-poster-uploads',rpc),etsyStore=createRemoteStore('sapiver-etsy-private',rpc);
  if(!bootstrap.secret||bootstrap.origin!==origin)throw Error('Site unavailable');
@@ -17,6 +33,47 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ // Exact read-only second attempt for the failed 15:20 Bicep Heart diagnostic.
+ // No queue listing, no normal prepare/publish actions, and no Etsy/PrintShrimp
+ // writes. Reuses existing original trio state and audit record.
+ if(bicepIsolated){
+  if(process.env.GITHUB_REPOSITORY!=='sapiverpress-studio/Poster_gen'||
+     process.env.GITHUB_REF!=='refs/heads/main'||
+     process.env.GITHUB_WORKFLOW!=='Approved poster publication'||
+     process.env.GITHUB_JOB!=='worker')throw Error('Unexpected isolated trio audit context');
+  const {execFileSync}=await import('node:child_process');
+  execFileSync('npm',['ci','--ignore-scripts','--no-audit','--no-fund'],{
+   stdio:'ignore',timeout:180000,
+   env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR}
+  });
+  const {auditOriginalBicepTrio}=await import('../lib/bicep-trio-isolated-audit.mjs');
+  const {diagnoseFailedTrioPreparation}=await import('../lib/collection-bundle-publication.mjs');
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const etsy=createEtsySession({store:etsyStore,config:etsySetup(workerEnv)});
+  const safeEtsy={session:()=>etsy.session(),api:(path,opts={})=>{
+   if(String(opts.method||'GET').toUpperCase()!=='GET')throw Error('Unexpected merchant write in read-only diagnostic');
+   return etsy.api(path,opts);
+  }};
+  const safeSupplier=(url,opts={})=>{
+   const target=new URL(url);
+   if(target.protocol!=='https:'||target.hostname!=='api.printshrimp.com'||
+      String(opts.method||'GET').toUpperCase()!=='GET')
+    throw Error('Unexpected supplier write in read-only diagnostic');
+   return fetch(url,opts);
+  };
+  const report=await auditOriginalBicepTrio({
+   uploads,diagnose:({id})=>diagnoseFailedTrioPreparation({
+    id,uploads,client:safeEtsy,env:workerEnv,request:safeSupplier
+   })
+  });
+  console.log('BICEP_TRIO_READ_ONLY '+JSON.stringify({
+   phase:report.phase,stage:report.stage,reason:report.reason
+  }));
+  process.exit(report.phase==='ready'||(report.phase==='blocked'&&
+   report.reason!=='diagnostic_state_changed'&&report.reason!=='saved_trio_identity_changed'&&
+   report.reason!=='saved_trio_changed_during_diagnostic')?0:1);
+ }
  // Owner-authorised in-place assignment of FOUR existing Etsy trios to
  // the VERIFIED Trio Collection shop section. Exact trusted worker attempt
  // FIVE ONLY; do not poll old queues or create listings, bundles or orders.
