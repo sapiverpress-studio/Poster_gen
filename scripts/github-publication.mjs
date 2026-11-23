@@ -7,7 +7,7 @@ try{
  if(origin!==('https://'+'sapiver-poster-gen-auth.netlify.app'))throw Error('Unexpected origin');
  // The failed diagnostic run below may be retried once, but must never poll
  // or replay ordinary publication jobs. Other worker runs are unaffected.
- const bicepIsolated=process.env.GITHUB_RUN_ID==='45204096728'&&['2','4'].includes(process.env.GITHUB_RUN_ATTEMPT);
+ const bicepIsolated=process.env.GITHUB_RUN_ID==='45204096728'&&['2','4','5'].includes(process.env.GITHUB_RUN_ATTEMPT);
  const audience=origin+'/poster/github-worker';
  async function rpc(body){
   const tokenUrl=new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);if(tokenUrl.origin!=='https://run-actions.githubusercontent.com'&&!tokenUrl.hostname.endsWith('.actions.githubusercontent.com'))throw Error('Unexpected issuer');tokenUrl.searchParams.set('audience',audience);
@@ -65,7 +65,7 @@ try{
   console.log('BICEP_TRIO_GUARD_READ_ONLY '+JSON.stringify(status));
   process.exit(0);
  }
- // Exact read-only attempts 2 and 4 for the failed 15:20 Bicep Heart diagnostic.
+ // Exact read-only attempts 2, 4 and 5 for the failed 15:20 Bicep Heart diagnostic.
  // No queue listing, no normal prepare/publish actions, and no Etsy/PrintShrimp
  // writes. Reuses existing original trio state and audit record.
  if(bicepIsolated){
