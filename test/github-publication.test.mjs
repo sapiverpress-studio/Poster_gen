@@ -318,3 +318,19 @@ test('read-only trio worker may access only the exact diagnostic record via priv
   await assert.rejects(remote.setJSON(forbidden,{phase:'queued'}),/Bridge unavailable/);
  }
 });
+
+test('private bridge exposes only safe failure stages after verified GitHub identity',async()=>{
+ const authenticated=createGithubBridge({env,store:()=>memory(),authenticate:async()=>({})});
+ const invalid=await authenticated(new Request(origin,{method:'POST',body:JSON.stringify({op:'get',store:'sapiver-poster-uploads',key:'wrong-private-key',type:'json'})}));
+ assert.equal(invalid.status,403);
+ assert.deepEqual(await invalid.json(),{error:'Worker request denied',safe_phase:'scoped_key_denied'});
+ const storage=createGithubBridge({env,store:()=>({getWithMetadata:async()=>{throw Error('super secret blob error');}}),authenticate:async()=>({})});
+ const denied=await storage(new Request(origin,{method:'POST',body:JSON.stringify({op:'get',store:'sapiver-etsy-private',key:'primary',type:'text'})}));
+ assert.equal(denied.status,403);
+ const body=await denied.json();
+ assert.deepEqual(body,{error:'Worker request denied',safe_phase:'storage_operation_failed'});
+ assert.doesNotMatch(JSON.stringify(body),/super secret/);
+ const noIdentity=createGithubBridge({env,store:()=>memory(),authenticate:async()=>{throw Error('sensitive token');}});
+ const hidden=await noIdentity(new Request(origin,{method:'POST',body:JSON.stringify({op:'get',store:'sapiver-etsy-private',key:'primary',type:'text'})}));
+ assert.deepEqual(await hidden.json(),{error:'Worker request denied'});
+});
