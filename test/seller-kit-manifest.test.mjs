@@ -34,7 +34,7 @@ async function sellerKit(data=manifest){
  ]);
  return storedZip([
   {name:'UPLOAD-TO-ETSY/one-design.zip',data:buyer},
-  {name:'LISTING-IMAGES/01.jpg',data:photo},
+  ...(data.product?.imageAltTextByFilename?Object.keys(data.product.imageAltTextByFilename).map(name=>({name:'LISTING-IMAGES/'+name,data:photo})):[{name:'LISTING-IMAGES/01.jpg',data:photo}]),
   {name:'LISTING-METADATA.json',data:Buffer.from(JSON.stringify(data))},
   {name:'SELLER-CHECKLIST.txt',data:Buffer.from('Seller only')}
  ]);
@@ -80,4 +80,28 @@ test('corrupted listing manifest bytes are rejected before any upload',async()=>
  assert.ok(i>0);
  changed[i]=0x58;
  await assert.rejects(read(new Blob([changed])),/checksum mismatch/);
+});
+
+const names=['01-pattern.jpg','02-repeat.jpg','03-cushion-visualisation.jpg','04-files-and-detail.jpg'];
+const descriptions={
+ '01-pattern.jpg':'Full photograph of the blue geometric digital paper design with repeated small squares.',
+ '02-repeat.jpg':'Two by two joined repeat preview of the blue geometric digital paper surface pattern.',
+ '03-cushion-visualisation.jpg':'Illustrative cushion showing the repeating blue geometric pattern; no cushion is supplied.',
+ '04-files-and-detail.jpg':'Files included information panel featuring the blue geometric artwork detail and file formats.'
+};
+test('new seller-kit captions match four exact uploaded photo filenames and retain buyer files',async()=>{
+ const p={...product,imageAltTextByFilename:descriptions,cleanLeadAltText:'Clean full-view image of blue geometric textile artwork shown without furniture or other props.'};
+ const zip=await sellerKit({...manifest,product:p});
+ const imported=await read(new Blob([zip]));
+ assert.deepEqual({...imported.imageAltTextByFilename},descriptions);
+ const checked=await inspectDigitalUpload(zip,{requireDocumentsPerBuyerZip:true});
+ assert.deepEqual(checked.previews.map(x=>x.name),names.map(x=>'LISTING-IMAGES/'+x));
+ assert.equal(checked.listingMetadata.product.cleanLeadAltText,p.cleanLeadAltText);
+ assert.equal(checked.packages.length,1);
+});
+test('invalid filename-specific alt metadata is rejected by both readers',async()=>{
+ const p={...product,imageAltTextByFilename:{...descriptions,'wrong.jpg':'invented'},cleanLeadAltText:'Clean full-view image of blue geometric textile artwork shown without props.'};
+ const zip=await sellerKit({...manifest,product:p});
+ await assert.rejects(read(new Blob([zip])),/alt descriptions/);
+ await assert.rejects(inspectDigitalUpload(zip,{requireDocumentsPerBuyerZip:true}),/alt|four filename/);
 });
