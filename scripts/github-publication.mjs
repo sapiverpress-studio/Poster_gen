@@ -33,6 +33,35 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ // Third attempt is a narrow, NO-WRITE metadata check of the same
+ // original saved trio. It never imports merchant clients or polls queued jobs.
+ if(process.env.GITHUB_RUN_ID==='45204096728'&&process.env.GITHUB_RUN_ATTEMPT==='3'){
+  if(process.env.GITHUB_REPOSITORY!=='sapiverpress-studio/Poster_gen'||
+     process.env.GITHUB_REF!=='refs/heads/main'||
+     process.env.GITHUB_WORKFLOW!=='Approved poster publication'||
+     process.env.GITHUB_JOB!=='worker')throw Error('Unexpected isolated trio inspection context');
+  const {BICEP_TRIO_ID,BICEP_TRIO_SKU}=await import('../lib/bicep-trio-isolated-audit.mjs');
+  const saved=await uploads.get('uploads/'+BICEP_TRIO_ID+'/state',{type:'json',consistency:'strong'});
+  const audit=await uploads.get('trio-prepare-audit/'+BICEP_TRIO_ID,{type:'json',consistency:'strong'});
+  const ids=Array.isArray(saved?.memberIds)?saved.memberIds:[];
+  const status={
+   exists:!!saved,
+   isBundle:saved?.type==='physical_bundle',
+   phase:saved?.phase||'missing',
+   failureAction:saved?.failureAction||'missing',
+   skuMatches:saved?.sku===BICEP_TRIO_SKU,
+   hasEtsyListing:!!saved?.listingId,
+   hasSupplierProduct:!!saved?.supplierProductId,
+   hasApprovalHash:!!saved?.approvalHash,
+   hasPlan:!!saved?.plan,
+   memberCount:ids.length,
+   distinctMemberCount:new Set(ids).size,
+   auditPhase:audit?.phase||'missing',
+   auditSameId:audit?.id===BICEP_TRIO_ID
+  };
+  console.log('BICEP_TRIO_GUARD_READ_ONLY '+JSON.stringify(status));
+  process.exit(0);
+ }
  // Exact read-only second attempt for the failed 15:20 Bicep Heart diagnostic.
  // No queue listing, no normal prepare/publish actions, and no Etsy/PrintShrimp
  // writes. Reuses existing original trio state and audit record.
