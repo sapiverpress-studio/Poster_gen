@@ -1,3 +1,14 @@
+### 2026-11-23 — DEVELOPMENT: exact seller-kit photo alt import and owner review (NOT RELEASED)
+- Request: Pattern Forge exporter generated stale Etsy tags and supplied no image-specific alt text to Poster Gen; fix both services, keep Etsy listing data, SKU, buyer ZIPs and fulfilment stable.
+- Branch: `fix/etsy-seller-kit-alt-review-20261123` from Netlify production-linked `feature/canva-oauth-callback`. All commits [skip netlify]; no production branch modification or deployment.
+- `lib/seller-kit.mjs` and `public/seller-kit-manifest.js` validate optional exact four filename-keyed images and clean-lead alt (35–250 chars each), preserving legacy ZIPs. `lib/etsy-seller-kit-alt.mjs` maps specific names to actual preview ranks and inserts clean lead only if generated. `lib/digital-product.mjs` uses mapped descriptions or the legacy fallback, accepts only exact owner corrections and verifies Etsy saved every alt before activation. `lib/product-metadata.mjs`, `public/poster-upload.mjs` and `lib/product-web.mjs` expose an editable one-line-per-photo list in the owner review/correction flow. No SKU, inventory, price, seller file packaging or PrintShrimp mutation in the preparation changes.
+- Tests staged: pure alt ordering/override tests; seller-kit malformed filename and four-preview tests; digital-product API mock verifies GET image alt readback. Full existing regression CI and live owner mobile validation pending.
+- Compatibility: Existing Pattern Forge ZIPs without custom alt metadata still work with current fallback descriptions. With custom metadata, malformed filename/length or mismatched image counts fail before Etsy publication. Owner must deliberately press the existing approved Deploy action for a new listing.
+- Known limitations: No live Etsy listing write, photo upload or buyer ZIP mutation occurred during this code development. No proof yet of production Netlify readiness or end-to-end Android UX. Etsy tag demand remains unverified.
+- Coordinated exporter: Pattern-forge branch `fix/etsy-buyer-tags-image-alts-20261123`. Release order: verify both PRs, then release together with a single owner-approved deploy per site; do not deploy this alone.
+- Credit cost: zero Work credits and zero Netlify builds from current branch edits. Next: CI and exact cross-repo ZIP import test; owner-approved production release separately.
+
+---
 ### 2026-11-22 20:02 GMT — VERIFIED PRODUCTION: reject fully opaque Pattern Forge seamless masters
 - Source evidence: owner's Christmas train seller kit contains a 5000 × 5000 RGBA PNG of 51,562,338 bytes; all 25 million pixels have alpha 255 (no transparency). It is invalid for marketing as a transparent master, even though the multipart reassembly checksum is correct.
 - Released PR #115: squash commit `e09126e61a4a7d23ceabe62b98d088e4e78d1541` on production-connected `feature/canva-oauth-callback`. Live Netlify deployment `6b034a282c6990ddec0c53e5` READY, exact commit, no error.
