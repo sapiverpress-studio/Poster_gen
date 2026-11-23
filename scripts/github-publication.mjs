@@ -7,7 +7,7 @@ try{
  if(origin!==('https://'+'sapiver-poster-gen-auth.netlify.app'))throw Error('Unexpected origin');
  // The failed diagnostic run below may be retried once, but must never poll
  // or replay ordinary publication jobs. Other worker runs are unaffected.
- const bicepIsolated=process.env.GITHUB_RUN_ID==='45204096728'&&['2','4'].includes(process.env.GITHUB_RUN_ATTEMPT);
+ const bicepIsolated=process.env.GITHUB_RUN_ID==='45204096728'&&['2','4','5'].includes(process.env.GITHUB_RUN_ATTEMPT);
  const audience=origin+'/poster/github-worker';
  async function rpc(body){
   const tokenUrl=new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);if(tokenUrl.origin!=='https://run-actions.githubusercontent.com'&&!tokenUrl.hostname.endsWith('.actions.githubusercontent.com'))throw Error('Unexpected issuer');tokenUrl.searchParams.set('audience',audience);
@@ -22,7 +22,14 @@ try{
     return (await renewed.json()).value;
    })())),'Content-Type':'application/json'},body:JSON.stringify(body)});
    if(r.ok)return r.json();
-   if(bicepIsolated)console.log('BICEP_TRIO_BRIDGE '+JSON.stringify({op:['bootstrap','get','set','list'].includes(body.op)?body.op:'other',status:r.status,attempt:attempt+1}));
+   if(bicepIsolated){
+    const detail=await r.json().catch(()=>null);
+    const safePhase=['storage_operation_failed','scoped_key_denied','request_invalid'].includes(detail?.safe_phase)?
+      detail.safe_phase:'authentication_or_unknown';
+    const scope=body.store==='sapiver-etsy-private'?'etsy_private':body.store==='sapiver-poster-uploads'?'poster_uploads':
+      body.store==='sapiver-github-queue'?'worker_queue':'none';
+    console.log('BICEP_TRIO_BRIDGE '+JSON.stringify({op:['bootstrap','get','set','list'].includes(body.op)?body.op:'other',scope,status:r.status,attempt:attempt+1,safePhase}));
+   }
    if(r.status!==403||attempt===attempts-1)throw Error('Bridge unavailable');
   }
   throw Error('Bridge unavailable');
@@ -33,6 +40,29 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ // Fifth attempt: diagnose only the private bridge transport. No
+ // supplier / Etsy API requests, no saved report changes, no queue polling.
+ if(process.env.GITHUB_RUN_ID==='45204096728'&&process.env.GITHUB_RUN_ATTEMPT==='5'){
+  if(process.env.GITHUB_REPOSITORY!=='sapiverpress-studio/Poster_gen'||
+     process.env.GITHUB_REF!=='refs/heads/main'||
+     process.env.GITHUB_WORKFLOW!=='Approved poster publication'||
+     process.env.GITHUB_JOB!=='worker')throw Error('Unexpected bridge probe context');
+  const {BICEP_TRIO_ID}=await import('../lib/bicep-trio-isolated-audit.mjs');
+  for(const [label,run] of [
+   ['original_trio',()=>uploads.get('uploads/'+BICEP_TRIO_ID+'/state',{type:'json',consistency:'strong'})],
+   ['private_etsy_primary',()=>etsyStore.get('primary',{type:'text',consistency:'strong'})],
+   ['private_etsy_config',()=>etsyStore.get('github-config',{type:'json',consistency:'strong'})],
+   ['existing_trio_report',()=>uploads.get('trio-prepare-audit/'+BICEP_TRIO_ID,{type:'json',consistency:'strong'})]
+  ]){
+   try{
+    const value=await run();
+    console.log('BICEP_BRIDGE_SCOPE '+JSON.stringify({label,phase:value===null?'missing':'read_ok'}));
+   }catch{
+    console.log('BICEP_BRIDGE_SCOPE '+JSON.stringify({label,phase:'bridge_denied'}));
+   }
+  }
+  process.exit(0);
+ }
  // Third attempt is a narrow, NO-WRITE metadata check of the same
  // original saved trio. It never imports merchant clients or polls queued jobs.
  if(process.env.GITHUB_RUN_ID==='45204096728'&&process.env.GITHUB_RUN_ATTEMPT==='3'){
