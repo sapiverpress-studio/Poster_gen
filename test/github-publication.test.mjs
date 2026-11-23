@@ -304,3 +304,17 @@ test('GitHub bridge accepts only scoped international preview and migration stor
   assert.equal((await read(key)).status,403,key);
  }
 });
+
+test('read-only trio worker may access only the exact diagnostic record via private bridge',async()=>{
+ const storage=memory(),bridge=createGithubBridge({env,store:()=>storage,authenticate:async()=>({})});
+ const rpc=async b=>{const r=await bridge(new Request(origin,{method:'POST',body:JSON.stringify(b)}));if(r.status!==200)throw Error('Bridge unavailable');return r.json();};
+ const remote=createRemoteStore('sapiver-poster-uploads',rpc),id='B'.repeat(32),key='trio-prepare-audit/'+id;
+ await remote.setJSON(key,{id,phase:'queued',queuedAt:now});
+ assert.equal((await remote.get(key,{type:'json'})).phase,'queued');
+ await remote.setJSON(key,{id,phase:'blocked',stage:'member_etsy_inventory_and_price',reason:'source_member_count_mismatch'});
+ assert.equal((await remote.get(key,{type:'json'})).reason,'source_member_count_mismatch');
+ for(const forbidden of ['trio-prepare-audit/short','trio-prepare-audit/'+id+'/secret',
+  'trio-prepare-audit/'+id+'../x','claims/'+id+'/trio-audit-redrive-once']){
+  await assert.rejects(remote.setJSON(forbidden,{phase:'queued'}),/Bridge unavailable/);
+ }
+});
