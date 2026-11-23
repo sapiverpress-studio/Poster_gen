@@ -19,6 +19,15 @@
   if(!Array.isArray(p.tags)||p.tags.length<1||p.tags.length>13||
    p.tags.some(t=>!clean(t,20))||new Set(p.tags.map(t=>t.toLowerCase())).size!==p.tags.length)
    fail('Etsy tags must be unique and no longer than 20 characters each.');
+  // Reject mismatched or incomplete new photo-alts before a large ZIP upload.
+  if(p.imageAltTextByFilename!==undefined){
+   const names=['01-pattern.jpg','02-repeat.jpg','03-cushion-visualisation.jpg','04-files-and-detail.jpg'];
+   const validAlt=value=>typeof value==='string'&&value===value.trim()&&value.length>=35&&value.length<=250&&!/[<>\x00-\x1f]/.test(value);
+   const map=p.imageAltTextByFilename;
+   if(!map||typeof map!=='object'||Array.isArray(map)||
+      Object.keys(map).length!==4||names.some(name=>!validAlt(map[name]))||!validAlt(p.cleanLeadAltText))
+    fail('image alt descriptions must match all four seller photographs and the clean front image.');
+  }else if(p.cleanLeadAltText!==undefined)fail('clean front image alt text needs the four other photo descriptions.');
   return p;
  }
  async function read(file){
