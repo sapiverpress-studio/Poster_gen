@@ -7,7 +7,7 @@ try{
  if(origin!==('https://'+'sapiver-poster-gen-auth.netlify.app'))throw Error('Unexpected origin');
  // The failed diagnostic run below may be retried once, but must never poll
  // or replay ordinary publication jobs. Other worker runs are unaffected.
- const bicepIsolated=process.env.GITHUB_RUN_ID==='45204096728'&&process.env.GITHUB_RUN_ATTEMPT==='2';
+ const bicepIsolated=process.env.GITHUB_RUN_ID==='45204096728'&&['2','4'].includes(process.env.GITHUB_RUN_ATTEMPT);
  const audience=origin+'/poster/github-worker';
  async function rpc(body){
   const tokenUrl=new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);if(tokenUrl.origin!=='https://run-actions.githubusercontent.com'&&!tokenUrl.hostname.endsWith('.actions.githubusercontent.com'))throw Error('Unexpected issuer');tokenUrl.searchParams.set('audience',audience);
@@ -40,16 +40,19 @@ try{
      process.env.GITHUB_REF!=='refs/heads/main'||
      process.env.GITHUB_WORKFLOW!=='Approved poster publication'||
      process.env.GITHUB_JOB!=='worker')throw Error('Unexpected isolated trio inspection context');
-  const {BICEP_TRIO_ID,BICEP_TRIO_SKU}=await import('../lib/bicep-trio-isolated-audit.mjs');
+  const {BICEP_TRIO_ID}=await import('../lib/bicep-trio-isolated-audit.mjs');
+  const {deriveTrioSku}=await import('../lib/collection-bundle-sku.mjs');
   const saved=await uploads.get('uploads/'+BICEP_TRIO_ID+'/state',{type:'json',consistency:'strong'});
   const audit=await uploads.get('trio-prepare-audit/'+BICEP_TRIO_ID,{type:'json',consistency:'strong'});
   const ids=Array.isArray(saved?.memberIds)?saved.memberIds:[];
+  let computedSku;
+  try{computedSku=deriveTrioSku({members:saved.memberRefs,size:saved.trio?.size});}catch{}
   const status={
    exists:!!saved,
    isBundle:saved?.type==='physical_bundle',
    phase:saved?.phase||'missing',
    failureAction:saved?.failureAction||'missing',
-   skuMatches:saved?.sku===BICEP_TRIO_SKU,
+   skuMatches:saved?.sku===computedSku,
    hasEtsyListing:!!saved?.listingId,
    hasSupplierProduct:!!saved?.supplierProductId,
    hasApprovalHash:!!saved?.approvalHash,
@@ -62,7 +65,7 @@ try{
   console.log('BICEP_TRIO_GUARD_READ_ONLY '+JSON.stringify(status));
   process.exit(0);
  }
- // Exact read-only second attempt for the failed 15:20 Bicep Heart diagnostic.
+ // Exact read-only attempts 2 and 4 for the failed 15:20 Bicep Heart diagnostic.
  // No queue listing, no normal prepare/publish actions, and no Etsy/PrintShrimp
  // writes. Reuses existing original trio state and audit record.
  if(bicepIsolated){
