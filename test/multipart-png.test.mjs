@@ -105,3 +105,42 @@ test('opaque original master is rejected before any Etsy write',async()=>{
  ]);
  await assert.rejects(inspectDigitalUpload(kit,{requireDocumentsPerBuyerZip:true}),/Seamless master PNG is opaque/);
 });
+
+test('five buyer ZIPs preserve a 20MB+ original plus three coloured two-size PNG sets',async()=>{
+ const shades=['#f7eee2','#d6e7ec','#b9cdbe'],variants=[];
+ for(let i=0;i<3;i++){
+  const pair=[];
+  for(const size of [600,300]){
+   const name='sapiver-demo-colour-'+(i+1)+'-'+shades[i].slice(1)+'-'+size+'x'+size+'.png';
+   const data=await sharp({create:{width:size,height:size,channels:4,background:shades[i]}}).png().toBuffer();
+   pair.push({name,data,width:size,height:size,dpi:300,bytes:data.length});
+  }
+  variants.push(pair);
+ }
+ const four={
+  format:'sapiver-four-background-pattern',version:1,
+  transparent:{name:originalName,width:3000,height:3000,dpi:300,reconstructionParts:parts.length},
+  backgrounds:shades.map((colour,i)=>({colour,files:variants[i].map(({name,width,height,dpi,bytes})=>({name,width,height,dpi,bytes}))})),
+  buyerRestorationRequired:true
+ };
+ const coloured=[];
+ for(let i=0;i<3;i++){
+  const entries=[
+   ...variants[i].map(x=>zip(x.name,x.data)),
+   ...(i===0?[
+    zip('PNG-REASSEMBLY.json',Buffer.from(JSON.stringify(manifest))),
+    zip('REBUILD-PNG.html',restorer),
+    zip('SAPIVER-FOUR-VARIANTS.json',Buffer.from(JSON.stringify(four)))
+   ]:[]),...docs
+  ];
+  coloured.push(zip('UPLOAD-TO-ETSY/sapiver-demo-buyer-0'+(parts.length+i+1)+'-colours-'+(i+1)+'.zip',await zipFiles(entries)));
+ }
+ const sellerKit=await outer([...partArchives,...coloured]);
+ const accepted=await inspectDigitalUpload(sellerKit,{requireDocumentsPerBuyerZip:true});
+ assert.equal(accepted.packages.length,5);
+ const verified=accepted.inspection.files.find(f=>f.name===originalName&&f.reassembled);
+ assert.ok(verified);
+ assert.equal(verified.sha256,digest(original));
+ assert.equal(verified.width,3000);
+ assert.equal(accepted.inspection.files.filter(f=>f.name.includes('-colour-')&&f.format==='png').length,6);
+});
