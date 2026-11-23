@@ -64,3 +64,34 @@ test('derived SKU mismatch is refused without touching the saved trio or merchan
  assert.equal(r.reason,'saved_trio_sku_derivation_mismatch');
  assert.equal(calls,0);assert.deepEqual(f.writes,[]);
 });
+
+test('repaired bridge may replace only its exact failed read-only audit report',async()=>{
+ const f=fixture(),prior=f.map.get('trio-prepare-audit/'+BICEP_TRIO_ID);
+ Object.assign(prior,{phase:'blocked',stage:'member_etsy_inventory_and_price',
+  reason:'provider_readback_failure_unclassified',source:'isolated_read_only_recovery'});
+ const original=structuredClone(f.trio);
+ let calls=0;
+ const response=await auditOriginalBicepTrio({uploads:f.store,diagnose:async()=>{
+  calls++;return {phase:'blocked',stage:'supplier_member_artwork',reason:'supplier_artwork_unavailable'};
+ }});
+ assert.equal(calls,1);
+ assert.equal(response.stage,'supplier_member_artwork');
+ assert.deepEqual(f.writes,['trio-prepare-audit/'+BICEP_TRIO_ID]);
+ assert.deepEqual(f.map.get('uploads/'+BICEP_TRIO_ID+'/state'),original);
+});
+test('unrelated old failures never unlock isolated trio reinspection',async()=>{
+ for(const change of [
+  p=>p.source='other',
+  p=>p.reason='unknown',
+  p=>p.stage='publishing_etsy',
+  p=>p.phase='ready'
+ ]){
+  const f=fixture(),prior=f.map.get('trio-prepare-audit/'+BICEP_TRIO_ID);
+  Object.assign(prior,{phase:'blocked',stage:'member_etsy_inventory_and_price',
+   reason:'provider_readback_failure_unclassified',source:'isolated_read_only_recovery'});
+  change(prior);let calls=0;
+  const answer=await auditOriginalBicepTrio({uploads:f.store,diagnose:async()=>{calls++;return {phase:'ready',stage:'complete',reason:'ready'};}});
+  assert.equal(answer.reason,'diagnostic_state_changed');
+  assert.equal(calls,0);assert.deepEqual(f.writes,[]);
+ }
+});
