@@ -57,3 +57,31 @@ test('read-only backend returns a stage-specific classification without writing 
  assert.equal(uploads.m.size,1);
  assert.equal((await uploads.get(assetKey(id))).phase,'needs_investigation');
 });
+
+test('an expired pending diagnostic can be re-dispatched once without modifying the trio',async()=>{
+ const f=fixture(),time=Date.now(),form=new URLSearchParams({csrf:'csrf123'}).toString();
+ f.uploads.m.set('trio-prepare-audit/'+id,{id,phase:'queued',queuedAt:time-200000});
+ const before=structuredClone(await f.uploads.get(assetKey(id)));
+ const html=await (await f.handler(f.req('/poster/upload?id='+id),{})).text();
+ assert.match(html,/Retry read-only diagnostic/);
+ const path='/poster/uploads/'+id+'/diagnose-trio';
+ const first=await f.handler(f.req(path,'POST',form),{});
+ assert.equal(first.status,303);
+ assert.deepEqual(f.jobs,[{jobId:id,action:'trio_prepare_audit'}]);
+ assert.equal((await f.uploads.get('trio-prepare-audit/'+id)).redriveCount,1);
+ assert.equal((await f.uploads.get('trio-prepare-audit/'+id)).phase,'queued');
+ assert.deepEqual(await f.uploads.get(assetKey(id)),before);
+ const repeat=await f.handler(f.req(path,'POST',form),{});
+ assert.equal(repeat.status,409);
+ assert.equal(f.jobs.length,1);
+});
+test('a completed or recent diagnostic cannot be re-dispatched',async()=>{
+ for(const phase of ['ready','blocked','queued']){
+  const f=fixture(),form=new URLSearchParams({csrf:'csrf123'}).toString();
+  f.uploads.m.set('trio-prepare-audit/'+id,{id,phase,queuedAt:Date.now()});
+  const answer=await f.handler(f.req('/poster/uploads/'+id+'/diagnose-trio','POST',form),{});
+  assert.equal(answer.status,409);
+  assert.equal(f.jobs.length,0);
+  assert.equal(f.uploads.m.has('claims/'+id+'/trio-audit-redrive-once'),false);
+ }
+});
