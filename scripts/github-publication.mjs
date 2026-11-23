@@ -7,7 +7,7 @@ try{
  if(origin!==('https://'+'sapiver-poster-gen-auth.netlify.app'))throw Error('Unexpected origin');
  // The failed diagnostic run below may be retried once, but must never poll
  // or replay ordinary publication jobs. Other worker runs are unaffected.
- const bicepIsolated=process.env.GITHUB_RUN_ID==='45204096728'&&['2','4','5'].includes(process.env.GITHUB_RUN_ATTEMPT);
+ const bicepIsolated=process.env.GITHUB_RUN_ID==='45204096728'&&['2','4','5','6'].includes(process.env.GITHUB_RUN_ATTEMPT);
  const audience=origin+'/poster/github-worker';
  async function rpc(body){
   const tokenUrl=new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);if(tokenUrl.origin!=='https://run-actions.githubusercontent.com'&&!tokenUrl.hostname.endsWith('.actions.githubusercontent.com'))throw Error('Unexpected issuer');tokenUrl.searchParams.set('audience',audience);
@@ -33,6 +33,45 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
+ // Exact sixth attempt: repair ONLY the saved Bicep Heart trio review.
+ // All external Etsy and PrintShrimp calls are enforced as GET-only, and
+ // owner approval remains mandatory before any merchant publication.
+ if(process.env.GITHUB_RUN_ID==='45204096728'&&process.env.GITHUB_RUN_ATTEMPT==='6'){
+  if(process.env.GITHUB_REPOSITORY!=='sapiverpress-studio/Poster_gen'||
+     process.env.GITHUB_REF!=='refs/heads/main'||
+     process.env.GITHUB_WORKFLOW!=='Approved poster publication'||
+     process.env.GITHUB_JOB!=='worker')throw Error('Unexpected trio recovery context');
+  const {execFileSync}=await import('node:child_process');
+  execFileSync('npm',['ci','--ignore-scripts','--no-audit','--no-fund'],{
+   stdio:'ignore',timeout:180000,
+   env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR}
+  });
+  const {prepareExistingBicepTrioReview}=await import('../lib/bicep-trio-review-recovery.mjs');
+  const {diagnoseFailedTrioPreparation,prepareCollectionBundle}=await import('../lib/collection-bundle-publication.mjs');
+  const {createEtsySession}=await import('../lib/etsy-session.mjs');
+  const {etsySetup}=await import('../lib/etsy-oauth.mjs');
+  const etsy=createEtsySession({store:etsyStore,config:etsySetup(workerEnv)});
+  const safeEtsy={session:()=>etsy.session(),api:(path,opts={})=>{
+   if(String(opts.method||'GET').toUpperCase()!=='GET')throw Error('Merchant writes prohibited during trio recovery');
+   return etsy.api(path,opts);
+  }};
+  const safeSupplier=(url,opts={})=>{
+   const target=new URL(url);
+   if(target.protocol!=='https:'||target.hostname!=='api.printshrimp.com'||
+      String(opts.method||'GET').toUpperCase()!=='GET')
+    throw Error('Supplier writes prohibited during trio recovery');
+   return fetch(url,opts);
+  };
+  const args={uploads,client:safeEtsy,env:workerEnv,request:safeSupplier};
+  const outcome=await prepareExistingBicepTrioReview({
+   uploads,diagnose:({id})=>diagnoseFailedTrioPreparation({id,...args}),
+   prepare:({id})=>prepareCollectionBundle({id,...args})
+  });
+  console.log('BICEP_TRIO_RECOVERED_REVIEW '+JSON.stringify({
+   phase:outcome.phase,stage:outcome.stage,reason:outcome.reason
+  }));
+  process.exit(outcome.phase==='ready_for_approval'?0:1);
+ }
  // Third attempt is a narrow, NO-WRITE metadata check of the same
  // original saved trio. It never imports merchant clients or polls queued jobs.
  if(process.env.GITHUB_RUN_ID==='45204096728'&&process.env.GITHUB_RUN_ATTEMPT==='3'){

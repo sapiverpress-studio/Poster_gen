@@ -79,3 +79,19 @@ test('three-piece trio-only refuses missing artwork, duplicate member or wrong s
  assert.throws(()=>validateTrioOnly(three,[{...valid,members:['1-poster','1-poster','3-poster']}]),/same artwork twice/);
  assert.throws(()=>validateTrioOnly(three,[{...valid,sectionTitle:'Nature'}]),/section differs/);
 });
+
+test('Bicep Heart colour trio accepts legitimate Print Only and frame finish choices',()=>{
+ const original='A matching set of three PHYSICAL art prints featuring one strong-woman bicep-heart illustration in three complementary colour editions. '+
+  'The three printed artworks are supplied together at one fixed A4 size (approximately 21 × 29.7 cm each). '+
+  'Choose prints only (unframed), or matching frames in black, white or oak if the framed finish is selected and offered during checkout. '+
+  'This is a physical three-print collection, not a digital file.';
+ const desc=framedTrioDescription(original,'A4');
+ assert.match(desc,/Choose prints only \(unframed\), or matching frames in black, white or oak/);
+ assert.match(desc,/Finish choices: Print Only/);
+ assert.match(desc,/Black Frame, White Frame or Oak Frame/);
+ assert.match(desc,/three individually framed prints/);
+});
+test('framed trio validator still rejects a truly unframed-only listing',()=>{
+ const excluded='These three original prints are available unframed only. No frames are included. Each A4 artwork is a physical paper print and there are no framed options in this product.';
+ assert.throws(()=>framedTrioDescription(excluded,'A4'),/explicitly excludes frames/);
+});
