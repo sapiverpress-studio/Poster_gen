@@ -82,7 +82,7 @@ test('unsigned retry cannot bypass studio owner session or CSRF',async()=>{
  const f=fixture(),path='/poster/uploads/'+id+'/retry-trio-prepare';
  const unauth=await f.handler(new Request(origin+path,{method:'POST',body:postBody}),{});
  assert.equal(unauth.status,401);
- const invalid=await f.handler(f.req(path,'POST',postBody,{'X-Poster-CSRF':'wrong'}),{});
+ const invalid=await f.handler(f.req(path,'POST',new URLSearchParams({csrf:'wrong'}).toString(),{'Content-Type':'application/x-www-form-urlencoded'}),{});
  assert.equal(invalid.status,403);
  assert.equal(f.calls.length,0);
 });
