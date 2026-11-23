@@ -86,3 +86,12 @@ test('unsigned retry cannot bypass studio owner session or CSRF',async()=>{
  assert.equal(invalid.status,403);
  assert.equal(f.calls.length,0);
 });
+
+test('one-use retry is no longer offered after its reservation, but diagnosis remains available',async()=>{
+ const f=fixture();
+ f.uploads.m.set('claims/'+id+'/trio-preparation-retry-once',{id,at:1});
+ const html=await (await f.handler(f.req('/poster/upload?id='+id),{})).text();
+ assert.doesNotMatch(html,/Recheck this saved trio \(once\)/);
+ assert.match(html,/Diagnose saved trio \(read-only\)/);
+ assert.match(html,/SP-TRIO-SAVED/);
+});
