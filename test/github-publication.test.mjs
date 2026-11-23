@@ -318,3 +318,27 @@ test('read-only trio worker may access only the exact diagnostic record via priv
   await assert.rejects(remote.setJSON(forbidden,{phase:'queued'}),/Bridge unavailable/);
  }
 });
+
+test('bridge keeps poster-upload and Etsy-private storage namespaces distinct',async()=>{
+ const stores=new Map(),getStore=name=>{
+  if(!stores.has(name))stores.set(name,memory());return stores.get(name);
+ };
+ await getStore('sapiver-poster-uploads').setJSON('uploads/'+'p'.repeat(32)+'/state',{type:'physical_bundle'});
+ await getStore('sapiver-etsy-private').set('primary','encrypted-private-session');
+ await getStore('sapiver-etsy-private').setJSON('github-config',{clientId:'app'});
+ const bridge=createGithubBridge({env,store:getStore,authenticate:async()=>({})});
+ const rpc=async(body,expectedStatus=200)=>{
+  const response=await bridge(new Request(origin,{method:'POST',body:JSON.stringify(body)}));
+  assert.equal(response.status,expectedStatus);
+  return response.json();
+ };
+ const a=await rpc({op:'get',store:'sapiver-poster-uploads',key:'uploads/'+'p'.repeat(32)+'/state',type:'json'});
+ assert.equal(a.data.type,'physical_bundle');
+ const session=await rpc({op:'get',store:'sapiver-etsy-private',key:'primary',type:'text'});
+ assert.equal(session.data,'encrypted-private-session');
+ const config=await rpc({op:'get',store:'sapiver-etsy-private',key:'github-config',type:'json'});
+ assert.equal(config.data.clientId,'app');
+ const denied=await rpc({op:'get',store:'sapiver-etsy-private',key:'uploads/'+'p'.repeat(32)+'/state',type:'json'},403);
+ assert.equal(denied.error,'Worker request denied');
+ assert.equal(getStore('sapiver-etsy-private').map.has('uploads/'+'p'.repeat(32)+'/state'),false);
+});
