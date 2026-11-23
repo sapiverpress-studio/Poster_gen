@@ -1,3 +1,12 @@
+### 2026-11-23 11:48 GMT — PRODUCTION RELEASE VERIFIED: seller-kit image alt text import, editing and Etsy readback
+- Owner explicitly authorised release ("Just deploy it") of paired PRs; no ChatGPT Work credits used. Poster Gen [PR #117](https://github.com/sapiverpress-studio/Poster_gen/pull/117) squash-merged into actual Netlify production branch `feature/canva-oauth-callback` as commit `425b30b4217100cfc374d69ce1eb3031d28f461c`.
+- Netlify production deploy `6b042804a1e3ff15b9145518`, READY, exact commit `425b30b4217100cfc374d69ce1eb3031d28f461c`, branch `feature/canva-oauth-callback`, context production, no reported build error, published 2026-11-23 11:48:39 UTC.
+- Latest PR verification run `45151046194` succeeded; the previous full run `45150481942` had 631 passing tests, zero failures. Image-specific seller ZIP alts validated by preview filename, optional lead photo handled, review screen now shows and permits correction of each image description, and Etsy image readback is checked before publication. Legacy ZIP fallback remains.
+- Coordinated Pattern Forge [PR #50](https://github.com/sapiverpress-studio/Pattern-forge/pull/50) deployed to its main branch as commit `a398e6350c75812256b23329d4a7136edafd1aef`, Netlify deploy `6b04282d879fb38200c48ee6` READY.
+- No existing Etsy listing was modified by these software releases. No buyer files, SKU, inventory, PrintShrimp or customer orders were altered; no live publication trial has been run. The owner still reviews and approves each listing via the existing Deploy button. Etsy keyword demand is NOT measured; AI proposes buyer-intent phrases.
+- This documentation-only follow-up is [skip netlify] and should not trigger a second production build. Next: owner uses a newly generated seller kit to validate actual mobile import, captions and live saved Etsy photo alts at first owner-approved listing.
+
+---
 ### 2026-11-23 — DEVELOPMENT: exact seller-kit photo alt import and owner review (NOT RELEASED)
 - Request: Pattern Forge exporter generated stale Etsy tags and supplied no image-specific alt text to Poster Gen; fix both services, keep Etsy listing data, SKU, buyer ZIPs and fulfilment stable.
 - Branch: `fix/etsy-seller-kit-alt-review-20261123` from Netlify production-linked `feature/canva-oauth-callback`. All commits [skip netlify]; no production branch modification or deployment.
