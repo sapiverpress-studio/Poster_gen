@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {auditOriginalBicepTrio,BICEP_TRIO_ID,BICEP_TRIO_SKU} from '../lib/bicep-trio-isolated-audit.mjs';
+import {auditOriginalBicepTrio,BICEP_TRIO_ID} from '../lib/bicep-trio-isolated-audit.mjs';
+import {deriveTrioSku} from '../lib/collection-bundle-sku.mjs';
 
 function fixture(){
  const map=new Map(),writes=[],reads=[];
@@ -9,8 +10,10 @@ function fixture(){
   async setJSON(k,value){writes.push(k);map.set(k,value);return {modified:true};}
  };
  const memberIds=['A','B','C'].map(x=>x.repeat(32));
- const trio={type:'physical_bundle',phase:'needs_investigation',failureAction:'prepare',sku:BICEP_TRIO_SKU,
-  memberIds,listingId:null,supplierProductId:null,approvalHash:null};
+ const memberRefs=['a','b','c'].map((x,i)=>({id:memberIds[i],sku:'SP-SINGLE-'+x.toUpperCase(),sha256:x.repeat(64),listingId:100+i}));
+ const trio={type:'physical_bundle',phase:'needs_investigation',failureAction:'prepare',
+  sku:deriveTrioSku({members:memberRefs,size:'A4'}),trio:{size:'A4'},
+  memberIds,memberRefs,listingId:null,supplierProductId:null,approvalHash:null};
  map.set('uploads/'+BICEP_TRIO_ID+'/state',trio);
  map.set('trio-prepare-audit/'+BICEP_TRIO_ID,{id:BICEP_TRIO_ID,phase:'queued',queuedAt:12345,redriveCount:1});
  return {store,map,writes,reads,trio};
@@ -28,7 +31,7 @@ test('isolated Bicep diagnostic changes only the report, never trio state or SKU
 });
 test('isolated diagnostic refuses missing, replaced, approved or published trio identity',async()=>{
  for(const mutation of [
-  a=>a.sku='SP-DIFFERENT',a=>a.phase='publishing',a=>a.type='physical',
+  a=>a.phase='publishing',a=>a.type='physical',
   a=>a.listingId=123,a=>a.supplierProductId='existing',a=>a.approvalHash='hash',
   a=>a.memberIds=['A'.repeat(32)],a=>a.failureAction='publish'
  ]){
@@ -52,4 +55,12 @@ test('isolated audit never reports success when original trio changed while read
  }});
  assert.equal(r.reason,'saved_trio_changed_during_diagnostic');
  assert.deepEqual(f.writes,[]);
+});
+
+test('derived SKU mismatch is refused without touching the saved trio or merchant data',async()=>{
+ const f=fixture();f.trio.sku='SP-TRIO-WRONG';
+ let calls=0;
+ const r=await auditOriginalBicepTrio({uploads:f.store,diagnose:async()=>{calls++;}});
+ assert.equal(r.reason,'saved_trio_sku_derivation_mismatch');
+ assert.equal(calls,0);assert.deepEqual(f.writes,[]);
 });
