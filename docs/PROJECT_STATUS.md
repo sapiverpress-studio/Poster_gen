@@ -1,3 +1,16 @@
+## CURRENT PROJECT SNAPSHOT — 2026-11-24 10:22 GMT: five phone wallpapers LIVE; Android acceptance PENDING
+
+- Owner approval: Jim answered **Yes** to deploying the tested uploader upgrade in PR #134. This authorised one production software release; it did not authorise creating an Etsy listing or a supplier order.
+- Released: PR #134 squash-merged into actual production source `feature/canva-oauth-callback` as `524be6f232a878dd886edb5f765929d202bd5ad7`. Exact reviewed head `d2206f3482e934c59dc6e7e5c6c533f4141e1fc3`; GitHub Actions run `45370172078` completed SUCCESS. Local and GitHub full suites: 671 tests passed, zero failures. The merge tree is identical to the checked review head.
+- VERIFIED hosting: Netlify production deploy `6b0564f21b295e899049b2aa`, READY, exact release SHA and source branch, no error, published 2026-11-24 10:20:53.106 UTC. The existing poster-upload function includes `/poster/bulk`, `/poster/upload` and upload/review routes. Live `bulk-upload.mjs`, `poster-upload.mjs` and `seller-kit-manifest.js` returned HTTP 200 and matched the tested local files byte for byte (48,274 / 22,269 / 6,229 bytes).
+- Result: the bulk page offers **5 phone wallpapers** and opens the existing secured digital flow. Five JPG/PNG designs create one product review; arbitrary safe filenames are accepted. Prepared seller ZIPs import listing details and preserve buyer files. Plain ZIPs can generate the six phone previews. Existing final per-product Deploy approval remains required.
+- Changed documentation: README and `docs/PHONE_WALLPAPERS.md` now identify this feature as released; this record preserves the previous development snapshot below as history. This documentation-only follow-up uses `[skip netlify]` and must not cause another production build.
+- NOT VERIFIED: real owner Android import, the first genuine wallpaper ZIP and actual Etsy wallpaper publication. The environment blocked the earlier mobile browser harness; hosting/source verification is not device acceptance. No authentication or mobile success is claimed from public-module readback.
+- Safety / credit impact: one approved Netlify production build. No Etsy listing, image, customer file, inventory, supplier product/order, automation, billing preference or existing fulfilment identity was changed by this release verification. No claim about ChatGPT Work credit accounting is made.
+- Next action: owner opens the bulk page and chooses **5 phone wallpapers**, or uses `/poster/upload?type=digital&kind=wallpaper`. Jim can provide five Canva exports in one ZIP, with any filenames, for packaging. Record genuine Android acceptance and any separately approved listing publication after observing them.
+
+---
+
 ## CURRENT PROJECT SNAPSHOT — 2026-11-24 09:54 GMT: five phone wallpapers STAGED, NOT DEPLOYED
 
 - Stage / purpose: Jim requested a bulk-uploader upgrade for five phone wallpaper images, supplied in one ZIP with arbitrary Canva filenames. Implemented on `feature/five-phone-wallpapers-20261124`, from current app branch `feature/canva-oauth-callback` at `cf9121bf520badfb8339fccf868554f7624f13ea`.

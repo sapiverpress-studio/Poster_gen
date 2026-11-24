@@ -4,9 +4,9 @@ One private product review and publication system for Sapiver Prints physical po
 
 **Start here:** read [AGENTS.md](AGENTS.md), then the current snapshot and latest history in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). [docs/UNIFIED_PRODUCTS.md](docs/UNIFIED_PRODUCTS.md) describes the current implementation, limits, tests, release state and outstanding live checks. Historical guides remain for earlier decisions.
 
-## Five phone wallpapers — staged 24 November 2026
+## Five phone wallpapers — live 24 November 2026
 
-The bulk uploader now has a staged **5 phone wallpapers** choice for one digital bundle. It accepts arbitrary safe image filenames, validates five portrait JPG/PNG files at least 1440 × 3200 pixels, imports prepared listing metadata and preserves customer bytes. The existing review/Deploy gate remains. Local Node 24 verification: **671/671 tests passed**; production release and Android acceptance are pending. Package format: [docs/PHONE_WALLPAPERS.md](docs/PHONE_WALLPAPERS.md).
+The bulk uploader now has a live **5 phone wallpapers** choice for one digital bundle. It accepts arbitrary safe image filenames, validates five portrait JPG/PNG files at least 1440 × 3200 pixels, imports prepared listing metadata and preserves customer bytes. The existing review/Deploy gate remains. Local and GitHub Node 24 verification: **671/671 tests passed**. Production release `524be6f` is verified READY; actual Android acceptance is pending. Package format: [docs/PHONE_WALLPAPERS.md](docs/PHONE_WALLPAPERS.md).
 
 ## Current workflow — studio live; seller-kit extension staged
 

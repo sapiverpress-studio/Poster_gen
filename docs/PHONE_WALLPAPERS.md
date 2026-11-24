@@ -1,6 +1,6 @@
 # Five phone wallpapers — uploader contract
 
-Status: implemented and locally tested on `feature/five-phone-wallpapers-20261124`; not released to production.
+Status: released to production on 24 November 2026 as `524be6f232a878dd886edb5f765929d202bd5ad7` (PR #134). Netlify deploy `6b0564f21b295e899049b2aa` is READY at the exact release commit. Actual Android import remains unverified.
 
 The bulk page offers **5 phone wallpapers** alongside the physical Individual, Singular trio and Six-pack choices. It opens `/poster/upload?type=digital&kind=wallpaper`, using the existing protected digital upload, review and owner Deploy flow. Exactly one product is prepared for the five-image bundle. No PrintShrimp, physical variation or order action is added.
 
@@ -64,4 +64,4 @@ The digital listing text describes phone settings and possible device cropping, 
 - Final: 671/671 passed, including arbitrary names and unchanged buyer hashes, real JPEG/PNG dimension and orientation checks, four/six/duplicate rejection, actual seller ZIP and mobile manifest imports, exact preview alts, six rendered previews, mode selection, and existing physical/digital publication regressions.
 - Rendered cover and individual preview inspected locally with synthetic images.
 - A Playwright mobile harness could not start: its default Chromium was absent and the installed Chromium was blocked by environment socket permissions. No browser or physical Android acceptance is claimed.
-- No real wallpaper listing, merchant file upload, supplier call, order or live production deploy was performed. Deployment and first actual Android import remain pending owner approval.
+- One owner-approved production release is verified READY; the three live uploader modules match the tested source. No real wallpaper listing, merchant file upload, supplier call or order was performed. The first actual Android import and any separately approved listing publication remain unverified.
