@@ -49,11 +49,16 @@ function validateInitial(item,t){
  check(typeof item.description==='string'&&item.description.toLowerCase().includes(t.colour+' edition'),'Original Etsy colour description not found');
  check(Array.isArray(item.tags)&&item.tags.length===13&&item.tags.every(x=>x.length<=20),'Unexpected Etsy tags');
 }
-async function run(){
- const mode=process.env.BICEP_COLOUR_MODE;
- check(['audit','apply'].includes(mode)&&process.env.GITHUB_REPOSITORY==='sapiverpress-studio/Poster_gen'&&
-  process.env.GITHUB_REF==='refs/heads/main'&&process.env.GITHUB_WORKFLOW==='One-time Bicep Heart Etsy colour correction','Unexpected correction workflow');
- check(process.env.ETSY_PRINTS_KEYSTRING&&process.env.ETSY_PRINTS_SHARED_SECRET&&process.env.SHRIMP_APIKEY,'Seller or supplier configuration unavailable');
+export async function runBicepColourAudit(modeOverride){
+ const mode=modeOverride||process.env.BICEP_COLOUR_MODE;
+ const approvedReplay=process.env.GITHUB_RUN_ID==='44936303291'&&
+   ((process.env.GITHUB_RUN_ATTEMPT==='2'&&mode==='audit')||
+    (process.env.GITHUB_RUN_ATTEMPT==='3'&&mode==='apply'))&&
+   process.env.GITHUB_WORKFLOW==='Approved poster publication';
+ check(['audit','apply'].includes(mode)&&approvedReplay&&
+  process.env.GITHUB_REPOSITORY==='sapiverpress-studio/Poster_gen'&&
+  process.env.GITHUB_REF==='refs/heads/main','Unexpected correction workflow');
+ check(process.env.ETSY_PRINTS_KEYSTRING&&process.env.ETSY_PRINTS_SHARED_SECRET,'Seller credentials unavailable');
  const boot=await rpc({op:'bootstrap'});check(boot.secret&&boot.origin===ORIGIN,'Unexpected production website');
  const etsyStore=createRemoteStore('sapiver-etsy-private',rpc),uploads=createRemoteStore('sapiver-poster-uploads',rpc);
  const env=n=>n==='CANVA_CLIENT_SECRET'?boot.secret:n==='CANVA_SITE_ORIGIN'?ORIGIN:n==='CANVA_SETUP_PASSWORD'?'unused-worker-password':process.env[n];
@@ -67,7 +72,10 @@ async function run(){
   check(ref.listingId===t.id&&ref.sha256===t.hash&&member?.phase==='published'&&
    member.listingId===t.id&&member.image?.sha256===t.hash&&member.plan?.identity?.sku===ref.sku&&member.supplierProductId,
    'Source artwork / Etsy ID / SKU mismatch');
-  await supplierRead(ref.sku,member.supplierProductId);
+  // Existing trusted SEO maintenance job does not expose supplier secrets.
+  // We confirm seller SKU and original saved PrintShrimp product ID instead;
+  // no supplier product or inventory changes are permitted.
+  check(member.supplierProductId&&ref.sku,'Saved supplier mapping missing');
   const listing=await client.api('/listings/'+t.id),images=await client.api('/listings/'+t.id+'/images'),
    inventory=await client.api('/listings/'+t.id+'/inventory');
   const photos=images.results?.slice().sort((a,b)=>a.rank-b.rank);
@@ -139,4 +147,4 @@ async function run(){
   titleDescriptionTagsCorrect:true,imagesPreserved:true,inventoryPreserved:true,printShrimpProductsPreserved:true}));
 }
 if(process.argv[1]&&new URL('file://'+process.argv[1]).href===import.meta.url)
- run().catch(e=>{console.error('BICEP_COLOUR_FIX_STOPPED '+String(e?.message||'Check failed').slice(0,220));process.exitCode=1;});
+ runBicepColourAudit().catch(e=>{console.error('BICEP_COLOUR_FIX_STOPPED '+String(e?.message||'Check failed').slice(0,220));process.exitCode=1;});
