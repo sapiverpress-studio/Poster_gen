@@ -12,7 +12,7 @@ import {runInNewContext} from 'node:vm';
 const source=readFileSync(new URL('../public/poster-upload.mjs',import.meta.url),'utf8');
 function fixture({catalog=false,serverPhase='available',serverListings=[],responseFor,query='',readKit}={}){
  const events={},button={disabled:false},status={textContent:'',dataset:{}},assigned=[],calls=[],storage=new Map();const catalogStatus=catalog?{textContent:'queued',dataset:{phase:'pending'}}:null,auth={hidden:true},select={options:[{value:''}],appendChild(option){this.options.push(option);}};
- const options=['artwork','educational','dinosaur','pattern','poster','bundle'].map(value=>({value,dataset:{type:['pattern','poster','bundle'].includes(value)?'digital':'physical'}}));const kind={value:'pattern',options,get selectedOptions(){return options.filter(o=>o.value===this.value);}};
+ const options=['artwork','educational','dinosaur','pattern','poster','bundle','wallpaper'].map(value=>({value,dataset:{type:['pattern','poster','bundle','wallpaper'].includes(value)?'digital':'physical'}}));const kind={value:'pattern',options,get selectedOptions(){return options.filter(o=>o.value===this.value);}};
  const sectionOptions=Object.entries(PRINT_SECTION_DESCRIPTIONS).map(([value,description])=>({value,dataset:{description}}));
  const sectionTitle={value:'Wall Art',options:sectionOptions,get selectedOptions(){return sectionOptions.filter(o=>o.value===this.value);},addEventListener:(name,fn)=>events.sectionChange=fn},sectionNote={textContent:''};
  const elements={sectionTitle,description:{value:'Owner-written fox description'},kind,type:{value:'physical',addEventListener:(name,fn)=>events[name]=fn},poster:{files:[],addEventListener:(name,fn)=>events.posterChange=fn},previews:{files:[]},referenceListingId:select,seamlessConfirmed:{checked:true},digitalDescription:{value:''},etsyTitle:{value:''},useEmbeddedText:{checked:true}};for(const [key,value]of Object.entries({name:'Leaves',subject:'Leaves',price:'4.99',licence:'Personal use only',instructions:'Download and unzip',tags:'leaves',taxonomyId:''}))elements[key]={value};
@@ -23,6 +23,15 @@ function fixture({catalog=false,serverPhase='available',serverListings=[],respon
  return {events,elements,form,digital,physical,button,status,label,assigned,calls,catalogStatus,auth,select,storage,sectionNote};
 }
 test('digital seller-kit link preselects digital pattern without changing normal poster defaults',()=>{ const f=fixture({query:'?type=digital'});assert.equal(f.elements.type.value,'digital');assert.equal(f.elements.kind.value,'pattern');assert.equal(f.elements.poster.accept,'.zip');assert.equal(f.button.textContent,'Upload digital ZIP');assert.equal(f.digital.hidden,false);const normal=fixture();assert.equal(normal.elements.type.value,'physical');assert.equal(normal.elements.kind.value,'artwork');assert.equal(normal.elements.poster.accept,'.png');assert.equal(normal.button.textContent,'Upload poster');});
+test('phone wallpaper link selects the digital group and imports its description without pattern confirmation',async()=>{
+ const product={kind:'wallpaper',name:'Winter Windows',subject:'Winter Windows',description:'Five winter phone wallpapers. Created with the aid of AI.',price:2.99,tags:['phone wallpaper'],useEmbeddedText:true};
+ const f=fixture({query:'?type=digital&kind=wallpaper',readKit:async()=>product});
+ assert.equal(f.elements.type.value,'digital');assert.equal(f.elements.kind.value,'wallpaper');assert.equal(f.elements.poster.accept,'.zip');
+ const zip=new Blob(['wallpaper kit']);zip.name='Any filename.zip';f.elements.poster.files=[zip];
+ await f.events.posterChange();assert.equal(f.elements.kind.value,'wallpaper');assert.equal(f.elements.seamlessConfirmed.checked,false);
+ await f.events.submit({preventDefault(){}});const create=f.calls.find(([path])=>path==='/poster/uploads');
+ assert.ok(create);const body=JSON.parse(create[1].body);assert.equal(body.type,'digital');assert.equal(body.metadata.kind,'wallpaper');assert.equal(body.metadata.description,product.description);
+});
 test('commercial seller ZIP imports complete listing details without form retyping or Etsy publication',async()=>{
  const manifest={type:'digital',kind:'pattern',name:'Blue Grid Textile Pattern',etsyTitle:'Blue Grid Geometric Seamless Pattern Digital Download',subject:'Blue Grid Textile Pattern',description:'Blue grid design. Created with the aid of AI.',price:4.95,tags:['blue grid','textile pattern','geometric','fabric texture','soft blue'],seamlessConfirmed:true,useEmbeddedText:true};
  let reads=0;

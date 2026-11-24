@@ -28,3 +28,23 @@ test('manual ZIP recheck displays the exact failure next to picker and creates n
   delete globalThis.document;delete globalThis.sessionStorage;delete globalThis.fetch;
  }
 });
+
+test('wallpaper mode reveals the digital handoff and cannot start physical uploads',async()=>{
+ const nodes=new Map();let network=0;
+ function el(){return {children:[],style:{},listeners:{},append(...values){this.children.push(...values);},replaceChildren(){this.children=[];},addEventListener(type,fn){this.listeners[type]=fn;},querySelector(){return submit;}};}
+ const submit=el();
+ globalThis.document={getElementById(id){if(!nodes.has(id))nodes.set(id,el());return nodes.get(id);},querySelector(){return {content:'csrf'};},createElement:el};
+ const form=document.getElementById('bulk-collection-form');
+ form.elements={uploadMode:{value:'wallpaper'},collection:{files:[],value:''},kind:{value:'artwork'}};
+ globalThis.sessionStorage={getItem(){return null;},setItem(){throw Error('No physical receipt should be saved');}};
+ globalThis.fetch=async()=>{network++;throw Error('No physical upload should start');};
+ try{
+  await import('../public/bulk-upload.mjs?five-wallpaper-mode');
+  assert.equal(nodes.get('bulk-wallpaper-fields').hidden,false);
+  assert.equal(nodes.get('bulk-upload-fields').hidden,true);
+  form.elements.uploadMode.value='single';nodes.get('bulk-mode-choices').listeners.change();
+  assert.equal(nodes.get('bulk-wallpaper-fields').hidden,true);
+  assert.equal(nodes.get('bulk-upload-fields').hidden,false);
+  assert.equal(network,0);
+ }finally{delete globalThis.document;delete globalThis.sessionStorage;delete globalThis.fetch;}
+});
