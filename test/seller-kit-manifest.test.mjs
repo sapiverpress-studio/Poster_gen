@@ -105,3 +105,24 @@ test('invalid filename-specific alt metadata is rejected by both readers',async(
  await assert.rejects(read(new Blob([zip])),/alt descriptions/);
  await assert.rejects(inspectDigitalUpload(zip,{requireDocumentsPerBuyerZip:true}),/alt|four filename/);
 });
+
+test('two-size pattern requires both transparent and opaque PNGs at both exact sizes and 300 DPI',async()=>{
+ const prefix='space',art=[];
+ for(const size of [5000,2500]){
+  const svg=Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'"><circle cx="'+size/2+'" cy="'+size/2+'" r="'+size/4+'" fill="#345678"/></svg>');
+  const transparent=await sharp(svg).withMetadata({density:300}).png().toBuffer();
+  const solid=await sharp(transparent).flatten({background:'#102030'}).withMetadata({density:300}).png().toBuffer();
+  art.push({name:prefix+(size===5000?'-seamless-master.png':'-transparent-2500px.png'),data:transparent},
+   {name:prefix+'-solid-'+size+'px.png',data:solid});
+ }
+ const docs=[{name:'LICENSE.txt',data:Buffer.from('Commercial finished products permitted.')},{name:'README.txt',data:Buffer.from('Download and unzip all files.')},{name:'ABOUT-SAPIVER-PRINTS.txt',data:Buffer.from('Independent design studio.')}];
+ const p={...product,name:'Space',subject:'Space',description:'One original pattern.',aiAssisted:false,packProfile:'two-size-pair'};
+ const photo=await sharp(art[1].data).resize(300).jpeg().toBuffer();
+ const kit=async files=>storedZip([{name:'UPLOAD-TO-ETSY/space.zip',data:await zipFiles([...files,...docs])},{name:'LISTING-IMAGES/01.jpg',data:photo},{name:'LISTING-METADATA.json',data:Buffer.from(JSON.stringify({...manifest,product:p}))}]);
+ const raw=await kit(art);
+ assert.equal((await read(new Blob([raw]))).packProfile,'two-size-pair');
+ assert.equal((await inspectDigitalUpload(raw,{requireDocumentsPerBuyerZip:true})).inspection.files.filter(f=>f.format==='png').length,4);
+ await assert.rejects(inspectDigitalUpload(await kit(art.slice(0,3)),{requireDocumentsPerBuyerZip:true}),/four PNG/);
+ const wrong=art.map((f,i)=>i===3?{...f,data:art[2].data}:f);
+ await assert.rejects(inspectDigitalUpload(await kit(wrong),{requireDocumentsPerBuyerZip:true}),/not fully opaque/);
+});
