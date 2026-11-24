@@ -139,6 +139,32 @@ test('five-image checks use the real buyer files, not manifest count claims or p
 test('bulk and digital forms expose five wallpapers separately from physical poster modes',()=>{
  const html=bulkCollectionBody({monthly:{used:0,limit:52,remaining:52,label:'November'}});
  assert.match(html,/name="uploadMode" value="wallpaper"/);assert.match(html,/id="bulk-wallpaper-fields" hidden/);
- assert.match(html,/type=digital&amp;kind=wallpaper/);assert.match(html,/five designs, one digital Etsy listing/);
+ assert.match(html,/type=digital&amp;kind=wallpaper/);assert.match(html,/one design in four sizes or five different designs/);
  assert.match(metadataFields({kind:'wallpaper'}),/data-type="digital" value="wallpaper" selected/);
+});
+
+test('one wallpaper design in four exact sizes imports and describes the actual product',async()=>{
+ const sizes=[[1080,2400],[1170,2532],[1290,2796],[1440,3200]],files=[];
+ for(const [width,height] of sizes){
+  const data=await sharp({create:{width,height,channels:3,background:'#203040'}}).png().toBuffer();
+  files.push({name:'wallpaper-'+width+'x'+height+'.png',data});
+ }
+ const f=await fixture(),buyer=await zipFiles([...files,...f.docs]);
+ const p={...product,wallpaperCount:1,packProfile:'one-design-four-sizes',wallpaperSizes:sizes.map(s=>s.join('x')),name:'Space',subject:'Space',etsyTitle:'Space Phone Wallpaper in Four Sizes',description:'One wallpaper design in four resolutions.',aiAssisted:false};
+ const raw=await sellerKit({...manifest,product:p},buyer);
+ assert.equal((await readManifest(new Blob([raw]))).wallpaperCount,1);
+ const checked=await inspectDigitalUpload(raw);
+ assert.equal(checked.inspection.files.filter(f=>f.format==='png').length,4);
+ assert.deepEqual(checked.packages[0].data,buyer);
+ const prepared=await prepare(raw,productMetadata({...p,licence,instructions,tags:p.tags.join(',')},'space.zip','digital'));
+ await prepared.run();
+ const asset=await prepared.uploads.get('uploads/'+prepared.id+'/state');
+ assert.match(asset.plan.body.description,/One phone wallpaper design in four portrait resolutions/);
+ assert.doesNotMatch(asset.plan.body.description,/Five portrait phone wallpapers/);
+ const images=checked.inspection.files.filter(f=>f.format==='png');
+ assert.throws(()=>validatePhoneWallpapers(images.slice(0,3),'one-design-four-sizes'),/four PNG/);
+ assert.throws(()=>validatePhoneWallpapers(images.map((f,i)=>i?f:{...f,width:999}),'one-design-four-sizes'),/resolutions/);
+ const bad=await sellerKit({...manifest,product:{...p,wallpaperSizes:['999x999']}},buyer);
+ await assert.rejects(readManifest(new Blob([bad])));
+ await assert.rejects(inspectDigitalUpload(bad));
 });
