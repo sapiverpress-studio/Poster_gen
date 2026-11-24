@@ -33,33 +33,6 @@ try{
  const env=n=>n==='CANVA_CLIENT_SECRET'?bootstrap.secret:n==='CANVA_SITE_ORIGIN'?origin:n==='POSTER_PUBLICATION_ENABLED'?(bootstrap.publicationEnabled?'true':'false'):process.env[n];
  // etsySetup needs owner-password presence, but Actions never authenticates owners.
  const workerEnv=n=>n==='CANVA_SETUP_PASSWORD'?'worker-unused-password':env(n);
- // Owner-authorised exact supplier display-name correction; no publication
- // queue polling, Etsy API calls, artwork changes, SKU changes or new bundle.
- // Attempt TWO only audits; attempt THREE uses PrintShrimp's name-only PUT.
- if(process.env.GITHUB_RUN_ID==='45216671508'&&
-    ['2','3'].includes(process.env.GITHUB_RUN_ATTEMPT)){
-  if(process.env.GITHUB_REPOSITORY!=='sapiverpress-studio/Poster_gen'||
-     process.env.GITHUB_REF!=='refs/heads/main'||
-     process.env.GITHUB_WORKFLOW!=='Approved poster publication'||
-     process.env.GITHUB_JOB!=='worker')
-   throw Error('Unexpected Bicep supplier-name correction environment');
-  const mode=process.env.GITHUB_RUN_ATTEMPT==='2'?'audit':'apply';
-  const {reconcileBicepPrintShrimpNames}=await import('../lib/bicep-printshrimp-name-fix.mjs');
-  const result=await reconcileBicepPrintShrimpNames({
-   uploads,apiKey:env('SHRIMP_APIKEY'),mode,
-   request:(url,options={})=>{
-    const target=new URL(url);
-    if(target.origin!=='https://api.printshrimp.com'||
-      !target.pathname.startsWith('/functions/v1/api-')||
-      !['GET',...(mode==='apply'?['PUT']:[])].includes(String(options.method||'GET')))
-     throw Error('Unexpected supplier API operation');
-    return fetch(url,options);
-   },
-   log:s=>console.log(s)
-  });
-  console.log('BICEP_SUPPLIER_RENAME_RESULT '+JSON.stringify(result));
-  process.exit(result.status===(mode==='audit'?'audited':'renamed')?0:1);
- }
  // Exact sixth attempt: repair ONLY the saved Bicep Heart trio review.
  // All external Etsy and PrintShrimp calls are enforced as GET-only, and
  // owner approval remains mandatory before any merchant publication.
