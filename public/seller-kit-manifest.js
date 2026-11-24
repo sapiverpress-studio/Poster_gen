@@ -8,8 +8,8 @@
  const decode=data=>new TextDecoder('utf-8',{fatal:true}).decode(data);
  function validProduct(doc){
   const p=doc?.product;
-  const wallpaper=doc?.format==='sapiver-wallpaper-seller-kit'&&p?.kind==='wallpaper'&&p.wallpaperCount===5&&typeof p.aiAssisted==='boolean';
-  const pattern=doc?.format==='sapiver-seamless-seller-kit'&&p?.kind==='pattern'&&p.seamlessConfirmed===true&&p.aiAssisted===true;
+  const wallpaper=doc?.format==='sapiver-wallpaper-seller-kit'&&p?.kind==='wallpaper'&&((p.wallpaperCount===5&&p.packProfile===undefined)||(p.wallpaperCount===1&&p.packProfile==='one-design-four-sizes'&&Array.isArray(p.wallpaperSizes)&&p.wallpaperSizes.join(',')==='1080x2400,1170x2532,1290x2796,1440x3200'))&&typeof p.aiAssisted==='boolean';
+  const pattern=doc?.format==='sapiver-seamless-seller-kit'&&p?.kind==='pattern'&&p.seamlessConfirmed===true&&((p.packProfile===undefined&&p.aiAssisted===true)||(p.packProfile==='two-size-pair'&&typeof p.aiAssisted==='boolean'));
   if((!wallpaper&&!pattern)||doc?.version!==1||doc.reviewRequired!==true||
    !p||p.type!=='digital'||p.sectionTitle!=='Digital Downloads'||p.useEmbeddedText!==true)fail('listing manifest has an invalid format, version or required product settings.');
   const clean=(s,max)=>typeof s==='string'&&s.trim().length>0&&s.trim().length<=max&&!/[\x00-\x1f<>]/.test(s);
