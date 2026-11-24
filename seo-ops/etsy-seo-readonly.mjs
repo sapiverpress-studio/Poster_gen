@@ -1,13 +1,3 @@
-// Single-owner, exact historical maintenance job rerun. The normal
-// SEO audit is unchanged for every other workflow run and attempt.
-// This reuses the only GitHub workflow identity authorised by the private
-// Etsy bridge; it does not modify any authentication allowlist.
-if(process.env.GITHUB_RUN_ID==='44936303291'&&
-   ['2','3'].includes(process.env.GITHUB_RUN_ATTEMPT)){
- const {runBicepColourAudit}=await import('./bicep-colour-reconcile.mjs');
- await runBicepColourAudit(process.env.GITHUB_RUN_ATTEMPT==='2'?'audit':'apply');
- process.exit(0);
-}
 import {createHash} from 'node:crypto';
 // One-time, read-only SapiverPrints Etsy SEO audit. Do not add Etsy mutation routes.
 import {createRemoteStore} from '../../site/lib/github-remote-store.mjs';
