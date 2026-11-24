@@ -20,8 +20,13 @@ async function api(path,options={}){
  return body;
 }
 function validUploadReceipt(upload){return upload&&/^[A-Za-z0-9_-]{32}$/.test(upload.id||'')&&['uploading','preparing'].includes(upload.phase)&&Number.isSafeInteger(upload.chunkBytes)&&upload.chunkBytes>0&&upload.chunkBytes<=2_000_000;}
-function metadata(f){return {useEmbeddedText:f.elements.useEmbeddedText?.checked===true,name:f.elements.name.value,description:(['pattern','poster','bundle'].includes(f.elements.kind?.value)?f.elements.digitalDescription?.value:f.elements.description?.value)||'',subject:f.elements.subject.value,etsyTitle:f.elements.etsyTitle?.value||'',artworkAltText:f.elements.artworkAltText?.value||'',digitalAltTexts:f.elements.digitalAltTexts?.value||'',kind:f.elements.kind.value,sectionTitle:f.elements.sectionTitle?.value,printSizes:f.elements.printSizes?.value.split(',')||undefined,websiteFolder:f.elements.websiteFolder?.value||'',price:f.elements.price.value,licence:f.elements.licence.value,instructions:f.elements.instructions.value,tags:f.elements.tags.value,taxonomyId:f.elements.taxonomyId.value,seamlessConfirmed:f.elements.seamlessConfirmed.checked};}
-function showType(f,type){const supplierStep=document.getElementById('physical-fulfilment-step');if(supplierStep)supplierStep.hidden=type==='digital';f.querySelectorAll('[data-digital]').forEach(e=>{e.hidden=type!=='digital';e.querySelectorAll('input,textarea').forEach(i=>i.disabled=type!=='digital');});f.querySelectorAll('[data-physical]').forEach(e=>e.hidden=type!=='physical');const options=[...f.elements.kind.options];options.forEach(o=>{o.hidden=o.dataset.type!==type;o.disabled=o.hidden;});if(f.elements.kind.selectedOptions[0]?.disabled)f.elements.kind.value=options.find(o=>!o.disabled).value;const kindLabel=document.getElementById('poster-kind-label');if(kindLabel)kindLabel.textContent=type==='physical'?'Poster type':'Product group';if(f.elements.poster)f.elements.poster.accept=type==='digital'?'.zip':'.png';if(f===form){const submit=f.querySelector('button[type="submit"]');if(submit)submit.textContent=type==='digital'?'Upload digital ZIP':'Upload poster';}}
+function metadata(f){return {useEmbeddedText:f.elements.useEmbeddedText?.checked===true,name:f.elements.name.value,description:(['pattern','poster','bundle','wallpaper'].includes(f.elements.kind?.value)?f.elements.digitalDescription?.value:f.elements.description?.value)||'',subject:f.elements.subject.value,etsyTitle:f.elements.etsyTitle?.value||'',artworkAltText:f.elements.artworkAltText?.value||'',digitalAltTexts:f.elements.digitalAltTexts?.value||'',kind:f.elements.kind.value,sectionTitle:f.elements.sectionTitle?.value,printSizes:f.elements.printSizes?.value.split(',')||undefined,websiteFolder:f.elements.websiteFolder?.value||'',price:f.elements.price.value,licence:f.elements.licence.value,instructions:f.elements.instructions.value,tags:f.elements.tags.value,taxonomyId:f.elements.taxonomyId.value,seamlessConfirmed:f.elements.seamlessConfirmed.checked};}
+function showWallpaperHelp(f){
+ const wallpaper=f.elements.kind.value==='wallpaper';
+ const help=document.getElementById('phone-wallpaper-help');if(help)help.hidden=!wallpaper;
+ const repeat=document.getElementById('seamless-confirmation');if(repeat)repeat.hidden=f.elements.kind.value!=='pattern';
+}
+function showType(f,type){const supplierStep=document.getElementById('physical-fulfilment-step');if(supplierStep)supplierStep.hidden=type==='digital';f.querySelectorAll('[data-digital]').forEach(e=>{e.hidden=type!=='digital';e.querySelectorAll('input,textarea').forEach(i=>i.disabled=type!=='digital');});f.querySelectorAll('[data-physical]').forEach(e=>e.hidden=type!=='physical');const options=[...f.elements.kind.options];options.forEach(o=>{o.hidden=o.dataset.type!==type;o.disabled=o.hidden;});if(f.elements.kind.selectedOptions[0]?.disabled)f.elements.kind.value=options.find(o=>!o.disabled).value;const kindLabel=document.getElementById('poster-kind-label');if(kindLabel)kindLabel.textContent=type==='physical'?'Poster type':'Product group';if(f.elements.poster)f.elements.poster.accept=type==='digital'?'.zip':'.png';showWallpaperHelp(f);if(f===form){const submit=f.querySelector('button[type="submit"]');if(submit)submit.textContent=type==='digital'?'Upload digital ZIP':'Upload poster';}}
 function bindSectionGuidance(f){
  const select=f?.elements.sectionTitle,note=document.getElementById('print-section-description');
  if(!select||!note)return;
@@ -29,13 +34,14 @@ function bindSectionGuidance(f){
  select.addEventListener('change',update);update();
 }
 bindSectionGuidance(form);bindSectionGuidance(configure);
+for(const f of [form,configure])f?.elements.kind?.addEventListener?.('change',()=>showWallpaperHelp(f));
 async function readArtworkChunk(file,start,end){
  try{return await file.slice(start,end).arrayBuffer();}
  catch{throw Error('The phone could not read the selected file. Download it to this device, then choose it again from Downloads. Keep your product details; any saved upload is retained.');}
 }
 if(form&&!form.dataset.update&&new URLSearchParams(window.location.search).get('type')==='digital'){
  form.elements.type.value='digital';
- form.elements.kind.value='pattern';
+ form.elements.kind.value=new URLSearchParams(window.location.search).get('kind')==='wallpaper'?'wallpaper':'pattern';
 }
 if(form){showType(form,form.elements.type.value);form.elements.type.addEventListener('change',()=>showType(form,form.elements.type.value));}
 const posterSeoButton=document.getElementById('etsy-poster-analyse');
@@ -114,9 +120,10 @@ async function importCommercialKit(file){
   if(elements.digitalDescription)elements.digitalDescription.value=product.description;
    if(elements.etsyTitle)elements.etsyTitle.value=product.etsyTitle||'';
   if(elements.tags)elements.tags.value=product.tags.join(', ');
-  if(elements.kind)elements.kind.value='pattern';
+  if(elements.kind)elements.kind.value=product.kind;
   if(elements.useEmbeddedText)elements.useEmbeddedText.checked=true;
-  if(elements.seamlessConfirmed)elements.seamlessConfirmed.checked=true;
+  if(elements.seamlessConfirmed)elements.seamlessConfirmed.checked=product.kind==='pattern';
+  showWallpaperHelp(form);
   if(elements.licence)elements.licence.value='';
   if(elements.instructions)elements.instructions.value='';
   if(elements.digitalAltTexts)elements.digitalAltTexts.value=''; // No stale override: server binds imported captions to verified image order.

@@ -8,11 +8,12 @@
  const decode=data=>new TextDecoder('utf-8',{fatal:true}).decode(data);
  function validProduct(doc){
   const p=doc?.product;
-  if(doc?.format!=='sapiver-seamless-seller-kit'||doc?.version!==1||doc.reviewRequired!==true||
-   !p||p.type!=='digital'||p.kind!=='pattern'||p.sectionTitle!=='Digital Downloads'||p.seamlessConfirmed!==true||
-   p.useEmbeddedText!==true||p.aiAssisted!==true)fail('listing manifest has an invalid format, version or required product settings.');
+  const wallpaper=doc?.format==='sapiver-wallpaper-seller-kit'&&p?.kind==='wallpaper'&&p.wallpaperCount===5&&typeof p.aiAssisted==='boolean';
+  const pattern=doc?.format==='sapiver-seamless-seller-kit'&&p?.kind==='pattern'&&p.seamlessConfirmed===true&&p.aiAssisted===true;
+  if((!wallpaper&&!pattern)||doc?.version!==1||doc.reviewRequired!==true||
+   !p||p.type!=='digital'||p.sectionTitle!=='Digital Downloads'||p.useEmbeddedText!==true)fail('listing manifest has an invalid format, version or required product settings.');
   const clean=(s,max)=>typeof s==='string'&&s.trim().length>0&&s.trim().length<=max&&!/[\x00-\x1f<>]/.test(s);
-  if(!clean(p.name,100)||(p.etsyTitle!==undefined&&!clean(p.etsyTitle,140))||!clean(p.subject,100)||!clean(p.description,1500)||!/AI/i.test(p.description))
+  if(!clean(p.name,100)||(p.etsyTitle!==undefined&&!clean(p.etsyTitle,140))||!clean(p.subject,100)||!clean(p.description,1500)||(p.aiAssisted&&!/AI/i.test(p.description)))
    fail('the listing title, subject or AI-disclosed description is missing or invalid.');
   if(typeof p.price!=='number'||!Number.isFinite(p.price)||p.price<0.2||p.price>10000||
    Math.abs(Math.round(p.price*100)-p.price*100)>0.000001)fail('a valid GBP selling price is required.');
@@ -21,11 +22,11 @@
    fail('Etsy tags must be unique and no longer than 20 characters each.');
   // Reject mismatched or incomplete new photo-alts before a large ZIP upload.
   if(p.imageAltTextByFilename!==undefined){
-   const names=['01-pattern.jpg','02-repeat.jpg','03-cushion-visualisation.jpg','04-files-and-detail.jpg'];
+   const names=wallpaper?Object.keys(p.imageAltTextByFilename||{}):['01-pattern.jpg','02-repeat.jpg','03-cushion-visualisation.jpg','04-files-and-detail.jpg'];
    const validAlt=value=>typeof value==='string'&&value===value.trim()&&value.length>=35&&value.length<=250&&!/[<>\x00-\x1f]/.test(value);
    const map=p.imageAltTextByFilename;
    if(!map||typeof map!=='object'||Array.isArray(map)||
-      Object.keys(map).length!==4||names.some(name=>!validAlt(map[name]))||!validAlt(p.cleanLeadAltText))
+      (wallpaper?(names.length<1||names.length>10||names.some(name=>name.includes('/')||name.includes('\\')||!/^.+\.(jpg|jpeg|png)$/i.test(name))):Object.keys(map).length!==4)||names.some(name=>!validAlt(map[name]))||(!wallpaper&&!validAlt(p.cleanLeadAltText)))
     fail('image alt descriptions must match all four seller photographs and the clean front image.');
   }else if(p.cleanLeadAltText!==undefined)fail('clean front image alt text needs the four other photo descriptions.');
   return p;

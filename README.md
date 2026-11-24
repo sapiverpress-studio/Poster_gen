@@ -4,6 +4,10 @@ One private product review and publication system for Sapiver Prints physical po
 
 **Start here:** read [AGENTS.md](AGENTS.md), then the current snapshot and latest history in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). [docs/UNIFIED_PRODUCTS.md](docs/UNIFIED_PRODUCTS.md) describes the current implementation, limits, tests, release state and outstanding live checks. Historical guides remain for earlier decisions.
 
+## Five phone wallpapers — staged 24 November 2026
+
+The bulk uploader now has a staged **5 phone wallpapers** choice for one digital bundle. It accepts arbitrary safe image filenames, validates five portrait JPG/PNG files at least 1440 × 3200 pixels, imports prepared listing metadata and preserves customer bytes. The existing review/Deploy gate remains. Local Node 24 verification: **671/671 tests passed**; production release and Android acceptance are pending. Package format: [docs/PHONE_WALLPAPERS.md](docs/PHONE_WALLPAPERS.md).
+
 ## Current workflow — studio live; seller-kit extension staged
 
 Upload the finished checked PNG or digital ZIP once, review the prepared product, correct its details if needed, and press **Deploy** as final per-product publication approval. Uploading alone never publishes. The product dashboard filters type, subject and status and retains Etsy IDs/URLs, download files, errors and applicable PrintShrimp mapping.

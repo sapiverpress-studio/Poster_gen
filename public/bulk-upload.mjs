@@ -29,6 +29,7 @@ const chosenMode=()=>form?.elements?.uploadMode?.value||'';
 function showSelectedMode(){
  const selected=chosenMode(),fields=document.getElementById('bulk-upload-fields');
  if(fields)fields.hidden=!modeChoices.includes(selected);
+ const wallpaperFields=document.getElementById('bulk-wallpaper-fields');if(wallpaperFields)wallpaperFields.hidden=selected!=='wallpaper';
  const trioSetup=document.getElementById('bulk-trio-section-setup');if(trioSetup)trioSetup.hidden=!['four-listings','eight-listings'].includes(selected);
  if(state?.uploadMode&&selected!==state.uploadMode)message('An earlier collection is saved. Resume or inspect it before choosing a different upload.');
 }
