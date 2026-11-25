@@ -1,9 +1,40 @@
+## CURRENT PROJECT SNAPSHOT — 25 November 2026: Complete repeat-PNG compatibility LIVE
+- Pattern Forge PR #57 is LIVE: release `45a6e4f7596f86e23b37b5bf64d409d99d047531`, READY production/main deploy `6b06fbaf9ed5a4dcad3d1885`, published 2026-11-25T15:16:20.212Z, error null. Release tree exactly matches reviewed head `e74065d7ce057fce8a281a94c8dcfa8ee8d309b4` / `555a0567f50a8af46acbe4798f455b8606ea11b2`.
+- Compatible uploader PR #136 is LIVE: release `09b9b1df1ec82372541ee687524c1e774b83e6eb`, READY deploy `6b06fb567234de1af9e7dff6`, published 2026-11-25T15:14:46.833Z. One existing production build per affected app; development and documentation commits skip Netlify.
+- Authenticated live browser UI verified after publication: new interior-join check text and preview-guide checkbox present; 5000x5000 PNG / 300 DPI export present; phone seller-pack control absent. Preserved the live app tab for review. No sign-in credential was requested/read, no new live AI request was made, and no production artwork was uploaded during this final UI check.
+- Evidence: 39 Node checks and all seven Auto Seamless browser suites plus actual downloaded-ZIP uploader validation passed in run `45642354919` / job `139304110797`. Exact 30,785,768-byte 5000px PNG recovered through both archive levels and the offline buyer HTML, with matching SHA-256, 2500px PNG and other companions retained, three <=20 MB buyer ZIPs with documents. Uploader full suite: 674 passing local/CI checks. Related transparent-master/four-background, mobile remix and motif alpha workflows passed; existing magnetic browser-install failure remains outside this repair.
+- The supplied woodland original and native tile separately trigger their known internal horizontal cut positions. Checks are heuristic warnings requiring visual review; they do not regenerate artwork or guarantee every possible defect. No customer image was repaired or listed. Full generated PNG bytes/dimensions are preserved, with restoration disclosed for oversized delivery; JPEG-only compression may adjust to meet limits.
+- No existing listing, SKU, fulfilment identity, order, saved project, access control, automation, APK or source artwork was changed. Physical Android acceptance remains unverified; mobile-sized Chromium and actual file validation were executed.
+- Owner next action: refresh Auto Seamless and upload the design again to see join flags. This completes the app repair. Continuity aftercare is documentation only and skips Netlify.
+
+---
+
+## PATTERN FORGE RELEASE MERGED — 25 November 2026: Final hosting verification pending
+- Compatible uploader is LIVE: READY Netlify deploy `6b06fb567234de1af9e7dff6`, exact release `09b9b1df1ec82372541ee687524c1e774b83e6eb`, published 2026-11-25T15:14:46.833Z.
+- Pattern Forge PR #57 squash-merged to main as `45a6e4f7596f86e23b37b5bf64d409d99d047531`, tree `555a0567f50a8af46acbe4798f455b8606ea11b2`, exactly matching reviewed/tested head `e74065d7ce057fce8a281a94c8dcfa8ee8d309b4`. An explicit release message triggers one existing production build; no staging or phone build.
+- Final Pattern Forge hosting/UI readback is pending. No customer listing, original artwork, saved project, security setting, supplier order or automation has been changed.
+
+---
+
+## UPLOADER RELEASE MERGED — 25 November 2026: Hosting verification pending
+- Poster Gen PR #136 squash-merged to its actual production branch as `09b9b1df1ec82372541ee687524c1e774b83e6eb` with an explicit release message to trigger one existing Netlify build. The reviewed source is `6364793`, with 674 checks and the actual Pattern Forge kit import passing.
+- Netlify READY/published verification is pending. Pattern Forge PR #57 has not yet been merged; release it only after the compatible uploader is published. No merchant listing, order, customer artwork or project data was changed by this software merge.
+
+---
+
+## CI VERIFIED — 25 November 2026: Repeat-PNG compatibility ready for release
+- PR #136 head `6364793ef864c25dfa3bd259cd3f054d2d37494f`, tree `3fbc2f6c6acde4c399d03cb30bb27ea76de1069e`; Verify Poster_gen run `45640107027` SUCCESS; all 674 local Node 24 checks passed.
+- Pattern Forge PR #57 run `45642354919`, job `139304110797`, also imported its actual browser-downloaded seller ZIP through this pinned uploader source with `requireDocumentsPerBuyerZip:true`. Reconstructed PNG: exact 30,785,768 bytes, 5000x5000, companion 2500px PNG retained, three buyer ZIPs within 20 MB. No merchant call or record was used.
+- This completes the delivery-format integration test. Current live branch/deploy still `3aa0e28` / `6b05b7e45a17cd797bfd8a84`. Next: release the narrow uploader correction first, verify Netlify, then the coordinated Pattern Forge fix. No customer listing or original artwork is being modified.
+
+---
+
 ## CURRENT PROJECT SNAPSHOT — 2026-11-25: Repeat-PNG compatibility repair under verification
 
 - Scope: necessary uploader compatibility for Jim's “Just fix the app” request after Pattern Forge silently omitted oversized 5000px PNGs. Active branch `fix/pattern-repeat-png-parts-20261125`, based on freshly fetched production source `3aa0e2843d1dcddb373ea33e2c49821e4e449302`, not unrelated main. Netlify site `d1753fca-2098-4b96-a684-75921df7c3da` reports READY production deploy `6b05b7e45a17cd797bfd8a84` on `feature/canva-oauth-callback`, exact source SHA, published 24 November 16:15 UTC. The older snapshot below is historical.
 - Implemented locally: reassembled background/repeat PNGs follow the same rule as directly supplied repeat PNGs. The stronger transparency check remains mandatory for files named `-seamless-master.png` and every strict transparent/solid pair profile. CRC, SHA-256, dimensions, part count, attachment limits and buyer documents remain required.
 - Listing copy for numbered PNGs no longer incorrectly promises transparency or assumes the restore tool is in a colour ZIP. Added a real >20 MB opaque-PNG regression, full hash/dimension assertions and a paired negative test showing opaque transparent-master parts are still rejected. No artwork conversion or merchant write is performed.
-- VERIFIED locally: focused multipart suite (7 tests) and the complete Node 24 suite, 674 passed / zero failed, 18.9 seconds. The actual Auto Seamless browser-generated seller kit through this validator remains pending. No new build, deployment, listing, customer file, fulfilment record, SKU, supplier/order, security setting or automation has changed. Development commits/PR titles will skip Netlify.
+- VERIFIED locally: focused multipart suite (7 tests) and the complete Node 24 suite, 674 passed / zero failed, 18.9 seconds. GitHub Verify Poster_gen run `45640107027` also completed SUCCESS for reviewed head `6364793ef864c25dfa3bd259cd3f054d2d37494f` in PR #136. The actual Auto Seamless browser-generated seller kit through this validator remains pending. No new build, deployment, listing, customer file, fulfilment record, SKU, supplier/order, security setting or automation has changed. Development commits/PR titles will skip Netlify.
 - Next action: complete tests and review PR; coordinate the compatibility release with Pattern Forge PR #57 only after the actual file path is verified. Do not claim production success from mocked merchant clients.
 
 ### 2026-11-25 — Compatibility investigation and implementation
