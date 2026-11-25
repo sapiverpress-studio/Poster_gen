@@ -1,3 +1,22 @@
+## CURRENT PROJECT SNAPSHOT — 2026-11-25: Repeat-PNG compatibility repair under verification
+
+- Scope: necessary uploader compatibility for Jim's “Just fix the app” request after Pattern Forge silently omitted oversized 5000px PNGs. Active branch `fix/pattern-repeat-png-parts-20261125`, based on freshly fetched production source `3aa0e2843d1dcddb373ea33e2c49821e4e449302`, not unrelated main. Netlify site `d1753fca-2098-4b96-a684-75921df7c3da` reports READY production deploy `6b05b7e45a17cd797bfd8a84` on `feature/canva-oauth-callback`, exact source SHA, published 24 November 16:15 UTC. The older snapshot below is historical.
+- Implemented locally: reassembled background/repeat PNGs follow the same rule as directly supplied repeat PNGs. The stronger transparency check remains mandatory for files named `-seamless-master.png` and every strict transparent/solid pair profile. CRC, SHA-256, dimensions, part count, attachment limits and buyer documents remain required.
+- Listing copy for numbered PNGs no longer incorrectly promises transparency or assumes the restore tool is in a colour ZIP. Added a real >20 MB opaque-PNG regression, full hash/dimension assertions and a paired negative test showing opaque transparent-master parts are still rejected. No artwork conversion or merchant write is performed.
+- VERIFIED locally: focused multipart suite (7 tests) and the complete Node 24 suite, 674 passed / zero failed, 18.9 seconds. The actual Auto Seamless browser-generated seller kit through this validator remains pending. No new build, deployment, listing, customer file, fulfilment record, SKU, supplier/order, security setting or automation has changed. Development commits/PR titles will skip Netlify.
+- Next action: complete tests and review PR; coordinate the compatibility release with Pattern Forge PR #57 only after the actual file path is verified. Do not claim production success from mocked merchant clients.
+
+### 2026-11-25 — Compatibility investigation and implementation
+- Stage / purpose: remove a delivery-format inconsistency blocking a complete generated 5000px repeat PNG.
+- Changed: `lib/seller-kit.mjs`, `lib/product-metadata.mjs`, `test/multipart-png.test.mjs`, this ledger.
+- Verified: remote production branch and Netlify exact SHA independently agree at `3aa0e28`; direct repeat PNGs already allow backgrounds while multipart PNGs incorrectly forced every pattern to be transparent.
+- Not yet verified / blocked: tests and actual kit import remain pending.
+- Deploy / credit impact: none so far. Existing Netlify controls are retained and development changes use `[skip netlify]`.
+- Risks / decisions: preserve the existing transparent-master and pair requirements; never relabel an opaque repeat as a transparent master.
+- Next authorised action: off-production tests and a focused compatibility PR.
+
+---
+
 ## CURRENT PROJECT SNAPSHOT — 2026-11-24 10:22 GMT: five phone wallpapers LIVE; Android acceptance PENDING
 
 - Owner approval: Jim answered **Yes** to deploying the tested uploader upgrade in PR #134. This authorised one production software release; it did not authorise creating an Etsy listing or a supplier order.
