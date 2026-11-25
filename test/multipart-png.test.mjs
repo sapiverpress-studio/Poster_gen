@@ -84,6 +84,30 @@ test('multipart binary extensions remain blocked in ordinary digital ZIPs',async
  await assert.rejects(inspectArchive(notSellerKit),/Unsupported customer file/);
 });
 
+test('opaque repeat PNG parts are accepted while opaque transparent-master parts remain rejected',async()=>{
+ const opaque=await sharp(raw,{raw:{width:3000,height:3000,channels:4}}).removeAlpha().withMetadata({density:300}).png({compressionLevel:4}).toBuffer();
+ assert.ok(opaque.length>20_000_000&&opaque.length<37_000_000);
+ const make=async filename=>{
+  const chunks=[];
+  for(let offset=0;offset<opaque.length;offset+=18_500_000){
+   const data=opaque.subarray(offset,Math.min(opaque.length,offset+18_500_000));
+   chunks.push({name:filename.slice(0,-4)+'-png-part-'+String(chunks.length+1).padStart(2,'0')+'.pngpart',data});
+  }
+  const m={...manifest,filename,bytes:opaque.length,sha256:digest(opaque),parts:chunks.map(p=>({name:p.name,bytes:p.data.length,sha256:digest(p.data)}))};
+  const zips=[];
+  for(let i=0;i<chunks.length;i++)zips.push(zip('UPLOAD-TO-ETSY/repeat-'+String(i+1)+'-png-part.zip',await zipFiles([chunks[i],...docs])));
+  zips.push(zip('UPLOAD-TO-ETSY/repeat-jpg-and-extras.zip',await zipFiles([zip('repeat.jpg',jpg),zip('PNG-REASSEMBLY.json',Buffer.from(JSON.stringify(m))),zip('REBUILD-PNG.html',restorer),...docs])));
+  return outer(zips);
+ };
+ const imported=await inspectDigitalUpload(await make('sapiver-demo-3000px-300dpi-repeat.png'),{requireDocumentsPerBuyerZip:true});
+ const recovered=imported.inspection.files.find(f=>f.reassembled);
+ assert.equal(recovered.sha256,digest(opaque));
+ assert.equal(recovered.width,3000);assert.equal(recovered.height,3000);
+ const text=digitalListingText({name:'Woven repeat',kind:'pattern',subject:'woven repeat',description:'Woven background repeat',instructions:imported.instructions,licence:imported.licence,tags:['woven repeat']},imported.inspection.files);
+ assert.match(text.description,/full-resolution PNG/);assert.ok(!text.description.includes('transparent full-resolution PNG'));
+ await assert.rejects(inspectDigitalUpload(await make('sapiver-demo-seamless-master.png'),{requireDocumentsPerBuyerZip:true}),/Seamless master PNG is opaque/);
+});
+
 test('one missing multipart ZIP blocks seller kit before merchant writes',async()=>{
  await assert.rejects(inspectDigitalUpload(await outer(customer.slice(1)),{requireDocumentsPerBuyerZip:true}),/Unsafe or incomplete original PNG reassembly metadata|Missing or corrupted original PNG part/);
 });
