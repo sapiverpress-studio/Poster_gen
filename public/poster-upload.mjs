@@ -20,9 +20,9 @@ async function api(path,options={}){
  return body;
 }
 function validUploadReceipt(upload){return upload&&/^[A-Za-z0-9_-]{32}$/.test(upload.id||'')&&['uploading','preparing'].includes(upload.phase)&&Number.isSafeInteger(upload.chunkBytes)&&upload.chunkBytes>0&&upload.chunkBytes<=2_000_000;}
-function metadata(f){return {useEmbeddedText:f.elements.useEmbeddedText?.checked===true,name:f.elements.name.value,description:(['pattern','poster','bundle','wallpaper'].includes(f.elements.kind?.value)?f.elements.digitalDescription?.value:f.elements.description?.value)||'',subject:f.elements.subject.value,etsyTitle:f.elements.etsyTitle?.value||'',artworkAltText:f.elements.artworkAltText?.value||'',digitalAltTexts:f.elements.digitalAltTexts?.value||'',kind:f.elements.kind.value,sectionTitle:f.elements.sectionTitle?.value,printSizes:f.elements.printSizes?.value.split(',')||undefined,websiteFolder:f.elements.websiteFolder?.value||'',price:f.elements.price.value,licence:f.elements.licence.value,instructions:f.elements.instructions.value,tags:f.elements.tags.value,taxonomyId:f.elements.taxonomyId.value,seamlessConfirmed:f.elements.seamlessConfirmed.checked};}
+function metadata(f){return {useEmbeddedText:f.elements.useEmbeddedText?.checked===true,name:f.elements.name.value,description:(['pattern','poster','bundle','wallpaper','activity-book'].includes(f.elements.kind?.value)?f.elements.digitalDescription?.value:f.elements.description?.value)||'',subject:f.elements.subject.value,etsyTitle:f.elements.etsyTitle?.value||'',artworkAltText:f.elements.artworkAltText?.value||'',digitalAltTexts:f.elements.digitalAltTexts?.value||'',kind:f.elements.kind.value,sectionTitle:f.elements.sectionTitle?.value,printSizes:f.elements.printSizes?.value.split(',')||undefined,websiteFolder:f.elements.websiteFolder?.value||'',price:f.elements.price.value,licence:f.elements.licence.value,instructions:f.elements.instructions.value,tags:f.elements.tags.value,taxonomyId:f.elements.taxonomyId.value,seamlessConfirmed:f.elements.seamlessConfirmed.checked};}
 function showWallpaperHelp(f){
- const wallpaper=f.elements.kind.value==='wallpaper';
+ const wallpaper=f.elements.kind.value==='wallpaper';if(f.elements.kind.value==='activity-book'&&f.elements.price)f.elements.price.value='1.99';
  const help=document.getElementById('phone-wallpaper-help');if(help)help.hidden=!wallpaper;
  const repeat=document.getElementById('seamless-confirmation');if(repeat)repeat.hidden=f.elements.kind.value!=='pattern';
 }
@@ -41,7 +41,7 @@ async function readArtworkChunk(file,start,end){
 }
 if(form&&!form.dataset.update&&new URLSearchParams(window.location.search).get('type')==='digital'){
  form.elements.type.value='digital';
- form.elements.kind.value=new URLSearchParams(window.location.search).get('kind')==='wallpaper'?'wallpaper':'pattern';
+ const requestedKind=new URLSearchParams(window.location.search).get('kind');form.elements.kind.value=['wallpaper','activity-book'].includes(requestedKind)?requestedKind:'pattern';
 }
 if(form){showType(form,form.elements.type.value);form.elements.type.addEventListener('change',()=>showType(form,form.elements.type.value));}
 const posterSeoButton=document.getElementById('etsy-poster-analyse');
@@ -104,6 +104,7 @@ async function importCommercialKit(file){
  commercialKitFile=file;
  const note=document.getElementById('seller-kit-manifest-status');
  commercialKitImport=(async()=>{
+  if(form.elements.kind.value==='activity-book'){form.elements.price.value='1.99';if(note)note.textContent='Complete activity book: age, subjects, title, 13 tags and cover will be extracted during preparation. Only the Etsy PDF will be delivered. Review before Deploy.';return null;}
   if(!window.SapiverSellerKitManifest?.read){
    if(/commercial-seller-kit\.zip$/i.test(file.name))throw Error('The seller-kit reader is unavailable. Refresh this page and select the ZIP again.');
    return null;
