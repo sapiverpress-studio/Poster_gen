@@ -15,7 +15,7 @@ const values={CANVA_CLIENT_SECRET:secret,CANVA_SITE_ORIGIN:origin,CANVA_SETUP_PA
 export function memory(){const map=new Map();let seq=0;return {map,async get(k){return map.get(k)?.data??null;},async getWithMetadata(k){return map.get(k)||null;},async set(k,data,o={}){const old=map.get(k);if(o.onlyIfNew&&old||o.onlyIfMatch&&old?.etag!==o.onlyIfMatch)return {modified:false};map.set(k,{data,etag:String(++seq)});return {modified:true};},async setJSON(k,d,o){return this.set(k,d,o);},async delete(k){map.delete(k);},async *list({prefix}){yield {blobs:[...map.keys()].filter(k=>k.startsWith(prefix)).map(key=>({key}))};}};}
 const metadata=()=>productMetadata({kind:'pattern',subject:'Leaves',price:4.99,licence:'Personal use only. Do not resell or redistribute the source files.',instructions:'Download both files from Etsy. Unzip product.zip and open the included images.',seamlessConfirmed:true},'Green-Leaves.zip','digital');
 async function archiveFixture(){const png=await sharp({create:{width:80,height:80,channels:3,background:'#007733'}}).png().toBuffer(),jpg=await sharp(png).jpeg().toBuffer(),original=await zipFiles([{name:'tile.png',data:png},{name:'repeat-preview.jpg',data:jpg},{name:'INSTRUCTIONS.txt',data:Buffer.from('Open PNG or JPG in your design application.')}]);return {png,jpg,original};}
-const taxonomies=[{id:1,name:'Craft Supplies & Tools',children:[{id:20,name:'Clip Art & Image Files',children:[]}]},{id:2,name:'Art',children:[{id:30,name:'Digital Prints',children:[]}]}];
+const taxonomies=[{id:50,name:'Toys & Games',children:[{id:51,name:'Learning & School',children:[]}]},{id:1,name:'Craft Supplies & Tools',children:[{id:20,name:'Clip Art & Image Files',children:[]}]},{id:2,name:'Art',children:[{id:30,name:'Digital Prints',children:[]}]}];
 test('ZIP inspection verifies actual images and checksums; preserves original bytes and source payloads',async()=>{const f=await archiveFixture(),a=await inspectArchive(f.original);assert.equal(a.files.length,3);assert.equal(a.files[0].width,80);assert.deepEqual(a.files[0].data,f.png);const delivery=await packageForEtsy(f.original,a,metadata());assert.equal(delivery.files.length,2);assert.deepEqual(delivery.files[0].data,f.original);assert.ok(delivery.contents.some(f=>f.generated));const images=await digitalPreviews(a.files);assert.equal(images.length,2);assert.equal((await sharp(images[0]).metadata()).width,1200);});
 test('independent split ZIPs preserve every payload; impossible individual file and more than five parts stop safely',async()=>{const png=await sharp(randomBytes(40*40*3),{raw:{width:40,height:40,channels:3}}).png().toBuffer(),source=[0,1,2].map(i=>({name:'tile-'+i+'.png',data:png})),original=await zipFiles(source),inspection=await inspectArchive(original);const split=await packageForEtsy(original,inspection,metadata(),{maxBytes:6500,maxFiles:5});assert.equal(split.split,true);assert.ok(split.files.length>1);const found=[];for(const file of split.files){assert.ok(file.bytes<=6500);const decoded=await inspectArchive(file.data).catch(async e=>{if(file.name.endsWith('.zip')&&file.bytes<1000)return {files:[]};throw e;});found.push(...decoded.files.filter(f=>f.name.startsWith('tile-')));}assert.equal(found.length,3);assert.ok(found.every(f=>f.sha256===digest(png)));await assert.rejects(packageForEtsy(original,inspection,metadata(),{maxBytes:1000,maxFiles:5}),/individual file/);await assert.rejects(packageForEtsy(original,inspection,metadata(),{maxBytes:6500,maxFiles:1}),/five files/);});
 test('malformed, duplicate, encrypted, linked, nested, deceptive and expansion-bomb archives are rejected',async()=>{
@@ -53,7 +53,7 @@ test('Etsy-specific digital title survives metadata validation and is used in th
 });
 async function publicationFixture({update=false,failFiles=false}={}){
  const uploads=memory(),etsyStore=memory(),calls=[],source=await archiveFixture();const a={phase:'preparing',type:'digital',productId:id,filename:'Green-Leaves.zip',metadata:metadata(),bytes:source.original.length,chunks:1,previewCount:0,sourcePreviewCount:0,createdAt:Date.now()};await uploads.set('uploads/'+id+'/chunks/0',source.original);await uploads.setJSON('uploads/'+id+'/state',a);await recordRevision(uploads,id);
- let listing,files=[],images=[],sections=[{shop_section_id:44,title:'Digital Downloads'}],created=0;const listingId=555;
+ let listing,files=[],images=[],sections=[{shop_section_id:44,title:'Digital Downloads'},{shop_section_id:45,title:'Hen & Bea Activity Books'}],created=0;const listingId=555;
  const money=n=>({amount:Math.round(Number(n)*100),divisor:100,currency_code:'GBP'});
  if(update){listing={listing_id:listingId,shop_id:456,state:'active',listing_type:'download',title:'Old',description:'Old',price:money(3),tags:['old'],taxonomy_id:20,shop_section_id:44,who_made:'i_did',when_made:'2020_2026',has_variations:false};files=[{listing_file_id:90,listing_id:listingId,filename:'old.zip',size_bytes:999}];await uploads.setJSON(recordKey(id),{productId:id,type:'digital',etsyListingId:listingId,etsyUrl:'https://www.etsy.com/listing/555/old',phase:'published',currentRevision:'q'.repeat(32),pendingRevision:id,metadata:metadata(),files:[]});await uploads.setJSON('uploads/'+id+'/state',{...a,updateProductId:id});}
  const client={session:async()=>({shop_id:456,shop_name:'SapiverPrints'}),api:async(path,o={})=>{calls.push([path,o]);if(path==='/seller-taxonomy/nodes')return {results:taxonomies};if(path==='/shops/456/sections')return {results:sections};
@@ -191,4 +191,34 @@ test('seller-kit owner review reports actual Etsy preview dimensions without blo
  assert.match(html,/Image 1: 2400 × 2400 pixels — size check passed/);
  assert.match(html,/Image 2: 1100 × 1100 pixels — below the recommended 2000px minimum/);
  assert.match(html,/This checks pixel dimensions, not actual sharpness/);
+});
+
+test('activity book: generator-shaped PDF, age-specific review, exact buyer attachment and approved simulated listing',async()=>{
+ const f=await publicationFixture(),doc=await PDFDocument.create();
+ const jpeg=await sharp(randomBytes(100*141*3),{raw:{width:100,height:141,channels:3}}).resize(2481,3508,{kernel:'nearest',fit:'fill'}).jpeg({quality:80}).toBuffer();
+ const cover=await sharp(jpeg).negate().jpeg({quality:80}).toBuffer();
+ const imageRefs=[cover,jpeg].map(data=>doc.context.register(doc.context.stream(data,{Type:'XObject',Subtype:'Image',Width:2481,Height:3508,ColorSpace:'DeviceRGB',BitsPerComponent:8,Filter:'DCTDecode'})));
+ for(let i=0;i<41;i++){
+  const page=doc.addPage([595.275591,841.889764]);
+  page.node.set(PDFName.of('Resources'),doc.context.obj({XObject:{Im0:imageRefs[i===0?0:1]}}));
+  page.node.set(PDFName.of('Contents'),doc.context.register(doc.context.stream('q\n595.275591 0 0 841.889764 0 0 cm\n/Im0 Do\nQ\n')));
+ }
+ const pdf=Buffer.from(await doc.save({useObjectStreams:false}));
+ const plan={title:'Hen & Bea Example',age:'7-8',pages:Array.from({length:35},(_,i)=>({page:i+1,area:['bsl','music','hand','math','spell','maze','color'][i%7],title:i===4?'Word Search':'Exercise'})),endMatter:[36,37,38,39,40]};
+ const entries=[{name:'BOOK_PLAN.json',data:Buffer.from(JSON.stringify(plan))},{name:'Etsy/Activity_Book_A4.pdf',data:pdf},{name:'Etsy/PRINTING_GUIDE.txt',data:Buffer.from('Solutions are interior pages 36–38. Upload only the PDF parts to Etsy.')},{name:'KDP/private.pdf',data:Buffer.from('private')},{name:'Interactive/index.html',data:Buffer.from('<html>private</html>')}];
+ const yazl=await import('yazl');const zip=new yazl.ZipFile(),chunks=[];const done=new Promise((resolve,reject)=>{zip.outputStream.on('data',c=>chunks.push(c));zip.outputStream.on('end',()=>resolve(Buffer.concat(chunks)));zip.outputStream.on('error',reject);});
+ for(const e of entries)zip.addBuffer(e.data,e.name,{compress:false});zip.end();const outer=await done;
+ const a=await f.uploads.get('uploads/'+id+'/state'),chunkBytes=2_000_000;
+ for(let offset=0,i=0;offset<outer.length;offset+=chunkBytes,i++)await f.uploads.set('uploads/'+id+'/chunks/'+i,outer.subarray(offset,offset+chunkBytes));
+ await f.uploads.setJSON('uploads/'+id+'/state',{...a,filename:'Sapiver_Complete_Book_Pack.zip',bytes:outer.length,chunks:Math.ceil(outer.length/chunkBytes),metadata:productMetadata({kind:'activity-book',useEmbeddedText:true},'Sapiver_Complete_Book_Pack.zip','digital')});
+ await prepareDigitalProduct(f);
+ const prepared=await f.uploads.get('uploads/'+id+'/state');assert.equal(prepared.sourceKind,'activity-book');assert.equal(prepared.plan.body.price,1.99);assert.match(prepared.plan.body.tags,/ages 7 8/);assert.equal(prepared.plan.body.tags.split(',').length,13);assert.match(prepared.plan.body.description,/Solutions are on interior pages 36–38/);assert.doesNotMatch(prepared.plan.body.description,/Upload only the PDF parts/);assert.equal(prepared.plan.sectionTitle,'Hen & Bea Activity Books');assert.equal(prepared.previewCount,4);assert.match(prepared.plan.imageAltTexts[0],/Front cover/);
+ const front=Buffer.from(await f.uploads.get('uploads/'+id+'/mockups/0.jpg'));const frontRaw=await sharp(front).resize(30,42).raw().toBuffer();const coverRaw=await sharp(cover).resize(30,42).raw().toBuffer();const interiorRaw=await sharp(jpeg).resize(30,42).raw().toBuffer();
+ const distance=(x,y)=>x.reduce((sum,v,i)=>sum+Math.abs(v-y[i]),0);assert.ok(distance(frontRaw,coverRaw)<distance(frontRaw,interiorRaw));
+ assert.equal(f.created(),0);const hash=await approve(f);await publishDigitalProduct({...f,approvalHash:hash});
+ assert.equal(f.created(),1);assert.equal(f.listing().state,'active');assert.equal(f.files().length,1);
+ const uploaded=f.calls.find(([p,o])=>p.endsWith('/files')&&o.method==='POST')[1].body.get('file');
+ const buyer=await inspectArchive(Buffer.from(await uploaded.arrayBuffer()));assert.deepEqual(buyer.files.map(e=>e.name),['Activity_Book_A4.pdf']);assert.deepEqual(buyer.files[0].data,pdf);
+ const photo=f.calls.find(([p,o])=>p.endsWith('/images')&&o.method==='POST')[1].body;assert.equal(photo.get('rank'),'1');assert.deepEqual(Buffer.from(await photo.get('image').arrayBuffer()),front);
+ assert.ok(f.calls.every(([p])=>!/printshrimp|shipping|inventory|orders/.test(p)));
 });
