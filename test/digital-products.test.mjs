@@ -195,8 +195,12 @@ test('seller-kit owner review reports actual Etsy preview dimensions without blo
 
 test('activity book: generator-shaped PDF, age-specific review, exact buyer attachment and approved simulated listing',async()=>{
  const f=await publicationFixture(),doc=await PDFDocument.create();
- const jpeg=await sharp(randomBytes(100*141*3),{raw:{width:100,height:141,channels:3}}).resize(2481,3508,{kernel:'nearest',fit:'fill'}).jpeg({quality:80}).toBuffer();
- const cover=await sharp(jpeg).negate().jpeg({quality:80}).toBuffer();
+ // Use deterministic colourful test pixels, not random bytes that can accidentally
+ // contain a forbidden PDF name in the JPEG stream under the legacy raw-byte check.
+ const imagePixels=Buffer.alloc(100*141*3);for(let i=0;i<imagePixels.length;i++)imagePixels[i]=((i*37)^(i>>>5)^(i>>>9))&255;
+ let jpeg,cover;
+ for(let quality=95;quality>=60;quality--){jpeg=await sharp(imagePixels,{raw:{width:100,height:141,channels:3}}).resize(2481,3508,{kernel:'nearest',fit:'fill'}).jpeg({quality}).toBuffer();cover=await sharp(jpeg).negate().jpeg({quality}).toBuffer();if(![jpeg,cover].some(b=>/\/(JavaScript|JS|Launch|EmbeddedFile|RichMedia|OpenAction)\b/.test(b.toString('latin1'))))break;}
+ assert.ok(![jpeg,cover].some(b=>/\/(JavaScript|JS|Launch|EmbeddedFile|RichMedia|OpenAction)\b/.test(b.toString('latin1'))));
  const imageRefs=[cover,jpeg].map(data=>doc.context.register(doc.context.stream(data,{Type:'XObject',Subtype:'Image',Width:2481,Height:3508,ColorSpace:'DeviceRGB',BitsPerComponent:8,Filter:'DCTDecode'})));
  for(let i=0;i<41;i++){
   const page=doc.addPage([595.275591,841.889764]);
