@@ -1,4 +1,5 @@
 name: Approved poster publication
+run-name: ${{ inputs.seo_mode == 'companion_pilot' && format('Companion pilot {0}', inputs.companion_nonce) || 'Approved poster publication' }}
 on:
   workflow_dispatch:
     inputs:
@@ -24,6 +25,15 @@ on:
           - altdigitalpilot
           - altdigital
           - altedu
+          - companion_pilot
+      companion_nonce:
+        description: 'One-time encrypted companion handoff nonce'
+        type: string
+        required: false
+      companion_public_key:
+        description: 'One-time RSA public key (base64 PEM)'
+        type: string
+        required: false
 permissions:
   contents: read
   id-token: write
@@ -286,3 +296,32 @@ jobs:
           ETSY_PRINTS_KEYSTRING: ${{ secrets.ETSY_PRINTS_KEYSTRING }}
           ETSY_PRINTS_SHARED_SECRET: ${{ secrets.ETSY_PRINTS_SHARED_SECRET }}
         run: node ops/seo-ops/etsy-alt-educational.mjs
+
+  companion_pilot_export:
+    if: github.repository == 'sapiverpress-studio/Poster_gen' && github.ref == 'refs/heads/main' && github.actor == 'sapiverpress-studio' && inputs.seo_mode == 'companion_pilot'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: b6a0a8900f3a6b4aee233e4938dd831f49fd3c9d
+          path: site
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Retrieve only approved existing Christmas book and encrypt companion
+        env:
+          COMPANION_NONCE: ${{ inputs.companion_nonce }}
+          COMPANION_PUBLIC_KEY: ${{ inputs.companion_public_key }}
+        run: node companion-ops/export-pilot.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: companion-encrypted-${{ inputs.companion_nonce }}
+          path: companion.enc
+          retention-days: 1
+          if-no-files-found: error
