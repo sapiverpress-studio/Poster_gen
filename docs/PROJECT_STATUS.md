@@ -1,3 +1,12 @@
+## STAGED — 27 November 2026: Theme-aware activity-book tags
+- Owner authorised a pack-only improvement to tag generation; no existing Etsy listings or unrelated product metadata are to change. Work on `improvement/activity-book-search-tags`, based on production branch `feature/canva-oauth-callback` at `3ed8813878a52daf39c5550e6aea8bd5acd41e78`.
+- `lib/activity-book.mjs`: 13 distinct <=20-character phrases with reserved theme, subject, actual activity, broad buyer-intent and age slots; title/manifest theme recognition with conservative custom-title fallback. Includes kids activities, holiday activities and screen free kids; Christmas wordsearch fits 20 characters. Recognises the actual search variant. Existing review overrides, title, description, image/file handling, price and publication path unchanged.
+- `test/activity-book.test.mjs`: existing metadata assertion and new regression assertions executed against extracted actual revised bookDetails source in JS runtime. 264 combinations (11 themes × four ages × six subject combinations) plus exact Christmas output and search-variant checks passed. Full Node dependency-based PDF/archive suite and live Android upload remain unverified.
+- Netlify current deployment observed ready `6b0848f42a25ccca0c078eac`. Non-production commits use [skip netlify]; connector does not expose branch build settings. No production merge, deployment, AI request, seller write or Work credits authorised. Next: reviewed PR and explicit release approval.
+- Tags are product-relevant search hypotheses, not verified keyword-volume or conversion claims.
+
+---
+
 ## CURRENT PROJECT SNAPSHOT — 25 November 2026: Complete repeat-PNG compatibility LIVE
 - Pattern Forge PR #57 is LIVE: release `45a6e4f7596f86e23b37b5bf64d409d99d047531`, READY production/main deploy `6b06fbaf9ed5a4dcad3d1885`, published 2026-11-25T15:16:20.212Z, error null. Release tree exactly matches reviewed head `e74065d7ce057fce8a281a94c8dcfa8ee8d309b4` / `555a0567f50a8af46acbe4798f455b8606ea11b2`.
 - Compatible uploader PR #136 is LIVE: release `09b9b1df1ec82372541ee687524c1e774b83e6eb`, READY deploy `6b06fb567234de1af9e7dff6`, published 2026-11-25T15:14:46.833Z. One existing production build per affected app; development and documentation commits skip Netlify.

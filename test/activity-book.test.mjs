@@ -14,3 +14,28 @@ test('only Etsy PDF content is delivered and reused outer name does not determin
  await assert.rejects(inspectActivityBook(await zipFiles(entries.filter(e=>!e.name.startsWith('Etsy/')))),/artwork|Etsy/);
 });
 test('invalid age or 40-page manifest rejected',()=>{assert.throws(()=>bookDetails(plan('unknown')));assert.throws(()=>bookDetails({...plan(),endMatter:[]}));});
+
+test('activity-book tags balance theme, age, subjects, activities and broad buying intent',()=>{
+ const themed=(title,age='5-6',areas=['bsl','music','hand','math','spell','maze','color'])=>({...plan(age,areas),title,pages:plan(age,areas).pages.map(p=>({...p,title:p.area==='spell'?'Word Search':p.area==='music'?'Name the Note':'Activity',variant:p.area==='spell'?'search':p.area==='music'?'note-name':undefined}))});
+ const cases=[['Hen & Bea’s Christmas Adventure','christmas'],['Dinosaur Adventure','dinosaur'],['Ocean Adventure','ocean'],['Space Adventure','space'],['Easter Adventure','easter'],['Hen & Bea Activity Book',''],['Hen & Bea’s Robot Adventure','robot'],['Woodland','woodland'],['Summer','summer'],['Halloween','halloween'],['Hen & Bea’s Fairy Garden','nature']];
+ const groups=[['bsl','music','hand','math','spell','maze','color'],['math','hand','maze'],['math'],['color'],['bsl'],['spell']];
+ for(const [title,theme] of cases)for(const age of ['4-5','5-6','6-7','7-8'])for(const areas of groups){
+  const d=bookDetails(themed(title,age,areas)),tags=d.tags;
+  assert.equal(tags.length,13);assert.equal(new Set(tags).size,13);assert.ok(tags.every(t=>t.length<=20));
+  assert.ok(tags.includes('ages '+age.replace('-',' ')));
+  assert.ok(tags.includes('kids activities'));assert.ok(tags.includes('holiday activities'));
+  if(theme)assert.ok(tags.includes(theme+' activities'));
+  else assert.ok(!tags.some(t=>/christmas|hen|bea/.test(t)));
+  if(!areas.includes('bsl'))assert.ok(!tags.some(t=>/\bbsl\b/.test(t)));
+  if(!areas.includes('music'))assert.ok(!tags.some(t=>/\bmusic\b/.test(t)));
+  if(!areas.includes('spell'))assert.ok(!tags.some(t=>/word ?search|^spelling practice$/.test(t)));
+  if(!areas.includes('maze'))assert.ok(!tags.some(t=>/maze/.test(t)));
+ }
+ const christmas=bookDetails(themed(cases[0][0])).tags;
+ for(const t of ['christmas activities','christmas printable','christmas holiday','christmas wordsearch','maths worksheets','music worksheets','bsl fingerspelling','handwriting practice','kids mazes','kids activities','holiday activities'])assert.ok(christmas.includes(t),t);
+ const ref=themed('Ocean','5-6',['music']);ref.pages=ref.pages.map(p=>({...p,title:'Music Symbols and Notation',variant:'music-reference'}));assert.ok(bookDetails(ref).tags.includes('music notation'));
+});
+test('search variant is recognised without a descriptive page title',()=>{
+ const p=plan('5-6',['spell']);p.pages=p.pages.map(x=>({...x,title:'Activity',variant:'search'}));
+ assert.ok(bookDetails(p).hasSearch);assert.ok(bookDetails(p).tags.includes('kids word search'));
+});
