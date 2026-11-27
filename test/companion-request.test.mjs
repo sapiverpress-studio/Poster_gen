@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {companionRequested,queueCompanionRequest} from '../lib/companion-request.mjs';
+const id='a'.repeat(32),h='b'.repeat(64),a='c'.repeat(64),asset={type:'digital',sourceKind:'activity-book',metadata:{kind:'activity-book'},approvalHash:a,sourceHash:h,plan:{sourceHash:h},archiveKey:'uploads/'+id+'/original.zip'};
+const fields=new URLSearchParams({publicCompanionApproved:'yes'});
+test('public web opt-in is scoped to activity books',()=>{assert.equal(companionRequested(asset,fields),true);assert.equal(companionRequested(asset,new URLSearchParams()),false);assert.equal(companionRequested({...asset,sourceKind:'seller-kit'},fields),false);});
+test('queue is idempotent and refuses changed source',async()=>{const records=new Map(),uploads={async setJSON(k,v){if(!records.has(k))records.set(k,v);},async get(k){return records.get(k)||null;}};assert.equal(await queueCompanionRequest({uploads,id,asset}),true);assert.equal(await queueCompanionRequest({uploads,id,asset}),true);await assert.rejects(queueCompanionRequest({uploads,id,asset:{...asset,sourceHash:a,plan:{sourceHash:a}}}));});
