@@ -1,0 +1,7 @@
+pypdf
+reportlab
+pypdfium2
+qrcode
+opencv-python-headless
+numpy
+Pillow
