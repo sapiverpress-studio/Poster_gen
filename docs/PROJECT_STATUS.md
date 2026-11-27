@@ -1,3 +1,11 @@
+## 27 November 2026 — Protected Christmas companion pilot via SapiverForge
+- Owner specifically requested the existing published book's companion site through SapiverForge (or Comic). Selected SapiverForge because the existing Netlify credential and cross-repo handoff already reside there. Comic/social, Etsy seller records, production app code and existing sites remain unchanged.
+- Poster_gen main: companion-ops/export-pilot.mjs, companion-ops/companion-pilot-package.py and separate companion_pilot mode in .github/workflows/poster-publication.yml. Exact Etsy listing 4626688605, owner actor, reviewed original archive SHA-256 and book identity required. Uses existing OIDC read-only storage bridge. Only companion HTML and 38 JPEGs plus site headers/receipt are packaged; encrypted AES-GCM with one-use RSA-OAEP recipient key before any public Actions artifact. No plaintext archive, assets, print files, font binaries or keys committed. No Etsy calls.
+- SapiverForge workflow deploy-hen-bea-companion-pilot.yml, scripts/hen-bea-companion-handoff.mjs and scripts/verify-hen-bea-companion-pilot.py; target only the newly created, team-SSO-protected Netlify project hen-bea-activity-books, site ID 3acb3dff-6d23-4fcc-8f4c-5b29ee1dd79f. Separate deployment; refuses already published target. First workflow run 45985862715 failed workflow validation without executing a job; moved runner temporary directory setup into a step; corrected run 45985913616 in progress. Full encrypted handoff, live website and QR destination NOT YET VERIFIED. No production uploader change; no KDP approval.
+- Next: verify run, Netlify Ready and owner browser activity test. Do not remove protection or change receipt to published without confirming online illustration/font rights and permanent URL. Existing QR is review-only. One pilot only; generalised uploader automation is separate.
+
+---
+
 ### 2026-11-21 18:35 GMT — Existing Etsy image alt-text backfill: 267 new descriptions, no Netlify build
 
 - **Owner authorisation:** Jim instructed completion of missing image alt text using Etsy seller API, protecting SKUs, inventory, fulfilment, image IDs/ranks, customer files, photos, pricing and shipping. No Work credits or Netlify deployment authorised or used.
